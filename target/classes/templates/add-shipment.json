@@ -1,0 +1,89 @@
+{
+ "templatename":"Add sample shipment",
+ "template":"
+## ########################\\n
+## Add a sample shipment\\n
+## ########################\\n
+#set( $dtFormat = \"dd-MMM-yyyy\" )\\n
+#set( $delim = \"[|]\" )\\n
+#if( !$upload )\\n
+#stop\\n
+#end\\n
+#set( $mandatoryCols = 5 )\\n
+#set( $lines = $upload.readLines() )\\n
+start processing upload $upload.getUploadid() $upload.getUploaded()\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", \"User $user.username initiated sample shipment annotation. ${lines.size()} lines read.\" ) )\\n
+${lines.size()} lines read\\n
+#foreach( $line in $lines )\\n
+#set( $columns = $line.split( $delim ) )\\n
+#if( $columns.size() < $mandatoryCols )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Columns expected ${mandatoryCols}, read ${columns.size()}.\" ) )\\n
+#else\\n
+## ########################\\n
+## check if study exists\\n
+## ########################\\n
+#set( $study = $db.findStudyByName( \"${columns.get(0)}\" ) )\\n
+#if( $study )\\n
+## ########################\\n
+## create sender laboratory entry if needed\\n
+## ########################\\n
+#set( $sender = $db.findOrganizationByName( \"${columns.get(2)}\" ) )\\n
+#if( !$sender )\\n
+#set( $sender = $db.createOrganization( \"${columns.get(2)}\", \"central laboratory\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"An organization has been created: ${sender.getOrgname()}.\" ) )\\n
+#end\\n
+## ########################\\n
+## check if accession exists\\n
+## ########################\\n
+#set( $sample = $db.findSampleById( \"_unknown_\" ) )\\n
+#set( $accession = $db.findAccession( $study, $sender, \"${columns.get(1)}\" ) )\\n
+#if( $accession.size() <= 0 )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Cannot find sample accession ${columns.get(1)}.\" ) )\\n
+#elseif( $accession.size() > 1 )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"$accession.size() accessions found for ${columns.get(1)}.\" ) )\\n
+#else\\n
+#set( $sample = $db.findSampleById( \"${accession.get(0).getSampleid()}\" ) )\\n
+#end\\n
+#if( !$sample )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Cannot find sample of accession ${columns.get(1)}.\" ) )\\n
+#else\\n
+## ########################\\n
+## create shipment event\\n
+## ########################\\n
+#set( $event = $db.createShipmentEvent( $sender, \"\" ) )\\n
+#if( !$event )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Cannot create shipment event of sample ${columns.get(1)}.\" ) )\\n
+#else\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Shipment event $event created. sender is $sender.\" ) )\\n
+#set( $shipEvent = $db.assignShipmentEvent( ${user.getUserid()}, $event, $sample, \"${columns.get(3)}\", \"$dtFormat\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Sample $sample shipped from $sender on ${columns.get(3)}\" ) )\\n
+#end\\n
+## ########################\\n
+## create receiving laboratory if needed\\n
+## ########################\\n
+#set( $receiver = $db.findOrganizationByName( \"${columns.get(4)}\" ) )\\n
+#if( !$receiver )\\n
+#set( $receiver = $db.createOrganization( \"${columns.get(4)}\", \"central laboratory\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"An organization has been created: ${receiver.getOrgname()}.\" ) )\\n
+#end\\n
+## ########################\\n
+## create receiver event\\n
+## ########################\\n
+#set( $received = $db.createReceiverEvent( $receiver, \"\" ) )\\n
+#if( !$received )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Cannot create receiver event of sample ${columns.get(1)}.\" ) )\\n
+#else\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Receiver event $received created. Receiver is $receiver.\" ) )\\n
+#set( $recvEvent = $db.assignReceiverEvent( ${user.getUserid()}, $received, $sample, \"${columns.get(3)}\", \"$dtFormat\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Sample $sample received by $receiver on ${columns.get(3)}\" ) )\\n
+#end\\n
+#end\\n
+#else\\n
+## ########################\\n
+## study does not exist\\n
+## ########################\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Study ${columns.get(0)} does not exist\" ) )\\n
+#end\\n
+#end\\n
+#end\\n"
+}

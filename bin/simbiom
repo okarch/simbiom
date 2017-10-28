@@ -1,0 +1,230 @@
+#!/bin/sh
+
+ENDPOINT=localhost:8080
+APIKEY=220466
+SIMBIOMJAR=simbiom-dao-1.0.jar
+JAVA_CMD=`which java`
+
+if [ "$1" = "" -o "$1" = "-h" ]; then
+    echo
+    echo "Usage: $0 [<options>] <command>"
+    echo
+    echo "  <command>:"
+    echo
+    echo "    start                                        starts the REST endpoint"
+    echo "    stop                                         stops the REST endpoint"
+    echo
+    echo "    listtype [<name>]                            lists all sample types (matching the name if provided)"
+    echo "    newtype <json-file>                          creates a new sample type by posting the given json file"
+    echo
+    echo "    newtemplate <json-file>                      creates a new upload template by posting the given json file"
+    echo "    updatetemplate <json-file>                   updates an existing upload template by posting the given json file"
+    echo "    upload <data-file> [<template>]              creates a new sample type by posting the given json file"
+    echo
+    echo "    listcost [<service>]                         lists sample related costs"
+    echo "    addcost <json-file> <estimateid> <numitems>  adds the cost item as specified in json-file to the cost estimate. The "
+    echo "    updatecost <json-file>                       updates a cost estimate"
+    echo
+    echo "    verify                                       verifies that simbiom service works"
+    echo
+    echo "  <options>:"
+    echo
+    echo "    -h                                           displays this help screen"
+    echo
+    exit 1
+fi
+
+logdir=`dirname $0`/../log
+targetdir=`dirname $0`
+
+template=
+reqMethod=GET
+reqHeader=
+command=$1
+cmdset=0
+qset=0
+pset=0
+template=default
+
+for a do
+
+  if [ "$a" = "-h" ]; then
+      echo
+      echo "Usage: $0 [<options>] <command>"
+      echo
+      echo "  <command>:"
+      echo
+      echo "    start                                        starts the REST endpoint"
+      echo "    stop                                         stops the REST endpoint"
+      echo
+      echo "    listtype [<name>]                            lists all sample types (matching the name if provided)"
+      echo "    newtype <json-file>                          creates a new sample type by posting the given json file"
+      echo
+      echo "    newtemplate <json-file>                      creates a new upload template by posting the given json file"
+      echo "    updatetemplate <json-file>                   updates an existing upload template by posting the given json file"
+      echo "    upload <data-file> [<template>]              creates a new sample type by posting the given json file"
+      echo
+      echo "    listcost [<service>]                         lists sample related costs"
+      echo "    addcost <json-file> <estimateid> <numitems>  adds the cost item as specified in json-file to the cost estimate. The "
+      echo "    updatecost <json-file>                       updates a cost estimate"
+      echo
+      echo "    verify                                       verifies that simbiom service works"
+      echo 
+      echo "  <options>:"
+      echo
+      echo "    -h                                           displays this help screen"
+      echo
+      exit 1
+  fi
+
+  if [ $cmdset -eq 0 -a $a = "listtype" ]; then
+      command=$a
+      cmdset=1
+  elif [ $cmdset -eq 0 -a $a = "start" ]; then
+      command=$a
+      cmdset=1
+  elif [ $cmdset -eq 0 -a $a = "verify" ]; then
+      command=$a
+      cmdset=1
+  elif [ $cmdset -eq 0 -a $a = "newtype" ]; then
+      command=$a
+      reqMethod=POST
+      cmdset=1
+  elif [ $cmdset -eq 0 -a $a = "newtemplate" ]; then
+      command=$a
+      reqMethod=POST
+      cmdset=1
+  elif [ $cmdset -eq 0 -a $a = "updatetemplate" ]; then
+      command=$a
+      reqMethod=POST
+      cmdset=1
+  elif [ $cmdset -eq 0 -a $a = "upload" ]; then
+      command=$a
+      reqMethod=POST
+      cmdset=1
+  elif [ $cmdset -eq 0 -a $a = "updatecost" ]; then
+      command=$a
+      reqMethod=POST
+      cmdset=1
+  elif [ $cmdset -eq 0 -a $a = "addcost" ]; then
+      command=$a
+      reqMethod=POST
+      cmdset=1
+  elif [ $cmdset -eq 0 -a $a = "listcost" ]; then
+      command=$a
+      cmdset=1
+  elif [ $pset -eq 1 ]; then
+      param3=$a
+      pset=0
+  elif [ $qset -eq 1 ]; then
+      template=$a
+      qset=0
+      pset=1
+  elif [ $cmdset -eq 1 ]; then
+      qname=$a
+      qset=1
+      cmdset=0
+  fi
+
+done
+
+if [ "$command" = "start" ]; then
+    if [ "$JDK_HOME" != "" ]; then
+	JAVA_CMD=$JDK_HOME/bin/java
+    elif [ "$JAVA_HOME" != "" ]; then
+	JAVA_CMD=$JAVA_HOME/bin/java
+    fi
+    echo "starting REST endpoint..."
+    if [ -e $targetdir/$SIMBIOMJAR ]; then
+	$JAVA_CMD -jar $targetdir/$SIMBIOMJAR >$logdir/simbiom-`date +%Y-%m-%d_%H:%M`.log &
+    else
+	echo
+	echo "Error: cannot locate $targetdir/$SIMBIOMJAR"
+	echo
+	exit 2
+    fi
+elif [ "$command" = "stop" ]; then
+    procid=`ps -ef | grep simbiom-dao | grep jar | awk '{ print $2 }'`
+    if [ "$procid" != "" ]; then
+	echo "Stopping process $procid"
+	kill $procid
+    fi
+elif [ "$command" = "listtype" ]; then
+    curl http://$ENDPOINT/sample/type
+    echo
+elif [ "$command" = "listcost" ]; then
+    typest=""
+    if [ "$qname" != "" ]; then
+	typest="?type=$qname"
+    fi
+    curl http://$ENDPOINT/cost/sample$typest
+    echo
+elif [ "$command" = "verify" ]; then
+    vTest=`curl http://$ENDPOINT/health 2>/dev/null | grep '{"status":"UP"}'`
+    if [ "$vTest" = "" ]; then
+	exit 2
+    fi
+elif [ "$command" = "newtype" ]; then
+    if [ "$qname" != "" ]; then
+	curl -X POST --header "Content-Type: application/json" -d@$qname http://$ENDPOINT/sample/type/create
+	echo
+    else
+	echo
+	echo "Error: cannot read from empty file"
+	echo
+	exit 2
+    fi
+elif [ "$command" = "upload" ]; then
+    if [ "$qname" != "" ]; then
+	curl -X POST --form file=@$qname http://$ENDPOINT/inventory/upload/$APIKEY/$template
+	echo
+    else
+	echo
+	echo "Error: cannot read from empty file"
+	echo
+	exit 2
+    fi
+elif [ "$command" = "newtemplate" ]; then
+    if [ "$qname" != "" ]; then
+	curl -X POST --header "Content-Type: application/json" -d@$qname http://$ENDPOINT/inventory/template/create
+	echo
+    else
+	echo
+	echo "Error: cannot read from empty file"
+	echo
+	exit 2
+    fi
+elif [ "$command" = "updatetemplate" ]; then
+    if [ "$qname" != "" ]; then
+	curl -X POST --header "Content-Type: application/json" -d@$qname http://$ENDPOINT/inventory/template/update
+	echo
+    else
+	echo
+	echo "Error: cannot read from empty file"
+	echo
+	exit 2
+    fi
+elif [ "$command" = "updatecost" ]; then
+    if [ "$qname" != "" ]; then
+	curl -X POST --header "Content-Type: application/json" -d@$qname http://$ENDPOINT/cost/estimate/update
+	echo
+    else
+	echo
+	echo "Error: cannot read from empty file"
+	echo
+	exit 2
+    fi
+elif [ "$command" = "addcost" ]; then
+    if [ "$qname" != "" ]; then
+	curl -X POST --header "Content-Type: application/json" -d@$qname http://$ENDPOINT/cost/estimate/add/$template/$param3
+	echo
+    else
+	echo
+	echo "Error: cannot read from empty file"
+	echo
+	exit 2
+    fi
+fi
+
+
+

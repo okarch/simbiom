@@ -1,0 +1,165 @@
+{
+ "templatename":"Add shipment from Q2",
+ "template":"
+## ########################\\n
+## Add a sample shipment\\n
+## ########################\\n
+#set( $dtFormat = \"dd-MMM-yyyy\" )\\n
+#set( $delim = \"[|]\" )\\n
+#if( !$upload )\\n
+#stop\\n
+#end\\n
+#set( $mandatoryCols = 10 )\\n
+#set( $lines = $upload.readLines() )\\n
+start processing upload $upload.getUploadid() $upload.getUploaded()\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", \"Upload ${template.getTemplatename()} initiated by ${user.username}.\" ) )\\n
+${lines.size()} lines read\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", \"${lines.size()} lines read.\" ) )\\n
+#foreach( $line in $lines )\\n
+#if( $velocityCount > 1 )\\n
+#set( $columns = $line.split( $delim ) )\\n
+#if( $columns.size() < $mandatoryCols )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Columns expected ${mandatoryCols}, read ${columns.size()}.\" ) )\\n
+#else\\n
+## ########################\\n
+## create study if not existing\\n
+## ########################\\n
+#set( $studyName = $studies.formatName( \"${columns.get(3)}\" ) )\\n
+#set( $study = $db.findStudyByName( \"$studyName\" ) )\\n
+#if( !$study )\\n
+#set( $study = $db.createStudy( \"$studyName\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"Study created: ${study.getStudyname()}.\" ) )\\n
+#end\\n
+## ########################\\n
+## create sender laboratory entry if needed\\n
+## ########################\\n
+#set( $sender = $db.findOrganizationByName( \"${columns.get(0)}\" ) )\\n
+#if( !$sender )\\n
+#set( $sender = $db.createOrganization( \"${columns.get(0)}\", \"central laboratory\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"An organization has been created: ${sender.getOrgname()}.\" ) )\\n
+#end\\n
+## ########################\\n
+## create sample and accession if needed\\n
+## ########################\\n
+#set( $sample = $db.findSampleById( \"_unknown_\" ) )\\n
+#set( $accession = $db.findAccession( $study, $sender, \"${columns.get(6)}\" ) )\\n
+#if( $accession.size() <= 0 )\\n
+#set( $sampleType = ${samples.mapType( \"${columns.get(10)}\" )} )\\n
+#set( $sample = $db.createSample( ${user.getUserid()}, \"$sampleType\" ) )\\n
+#set( $newAcc = $db.createAccession( ${user.getUserid()}, $sender, $sample, \"${columns.get(6)}\", \"primary\" ) )\\n
+#set( $studySample = $db.assignStudySample( ${user.getUserid()}, $study, $sample ) )\\n
+#set( $sampleName = \"${columns.get(10)} ${columns.get(6)}\" )\\n
+$!sample.setSamplename( \"$sampleName\" )\\n
+sample created: $sample\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Sample created: $sample.\" ) )\\n
+#elseif( $accession.size() <= 1 )\\n
+#set( $sample = $db.findSampleById( \"${accession.get(0).getSampleid()}\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Existing sample: $sample.\" ) )\\n
+#else\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Multiple accessions found: $accession.size(). Cannot create sample record.\" ) )\\n
+#end\\n
+#if( !$sample )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Cannot find sample of accession ${columns.get(6)}.\" ) )\\n
+#else\\n
+## ########################\\n
+## create site entry if needed\\n
+## ########################\\n
+#set( $site = $db.findOrganizationByName( \"${study.getStudyname()} study site ${columns.get(4)}\" ) )\\n
+#if( !$site )\\n
+#set( $site = $db.createOrganization( \"${study.getStudyname()} study site ${columns.get(4)}\", \"clinical site\" ) )\\n
+$!site.setSiteid( \"${columns.get(4)}\" )\\n
+#set( $site = $db.storeOrganization( $site ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"An organization has been created: ${site.getOrgname()}.\" ) )\\n
+#end\\n
+## ########################\\n
+## create subject if required\\n
+## ########################\\n
+#set( $subjectId = $subjects.formatSubjectId( \"${site.getSiteid()}\", \"${columns.get(5)}\", \"%{site:???}%{subject:---????}\" ) )\\n
+#set( $subject = $db.findSubjectByName( $study, $subjectId ) )\\n
+#if( !$subject )\\n
+#set( $subject = $db.createSubject( $study, \"$subjectId\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"Subject has been created: ${subject.getSubjectid()}.\" ) )\\n
+#end\\n
+## ########################\\n
+## assign donor\\n
+## ########################\\n
+#set( $donors = $db.findSampleDonor( $sample ) )\\n
+#if( $donors.size() <= 0 )\\n
+#set( $donor = $db.assignDonor( ${user.getUserid()}, $subject, $sample ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Sample $sample assigned to subject $subject.\" ) )\\n
+#end\\n
+## ########################\\n
+## create visit information\\n
+## ########################\\n
+#set( $events = $db.findSiteEvent( $site, \"${columns.get(7)}\" ) )\\n
+#set( $event = $db.findEventById( 0 ) )\\n
+#if( $events.size() <= 0 )\\n
+#set( $event = $db.createSiteEvent( $site, \"${columns.get(7)}\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Created sample event $event at site $site.\" ) )\\n
+#else\\n
+#set( $event = ${events.get(0)} )\\n
+#end\\n
+#if( $events.size() > 1 )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Ambiguous sample event ${columns.get(7)}.\" ) )\\n
+#else\\n
+## ########################\\n
+## assign sample to site event\\n
+## ########################\\n
+#set( $collect = $db.findCollectionProcess( $event, $sample ) )\\n
+#set( $collExist = \"\" )\\n
+#set( $logLevel = \"INFO\" )\\n
+#if( $collect )\\n
+#set( $logLevel = \"WARN\" )\\n
+#set( $collExist = \"already\" )\\n
+#end\\n
+## ########################\\n
+## assign collection event\\n
+## ########################\\n
+#set( $dtFormat = \"dd-MMM-yyyy\" )\\n
+#if( $columns.size() > 8 )\\n
+#set( $collDate = ${columns.get(8)} )\\n
+#if( ($columns.size() > 9) && ($upload.getColumn(9) == \"COLLECTION TIME\") )\\n
+#set( $dtFormat = \"dd-MMM-yyyy hh:mm\" )\\n
+#set( $collDate = \"$collDate ${columns.get(9)}\" )\\n
+#end\\n
+#else\\n
+#set( $collDate = \"\" )\\n
+#end\\n
+#set( $collect = $db.assignCollectionEvent( ${user.getUserid()}, $event, $sample, \"${collDate.trim()}\", \"$dtFormat\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, $logLevel, $velocityCount, \"Collection $collect $collExist assigned.\" ) )\\n
+#end\\n
+## ########################\\n
+## create shipment event\\n
+## ########################\\n
+#set( $event = $db.createShipmentEvent( $sender, \"\" ) )\\n
+#if( !$event )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Cannot create shipment event of sample ${columns.get(6)}.\" ) )\\n
+#else\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Shipment event $event created. sender is $sender.\" ) )\\n
+#set( $shipEvent = $db.assignShipmentEvent( ${user.getUserid()}, $event, $sample, \"${columns.get(2)}\", \"\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Sample $sample shipped from $sender on ${columns.get(2)}\" ) )\\n
+#end\\n
+## ########################\\n
+## create receiving laboratory if needed\\n
+## ########################\\n
+#set( $receiver = $db.findOrganizationByName( \"${columns.get(1)}\" ) )\\n
+#if( !$receiver )\\n
+#set( $receiver = $db.createOrganization( \"${columns.get(1)}\", \"central laboratory\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"An organization has been created: ${receiver.getOrgname()}.\" ) )\\n
+#end\\n
+## ########################\\n
+## create receiver event\\n
+## ########################\\n
+#set( $received = $db.createReceiverEvent( $receiver, \"\" ) )\\n
+#if( !$received )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Cannot create receiver event of sample ${columns.get(6)}.\" ) )\\n
+#else\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Receiver event $received created. Receiver is $receiver.\" ) )\\n
+#set( $recvEvent = $db.assignReceiverEvent( ${user.getUserid()}, $received, $sample, \"${columns.get(2)}\", \"\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Sample $sample received by $receiver on ${columns.get(2)}\" ) )\\n
+#end\\n
+#end\\n
+#end\\n
+#end\\n
+#end\\n"
+}

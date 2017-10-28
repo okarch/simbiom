@@ -1,0 +1,594 @@
+<?xml version="1.0" encoding="UTF-8"?><Model version="5.0">
+    <Configuration>
+        <Property name="dialect" value="MySQLDialect"/>
+        <Property name="ALIAS" value="Biobank"/>
+        <Property name="DRIVER" value="com.mysql.jdbc.Driver"/>
+        <Property name="PASSWORD" value="biobank"/>
+        <Property name="PROMPTFORPASSWORD" value="false"/>
+        <Property name="URL" value="jdbc:mysql://localhost/biobank"/>
+        <Property name="USER" value="biobank"/>
+    </Configuration>
+    <CustomTypes/>
+    <Domains/>
+    <Tables>
+        <Table id="9cf8c6e6-211f-4f3b-b87e-0b000a6c0316" name="t_sample_type" schema="">
+            <Property name="LOCATION" value="22:6"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="4bc4f03f-8911-4ba9-99bf-b8da8afec56a" name="typeid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="730bd752-ed37-4fb2-b3ef-b2983bdfca22" name="typename" nullable="true" scale="10" size="80"/>
+            <Attribute datatype="TIMESTAMP" defaultvalue="CURRENT_TIMESTAMP" extra="" fraction="0" id="7c9aed1d-2b9b-4066-b83d-f367d233d8b7" name="created" nullable="false" scale="10" size="0"/>
+            <Index id="a0ce8a19-2888-42ee-ab64-24c2d02c9014" indextype="PRIMARYKEY" name="PK_t_sample_type">
+                <Indexattribute attributerefid="4bc4f03f-8911-4ba9-99bf-b8da8afec56a" id="b7daeeee-f4a4-40ff-8293-2b903cc4d4e5"/>
+            </Index>
+            <Index id="91ba4f69-b359-4aba-915f-cf7e9140687c" indextype="NONUNIQUE" name="i_sty_typ">
+                <Indexattribute attributerefid="730bd752-ed37-4fb2-b3ef-b2983bdfca22" id="870993fa-b8df-4329-abb3-608c5df7c560"/>
+            </Index>
+        </Table>
+        <Table id="f4bcdc39-3881-4a31-ae7f-e64a83bdcd66" name="t_sample_studymember" schema="">
+            <Property name="LOCATION" value="394:417"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="fe79c5f4-d09d-46ee-b281-7cf6632f5b1b" name="sampleid" nullable="true" scale="10" size="36"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="875f49a2-8e2a-44eb-ad63-de2522022f55" name="studyid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="0f31ccd8-2b65-4f92-80ff-1fc42f7db4da" name="trackid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="6b3b5741-e137-40c5-ad8d-8aa5fee8999f" name="FK_t_sample_sampleid" nullable="false" scale="10" size="36"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="102f010d-ed27-4e6c-94c6-c678420af445" name="FK_t_sample_study_studyid" nullable="false" scale="10" size="19"/>
+            <Index id="9cc89043-f677-4a7d-9f05-a5f61590ba56" indextype="NONUNIQUE" name="i_ssm_soi">
+                <Indexattribute attributerefid="fe79c5f4-d09d-46ee-b281-7cf6632f5b1b" id="ce80dfff-c6ec-400d-8ede-8a1bb16641b3"/>
+            </Index>
+            <Index id="28151c62-1413-4786-9c4f-8759ede2c478" indextype="NONUNIQUE" name="i_ssm_ssi">
+                <Indexattribute attributerefid="875f49a2-8e2a-44eb-ad63-de2522022f55" id="d91a5616-1a94-49bd-920a-080a45ba27ea"/>
+            </Index>
+            <Index id="f6b2507a-981a-4f48-8d02-5ae464dc860e" indextype="NONUNIQUE" name="i_ssm_tid">
+                <Indexattribute attributerefid="0f31ccd8-2b65-4f92-80ff-1fc42f7db4da" id="0a7500c0-2dcf-4fa2-ae7d-d0d39c807793"/>
+            </Index>
+        </Table>
+        <Table id="3243737f-9eb0-4fdb-99e5-23b7023db2fa" name="t_sample_property_value" schema="">
+            <Property name="LOCATION" value="1686:709"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="c0fe5ba6-2e7d-4fc7-87f9-ecf4263f5873" name="valid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="18a83a71-aea7-4edd-b5ff-ec8f09c67873" name="propid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="2c5f8fe3-bd07-49d6-86d9-96bb269415c9" name="sampleid" nullable="true" scale="10" size="36"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="ccbc10d4-9d54-486a-be5f-63386b567773" name="charvalue" nullable="true" scale="10" size="254"/>
+            <Attribute datatype="DOUBLE" defaultvalue="" extra="" fraction="0" id="f9a625d8-6abb-4df4-9d9d-7953a9564cef" name="numvalue" nullable="true" scale="10" size="22"/>
+            <Attribute datatype="INT" defaultvalue="" extra="" fraction="0" id="0ca9f896-e8ba-402b-8ee2-c152877c46a6" name="rank" nullable="true" scale="10" size="10"/>
+            <Index id="a2eef24b-9259-4a37-8134-7ea1d191a8ff" indextype="PRIMARYKEY" name="PK_t_sample_property_value">
+                <Indexattribute attributerefid="c0fe5ba6-2e7d-4fc7-87f9-ecf4263f5873" id="98161b6b-4952-4fe0-a4d9-af538373bf8b"/>
+            </Index>
+            <Index id="5401cd63-673b-4817-a696-b8ff6b122cc6" indextype="NONUNIQUE" name="i_spv_pid">
+                <Indexattribute attributerefid="18a83a71-aea7-4edd-b5ff-ec8f09c67873" id="aae5865c-3f80-46aa-971d-c6809aeec8ad"/>
+            </Index>
+            <Index id="75ff02b4-724b-4ceb-bee5-0c620616047f" indextype="NONUNIQUE" name="i_spv_sid">
+                <Indexattribute attributerefid="2c5f8fe3-bd07-49d6-86d9-96bb269415c9" id="f4839bca-ed20-406e-ae3b-a297a6fd1987"/>
+            </Index>
+            <Index id="7b84c6ac-879a-46c4-9bfd-bd4b09525c0f" indextype="NONUNIQUE" name="i_spv_ran">
+                <Indexattribute attributerefid="0ca9f896-e8ba-402b-8ee2-c152877c46a6" id="6d16f79c-ae49-4fcb-9665-6a12518f35e7"/>
+            </Index>
+            <Index id="5c7fe32d-a0b5-4567-b4ac-b602546161b1" indextype="NONUNIQUE" name="i_spv_cva">
+                <Indexattribute attributerefid="ccbc10d4-9d54-486a-be5f-63386b567773" id="8dcb1ca9-27a7-4d01-8920-bff93f673fca"/>
+            </Index>
+            <Index id="6f9cc5e4-260f-4a93-b883-b16f6ab796af" indextype="NONUNIQUE" name="i_spv_nva">
+                <Indexattribute attributerefid="f9a625d8-6abb-4df4-9d9d-7953a9564cef" id="d7f7fa49-aec1-40c6-b127-ec277869be00"/>
+            </Index>
+        </Table>
+        <Table id="4a126785-36bf-40ec-aa86-d531c81353b3" name="t_sample_time" schema="">
+            <Property name="LOCATION" value="763:16"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="fc74523c-e823-4bf9-b107-d26d9a3bff80" name="timeid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="d112a1cf-4ecb-4e5a-b128-9ba0aa825a3d" name="orgid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="719cf84b-ba22-43de-9fde-aa0e16e9fb9b" name="visit" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="42ef3c82-74a7-4a21-8362-e8bd6529bf73" name="cycle" nullable="true" scale="10" size="10"/>
+            <Attribute datatype="INT" defaultvalue="" extra="" fraction="0" id="53a3d4bf-5ba9-4436-bd70-1904025a6732" name="day" nullable="true" scale="10" size="10"/>
+            <Attribute datatype="FLOAT" defaultvalue="" extra="" fraction="0" id="1dfa09e3-f299-4fd7-9632-89378ec9749c" name="hour" nullable="true" scale="10" size="12"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="c9856427-3e23-4377-8cb8-5baaad37920e" name="dosage" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="FLOAT" defaultvalue="" extra="" fraction="0" id="f2d7a746-fa8b-4df5-af34-378a594465ca" name="quantity" nullable="true" scale="10" size="12"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="55d7c66b-89dc-41ae-8ac3-043de57e9732" name="unit" nullable="true" scale="10" size="10"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="7361fd62-7c28-46c1-8ca6-84a15271718f" name="FK_t_sample_organization_orgid" nullable="false" scale="10" size="19"/>
+            <Index id="67567f38-a2a2-4f62-928c-74dd2cb120e4" indextype="PRIMARYKEY" name="PK_t_sample_time">
+                <Indexattribute attributerefid="fc74523c-e823-4bf9-b107-d26d9a3bff80" id="ac3878f0-6833-4bc8-90dd-c74c5cd76d01"/>
+            </Index>
+            <Index id="83563244-2cf3-45f3-9e33-bd5e790be1d3" indextype="NONUNIQUE" name="i_sti_oid">
+                <Indexattribute attributerefid="d112a1cf-4ecb-4e5a-b128-9ba0aa825a3d" id="8465d546-19cb-4b65-ac71-bb075e1512d1"/>
+            </Index>
+            <Index id="1afdbebd-8537-4d80-86ff-1d791595524c" indextype="NONUNIQUE" name="i_sti_vis">
+                <Indexattribute attributerefid="719cf84b-ba22-43de-9fde-aa0e16e9fb9b" id="e0fe5529-7e57-4294-bc8b-a4dc7f1601dc"/>
+            </Index>
+        </Table>
+        <Table id="ec8c555c-7363-42d6-94b6-cc1d710ed4f8" name="t_sample_study" schema="">
+            <Property name="LOCATION" value="188:686"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="47b3e6d9-c4ca-4837-932e-8d8cf4767cc7" name="studyid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="1ac9383e-5736-4889-8833-7bd55228184d" name="studyname" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="TIMESTAMP" defaultvalue="CURRENT_TIMESTAMP" extra="" fraction="0" id="bcaa30d9-6ae7-4019-8787-57aec15a533a" name="started" nullable="false" scale="10" size="0"/>
+            <Attribute datatype="TIMESTAMP" defaultvalue="0000-00-00 00:00:00" extra="" fraction="0" id="e1eab235-0ff2-4de8-aaed-e1f7526b1a60" name="expire" nullable="false" scale="10" size="0"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="efbcaedc-a583-4408-bb79-ddf81006ee09" name="status" nullable="true" scale="10" size="30"/>
+            <Index id="6fe300f4-5ba1-4e8c-8603-d1ebe7836313" indextype="PRIMARYKEY" name="PK_t_sample_study">
+                <Indexattribute attributerefid="47b3e6d9-c4ca-4837-932e-8d8cf4767cc7" id="4866cdd6-92dc-4d3d-b1a1-2fba948a8af4"/>
+            </Index>
+            <Index id="03bfc6e4-c9d8-41c8-b5d3-902806d50961" indextype="NONUNIQUE" name="i_stu_nam">
+                <Indexattribute attributerefid="1ac9383e-5736-4889-8833-7bd55228184d" id="59c457da-a607-4fcb-8563-1a4659a5a773"/>
+            </Index>
+            <Index id="94406596-b745-4faf-a458-a718146e0ed6" indextype="NONUNIQUE" name="i_stu_exp">
+                <Indexattribute attributerefid="e1eab235-0ff2-4de8-aaed-e1f7526b1a60" id="e3887a71-6d4b-4438-bcac-527cfed60939"/>
+            </Index>
+        </Table>
+        <Table id="1dae329c-aa2f-4989-bcc5-068342719ef6" name="t_sample_treatment" schema="">
+            <Property name="LOCATION" value="1612:203"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="56711442-9ab9-45ad-9f87-fcaf2f49447f" name="treatid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="66425536-7f4d-49d6-84fc-43ad0f8c181b" name="treatment" nullable="true" scale="10" size="80"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="11947279-a55f-4218-91f1-ce8bc6805d25" name="treatdesc" nullable="true" scale="10" size="254"/>
+            <Index id="6073b87a-87d9-490b-b48e-8f54a7a378f4" indextype="PRIMARYKEY" name="PK_t_sample_treatment">
+                <Indexattribute attributerefid="56711442-9ab9-45ad-9f87-fcaf2f49447f" id="fd68b2b3-1d5c-41a8-95c9-27669ad51234"/>
+            </Index>
+            <Index id="ed9f5754-67c1-4d4a-9a9d-3c77e91f49db" indextype="NONUNIQUE" name="i_tre_tre">
+                <Indexattribute attributerefid="66425536-7f4d-49d6-84fc-43ad0f8c181b" id="31310573-8fd0-4627-9494-ea7e2c5043e8"/>
+            </Index>
+        </Table>
+        <Table id="d038d79f-5270-4666-9f48-003f303b4837" name="t_sample_property" schema="">
+            <Property name="LOCATION" value="1597:20"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="c42b2575-b5bb-469e-b88d-ffa244a186b0" name="propid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="cddaf700-b55d-455a-bed1-61b69112ed4f" name="proptype" nullable="true" scale="10" size="20"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="c80c67c7-f66a-4841-b2ca-cea41d2a320d" name="instanceid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="4b9e951b-925d-430f-889b-43757b0448f7" name="propname" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="c039dd28-c7b9-4217-897e-56e53f24402b" name="unit" nullable="true" scale="10" size="10"/>
+            <Index id="6f80ac66-4306-4836-8518-91c16a92f843" indextype="PRIMARYKEY" name="PK_t_sample_property">
+                <Indexattribute attributerefid="c42b2575-b5bb-469e-b88d-ffa244a186b0" id="9f17df3a-e1b8-47e9-b4df-ccd21981f1dc"/>
+            </Index>
+            <Index id="06c9c17c-2a3b-437b-837d-7fe5335f2cb7" indextype="NONUNIQUE" name="i_spr_typ">
+                <Indexattribute attributerefid="cddaf700-b55d-455a-bed1-61b69112ed4f" id="9282dd19-c009-45dc-9c58-6608c00a7869"/>
+            </Index>
+            <Index id="76750512-592c-465a-9d5e-c2bfad728970" indextype="NONUNIQUE" name="i_spr_iid">
+                <Indexattribute attributerefid="c80c67c7-f66a-4841-b2ca-cea41d2a320d" id="f1869011-c933-4c38-b20b-3a2eb173a18c"/>
+            </Index>
+        </Table>
+        <Table id="909aabec-c877-4d07-95d4-1e9fd7c6fcc4" name="t_inventory_log" schema="">
+            <Property name="LOCATION" value="1257:824"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="ed0f5dd1-e422-4a65-9456-4f358fa42961" name="logid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="cb0cf438-bbb4-473a-932b-c789f2355e51" name="uploadid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="TIMESTAMP" defaultvalue="CURRENT_TIMESTAMP" extra="" fraction="0" id="9ff74af4-8838-44ed-ae92-e6b44479d530" name="logstamp" nullable="false" scale="10" size="0"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="d70edec1-0293-463d-9486-a58c1f105729" name="level" nullable="true" scale="10" size="10"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="0e2e26bb-77ea-4707-b8f0-c8fc489c6f02" name="line" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="e857eecf-20dd-4aa5-9964-88fbb9b286b5" name="message" nullable="true" scale="10" size="80"/>
+            <Index id="5a22d332-132e-49c2-be87-68ae1d58d909" indextype="PRIMARYKEY" name="PK_t_inventory_log">
+                <Indexattribute attributerefid="ed0f5dd1-e422-4a65-9456-4f358fa42961" id="b758b118-641c-4639-a06d-11944e3ba1a9"/>
+            </Index>
+            <Index id="54ed857e-561b-4c3d-bae9-61df63ce20c3" indextype="NONUNIQUE" name="i_9a2b3ae4_9559_474d_805e_0">
+                <Indexattribute attributerefid="cb0cf438-bbb4-473a-932b-c789f2355e51" id="d3a4047d-6a05-4c63-960d-b3d0e23a9563"/>
+            </Index>
+            <Index id="17679c23-b216-4a3b-984b-8a4ddd94dee3" indextype="NONUNIQUE" name="i_e78a77f7_4248_4976_8105_0">
+                <Indexattribute attributerefid="9ff74af4-8838-44ed-ae92-e6b44479d530" id="41aa4c8a-1456-4fb0-888a-c2ea0400228a"/>
+            </Index>
+            <Index id="6c6b149e-2064-4b00-8481-6efde9e946c8" indextype="NONUNIQUE" name="i_ea096864_b68b_4edf_9ddd_e">
+                <Indexattribute attributerefid="d70edec1-0293-463d-9486-a58c1f105729" id="d2e0bb13-fa7d-4953-8d5a-297fbca2b740"/>
+            </Index>
+            <Index id="a4156e57-a223-4b23-9748-bc870effa6b7" indextype="NONUNIQUE" name="i_0bd68721_9e7a_44b1_b811_3">
+                <Indexattribute attributerefid="0e2e26bb-77ea-4707-b8f0-c8fc489c6f02" id="80c7c557-5599-4939-b58e-917fb4fc682b"/>
+            </Index>
+        </Table>
+        <Table id="8a82a3cc-40c0-4056-9d5c-4699ff509856" name="t_sample_restriction" schema="">
+            <Property name="LOCATION" value="1290:270"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="99808e5e-f527-4a8d-a991-77702877eb65" name="restrictid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="e03e93e3-7fe7-4bf1-b81e-a986e6f26cb9" name="restriction" nullable="true" scale="10" size="50"/>
+            <Index id="46bc33c4-c75a-4c1e-9938-33d7d0b9c308" indextype="PRIMARYKEY" name="PK_t_sample_restriction">
+                <Indexattribute attributerefid="99808e5e-f527-4a8d-a991-77702877eb65" id="f3a9d853-d543-4ae8-a59f-33e756be740c"/>
+            </Index>
+            <Index id="0d75553e-6151-4cbe-9326-eff042460440" indextype="NONUNIQUE" name="i_res_res">
+                <Indexattribute attributerefid="e03e93e3-7fe7-4bf1-b81e-a986e6f26cb9" id="f93febc7-2702-409d-9614-35934a74bb71"/>
+            </Index>
+        </Table>
+        <Table id="bfca0456-a851-483c-94d1-371fb12524a4" name="t_country" schema="">
+            <Property name="LOCATION" value="0:1084"/>
+            <Attribute datatype="SMALLINT UNSIGNED" defaultvalue="" extra="AUTO_INCREMENT PRIMARY KEY" fraction="0" id="8f73620b-e57b-46d3-af17-4c1526c75395" name="id" nullable="false" scale="10" size="5"/>
+            <Attribute datatype="ENUM" defaultvalue="" extra="'Antarctica','Australia','Africa','North America','South America','Europe','Asia'" fraction="0" id="923eb88e-cafd-4f07-a14e-63c6bc2f0353" name="continent" nullable="false" scale="10" size="13"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="6c47527f-2edc-45fa-b940-989358bdaa35" name="name" nullable="false" scale="10" size="200"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="3a89e01d-1ea9-4062-8832-edfe1e62ad1b" name="capital" nullable="false" scale="10" size="200"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="b5f24159-e92e-46fc-88ea-5afcfb0b8d3a" name="iso-2" nullable="false" scale="10" size="2"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="22553984-d6e1-460b-a21c-0f81566be73c" name="iso-3" nullable="false" scale="10" size="3"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="d554bc73-cc06-4cfe-bf21-affacea84026" name="ioc" nullable="false" scale="10" size="3"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="6b9b4f1a-0cbc-4228-89cf-f840d7fbfdd0" name="tld" nullable="false" scale="10" size="6"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="ae8f70a1-bf02-4078-bbd8-7518b96c786f" name="currency" nullable="false" scale="10" size="5"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="20ec5e0a-5d9b-4c48-99ee-4d100edc0d72" name="phone" nullable="false" scale="10" size="10"/>
+            <Attribute datatype="MEDIUMINT" defaultvalue="" extra="" fraction="0" id="6c6a08be-5494-402f-9991-ee6e53e28964" name="utc" nullable="true" scale="10" size="7"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="4e0aa427-a582-495e-bc4e-45c5ee379ede" name="wiki" nullable="true" scale="10" size="255"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="207dca4f-cb67-4a85-b4db-22755678447c" name="name_de" nullable="false" scale="10" size="200"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="df6d0ca0-2ba5-41c1-9148-ddd351e50a81" name="capital_de" nullable="false" scale="10" size="200"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="065a1e3a-b689-4837-878f-5d99aa1091fa" name="wiki_de" nullable="true" scale="10" size="255"/>
+            <Index id="05bbc0f5-593b-4740-9156-eec3d26b527f" indextype="PRIMARYKEY" name="PK_t_country">
+                <Indexattribute attributerefid="8f73620b-e57b-46d3-af17-4c1526c75395" id="7b9c39b1-2c8d-4a85-918d-6f448f3935f7"/>
+            </Index>
+            <Index id="edcbc698-d6f8-4908-8389-ea0b3c1ec899" indextype="NONUNIQUE" name="continent">
+                <Indexattribute attributerefid="923eb88e-cafd-4f07-a14e-63c6bc2f0353" id="ea1e4ba9-5e90-443a-870c-d486ef272d85"/>
+            </Index>
+            <Index id="cf35ce2d-fade-4757-842a-2ba4f7873fa5" indextype="NONUNIQUE" name="name-en">
+                <Indexattribute attributerefid="6c47527f-2edc-45fa-b940-989358bdaa35" id="ba06c193-c774-45be-99fa-f09f5a6f53c1"/>
+            </Index>
+        </Table>
+        <Table id="cc763bc9-fc00-4505-ae30-d3e17abec30c" name="t_sample_relocation" schema="">
+            <Property name="LOCATION" value="572:884"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="d5a770d7-a620-423e-b44a-17fbf966efb4" name="relocid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="af1f2ab1-39d8-4893-a267-7df88461f8e4" name="fromorgid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="29f41bb3-f922-473f-a31c-f85e028130e4" name="toorgid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="bfd5c5f9-94aa-4b69-ba0a-95d86e9180e9" name="containerid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="c62b4184-f0c4-4bec-bd90-86d536348b74" name="soid" nullable="true" scale="10" size="36"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="b31ae450-fb45-4031-8271-27157c78bfab" name="trackid" nullable="true" scale="10" size="19"/>
+            <Index id="29a1d074-7ae6-46f1-96b8-36a0140a3556" indextype="PRIMARYKEY" name="PK_t_sample_relocation">
+                <Indexattribute attributerefid="d5a770d7-a620-423e-b44a-17fbf966efb4" id="db0c3482-7f6b-4d7e-9251-f118a3aeccd5"/>
+            </Index>
+            <Index id="d8fea5f1-bc5b-449d-a94a-8e577f912c7d" indextype="NONUNIQUE" name="i_rel_for">
+                <Indexattribute attributerefid="af1f2ab1-39d8-4893-a267-7df88461f8e4" id="85d6dd2b-2a0c-42c8-b1b7-b5ff0efe488c"/>
+            </Index>
+            <Index id="d2575238-675e-4f32-8e8d-054c1d5377e7" indextype="NONUNIQUE" name="i_rel_tor">
+                <Indexattribute attributerefid="29f41bb3-f922-473f-a31c-f85e028130e4" id="b2f09345-dc51-45e0-82ec-ad5fc6ff46cf"/>
+            </Index>
+            <Index id="5a6f015f-6ab5-4591-8a0d-9c1a7743d7e0" indextype="NONUNIQUE" name="i_rel_con">
+                <Indexattribute attributerefid="bfd5c5f9-94aa-4b69-ba0a-95d86e9180e9" id="4d624f29-775b-4663-bdc8-d2caea543524"/>
+            </Index>
+            <Index id="5a2d1dee-9454-4b10-a673-11df942fd46b" indextype="NONUNIQUE" name="i_rel_sid">
+                <Indexattribute attributerefid="c62b4184-f0c4-4bec-bd90-86d536348b74" id="a15cbdad-9a22-4409-9f1d-01de06e73e0b"/>
+            </Index>
+            <Index id="ebd60576-772c-4625-adb0-b5ce3a9aca36" indextype="NONUNIQUE" name="i_rel_tid">
+                <Indexattribute attributerefid="b31ae450-fb45-4031-8271-27157c78bfab" id="fe284e29-5dd5-4f3f-ac98-40791d0bdbae"/>
+            </Index>
+        </Table>
+        <Table id="9eae6085-126b-4ea3-8df6-37c9c0517c46" name="t_sample_group" schema="">
+            <Property name="LOCATION" value="1432:488"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="5d458e5b-5c10-49e9-a6fd-4f585c247f89" name="groupid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="dd1a346b-094d-42d1-9679-b7d5589653e6" name="groupname" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="c25fa8ff-e70f-47f3-ae77-9087b02937b8" name="status" nullable="true" scale="10" size="30"/>
+            <Index id="e91d7755-289c-4901-a1ec-ef447ecab261" indextype="PRIMARYKEY" name="PK_t_sample_group">
+                <Indexattribute attributerefid="5d458e5b-5c10-49e9-a6fd-4f585c247f89" id="04697fce-7965-4faf-ac74-8f6b80258edd"/>
+            </Index>
+            <Index id="1ecb47f0-9ffc-4320-b9aa-8a7d73356c25" indextype="NONUNIQUE" name="i_sgr_gna">
+                <Indexattribute attributerefid="dd1a346b-094d-42d1-9679-b7d5589653e6" id="28845912-bf53-4060-b4be-9dcdd10e1b65"/>
+            </Index>
+        </Table>
+        <Table id="8303921e-0200-4df8-8cc3-0ac7f0eb7721" name="t_inventory_upload" schema="">
+            <Property name="LOCATION" value="1363:1036"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="1f6ad5cb-b246-4fd5-86ba-09869760f937" name="uploadid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="a39c4915-076c-4543-9827-238181e82b84" name="templateid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="TIMESTAMP" defaultvalue="CURRENT_TIMESTAMP" extra="" fraction="0" id="fb51ef63-33d2-4627-bd5d-9d0e56c93221" name="uploaded" nullable="false" scale="10" size="0"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="0362b886-85cf-4581-b5a6-93ada4ee26c4" name="userid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="61ee384d-1b04-4d8c-9eae-cc651701bafe" name="md5sum" nullable="true" scale="10" size="32"/>
+            <Attribute datatype="LONGTEXT" defaultvalue="" extra="" fraction="0" id="7f8bc63a-23d5-464e-b05b-e46add3d5fd8" name="upload" nullable="true" scale="10" size="2147483647"/>
+            <Index id="fac11cc7-f64a-4548-b463-c231c562478c" indextype="PRIMARYKEY" name="PK_t_inventory_upload">
+                <Indexattribute attributerefid="1f6ad5cb-b246-4fd5-86ba-09869760f937" id="3c6c38de-aae7-4db4-ab36-9a990815fc37"/>
+            </Index>
+            <Index id="705f6b13-49f6-4d43-aaed-d700cfa1fe69" indextype="NONUNIQUE" name="i_upl_tid">
+                <Indexattribute attributerefid="a39c4915-076c-4543-9827-238181e82b84" id="6dbb74c8-16a4-4f75-ab52-f40d55f23017"/>
+            </Index>
+            <Index id="cebdffdd-bf2d-4040-a58c-a56e9e5473a9" indextype="NONUNIQUE" name="i_upl_uid">
+                <Indexattribute attributerefid="0362b886-85cf-4581-b5a6-93ada4ee26c4" id="ecb03cdf-8bde-439c-a1d7-c64d1c1a4061"/>
+            </Index>
+            <Index id="a12465ea-00b9-44b0-90d1-c42b959581b7" indextype="NONUNIQUE" name="i_upl_md5">
+                <Indexattribute attributerefid="61ee384d-1b04-4d8c-9eae-cc651701bafe" id="4b816842-2f13-4dc0-abed-c4e1784184b2"/>
+            </Index>
+        </Table>
+        <Table id="6aa55206-5dc3-48a7-a79f-01a6e823467d" name="t_sample_subject" schema="">
+            <Property name="LOCATION" value="11:413"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="e9148827-4a92-4003-90c4-ce817dd615b5" name="donorid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="cc45261f-2687-4be4-bfd0-7af21c0babb2" name="studyid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="fb21f6cc-ff33-4428-87d9-4166e540d509" name="subjectid" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="dab9d023-215b-411e-978f-450f93c92892" name="species" nullable="true" scale="10" size="30"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="5f65bf3a-df02-4f6d-b275-6c2921dd5d3f" name="taxon" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="04b60980-4263-4c70-8088-d67ff80c6b94" name="FK_t_sample_study_studyid" nullable="false" scale="10" size="19"/>
+            <Index id="adbd7f23-197c-49a5-9808-877da4f0c1ce" indextype="PRIMARYKEY" name="PK_t_sample_subject">
+                <Indexattribute attributerefid="e9148827-4a92-4003-90c4-ce817dd615b5" id="9d5527a7-503c-4a63-ae39-1c2598bd1f83"/>
+            </Index>
+            <Index id="4bbf39ae-660c-48a9-86ad-898c5757442c" indextype="NONUNIQUE" name="i_sub_stu">
+                <Indexattribute attributerefid="cc45261f-2687-4be4-bfd0-7af21c0babb2" id="5356159f-b54f-4f67-80c7-e806e8c5846d"/>
+            </Index>
+            <Index id="30b238a5-99cb-44ae-b527-bfcad8a20d91" indextype="NONUNIQUE" name="i_sub_sid">
+                <Indexattribute attributerefid="fb21f6cc-ff33-4428-87d9-4166e540d509" id="1ea6ee1f-ee21-4ced-a0f6-e32239ecbc48"/>
+            </Index>
+            <Index id="482b7ad8-6286-454a-8008-0620e9a0bd5e" indextype="NONUNIQUE" name="i_sub_tax">
+                <Indexattribute attributerefid="5f65bf3a-df02-4f6d-b275-6c2921dd5d3f" id="e74708f3-2d92-463f-8ba6-c8401e7c702e"/>
+            </Index>
+        </Table>
+        <Table id="357ce94d-103a-43d5-845b-29b2c4b5ef1e" name="t_sample_container" schema="">
+            <Property name="LOCATION" value="1656:355"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="f52015ca-7c48-4c87-88f3-06bc46379592" name="containerid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="892e21d6-dc7b-49cf-be70-e9ffeb8bc76f" name="cname" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="f965678f-48f4-4db9-86be-114456582b5a" name="ctype" nullable="true" scale="10" size="20"/>
+            <Attribute datatype="FLOAT" defaultvalue="" extra="" fraction="0" id="5b144cd8-1c01-4543-b125-dc72213dba4d" name="capacity" nullable="true" scale="10" size="12"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="4a5575d4-1aa8-44cf-92c1-120a41232950" name="unit" nullable="true" scale="10" size="10"/>
+            <Index id="35fb20fc-c1aa-4c6e-b896-f570e91e4f9b" indextype="PRIMARYKEY" name="PK_t_sample_container">
+                <Indexattribute attributerefid="f52015ca-7c48-4c87-88f3-06bc46379592" id="fa1da3b6-1d51-41c3-881b-794853640466"/>
+            </Index>
+            <Index id="1cc63135-45c2-453f-88a9-465d4b04c308" indextype="NONUNIQUE" name="i_cnt_nam">
+                <Indexattribute attributerefid="892e21d6-dc7b-49cf-be70-e9ffeb8bc76f" id="65ad7400-91fa-4668-b536-638f7438c401"/>
+            </Index>
+        </Table>
+        <Table id="7451d085-a9db-43eb-8cc6-01c3d02c1c12" name="t_sample_accession" schema="">
+            <Property name="LOCATION" value="877:628"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="9aead48b-7984-478d-9ec9-ad5a6fdf52e2" name="sampleid" nullable="true" scale="10" size="36"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="0e4ce1c3-a785-4978-b597-9f9c298aefc7" name="accession" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="85415e7a-d42c-4237-abef-fab3ba2ca8d5" name="acctype" nullable="true" scale="10" size="30"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="c37cf0c4-307b-4b5b-80f1-4d6d4fb67cff" name="orgid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="cfa02d0d-1c6f-49f3-b2c0-64016b031f0d" name="trackid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="61c11a15-78f1-4045-adb1-9ed167637747" name="FK_t_sample_sampleid" nullable="false" scale="10" size="36"/>
+            <Index id="19e0e81a-e516-4199-9c25-cb8343028c0b" indextype="NONUNIQUE" name="i_sac_soi">
+                <Indexattribute attributerefid="9aead48b-7984-478d-9ec9-ad5a6fdf52e2" id="5035d577-d223-4d96-a944-b36626a17953"/>
+            </Index>
+            <Index id="b8117e36-63e8-443c-a272-7c165bb95211" indextype="NONUNIQUE" name="i_sac_acc">
+                <Indexattribute attributerefid="0e4ce1c3-a785-4978-b597-9f9c298aefc7" id="84069250-d390-424e-a264-43125d0891f6"/>
+            </Index>
+            <Index id="cbfc5e55-17d0-42d1-b5df-5425fbeebdd4" indextype="NONUNIQUE" name="i_sac_aty">
+                <Indexattribute attributerefid="85415e7a-d42c-4237-abef-fab3ba2ca8d5" id="2c9d87f1-e0ca-4423-b711-582547b48ff5"/>
+            </Index>
+            <Index id="9e91ef60-8555-4582-af1f-04ce8095459f" indextype="NONUNIQUE" name="i_sac_org">
+                <Indexattribute attributerefid="c37cf0c4-307b-4b5b-80f1-4d6d4fb67cff" id="2cbb5f5a-36b2-40e0-aba2-9b2bb8d896eb"/>
+            </Index>
+            <Index id="2d1d2aeb-a7eb-4423-895e-bdece21ba59f" indextype="NONUNIQUE" name="i_sac_tid">
+                <Indexattribute attributerefid="cfa02d0d-1c6f-49f3-b2c0-64016b031f0d" id="cb008ca7-bb24-40ba-ab1b-570d9f6b5ddf"/>
+            </Index>
+        </Table>
+        <Table id="9a159698-93c9-434d-b14b-6af9fb95d09e" name="t_storage_project" schema="">
+            <Property name="LOCATION" value="480:1402"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="f5ff0fcf-6ce4-4cb2-9e15-dd68907c7301" name="projectid" nullable="true" scale="10" size="20"/>
+            <Attribute datatype="BINARY" defaultvalue="" extra="" fraction="0" id="1c7aa3e6-4e83-4aa9-b73e-a1e91192e44f" name="projectdef" nullable="true" scale="10" size="1"/>
+        </Table>
+        <Table id="080b4435-a811-458f-ae6d-f5d0f748fe70" name="t_sample_user" schema="">
+            <Property name="LOCATION" value="802:1201"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="e35b6dad-ba1e-4f1e-b59f-07e6b484aeb4" name="userid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="9fe9dc9a-fe39-4019-a8ab-b2b2155a299b" name="muid" nullable="true" scale="10" size="20"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="7b5cb748-916f-4414-8812-6a53793796b3" name="username" nullable="true" scale="10" size="80"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="80dc7a40-96c3-47dc-af8d-e375481044ca" name="apikey" nullable="true" scale="10" size="20"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="77b1d061-c1d8-455d-8ac8-904c461f9930" name="email" nullable="true" scale="10" size="80"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="3f96b41e-cea6-4528-ac7a-da35162e1e71" name="active" nullable="true" scale="10" size="5"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="1995bd8b-d4d0-48e2-aa7b-f81268caf838" name="roles" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="TIMESTAMP" defaultvalue="CURRENT_TIMESTAMP" extra="" fraction="0" id="32d619e9-1ecb-4ba8-bcdf-ecd7fdb19e7c" name="created" nullable="false" scale="10" size="0"/>
+            <Index id="6604f776-bb54-4585-8331-c5c803d753ac" indextype="PRIMARYKEY" name="PK_t_sample_user">
+                <Indexattribute attributerefid="e35b6dad-ba1e-4f1e-b59f-07e6b484aeb4" id="cef78587-ac2c-4630-8cc6-0fe5873cd905"/>
+            </Index>
+            <Index id="97cf1391-9ab9-4e6a-947c-56aecadda88b" indextype="NONUNIQUE" name="i_sus_muid">
+                <Indexattribute attributerefid="9fe9dc9a-fe39-4019-a8ab-b2b2155a299b" id="a720f49a-5100-4254-a53b-5280e5ade8fc"/>
+            </Index>
+            <Index id="1c1ee51d-8587-44c2-a42f-c346b7543a02" indextype="NONUNIQUE" name="i_sus_una">
+                <Indexattribute attributerefid="7b5cb748-916f-4414-8812-6a53793796b3" id="ac4dd058-d386-4df3-bcf7-ff6db894479e"/>
+            </Index>
+            <Index id="781033a5-72ac-46bc-90f5-e55f2ae5cc42" indextype="NONUNIQUE" name="i_sus_api">
+                <Indexattribute attributerefid="80dc7a40-96c3-47dc-af8d-e375481044ca" id="63975027-0956-4f2b-8c55-59a0cea8205e"/>
+            </Index>
+            <Index id="0d532764-079c-48b6-b2dc-5981e33d3366" indextype="NONUNIQUE" name="i_sus_ema">
+                <Indexattribute attributerefid="77b1d061-c1d8-455d-8ac8-904c461f9930" id="1e59cefe-0f5f-4592-a042-cca3b782e18b"/>
+            </Index>
+        </Table>
+        <Table id="0e00bd5a-d44c-4087-8966-c98ea13db8f7" name="t_sample" schema="">
+            <Property name="LOCATION" value="404:149"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="a09f0613-bd18-4bcb-a949-2d98afc3bd6a" name="sampleid" nullable="false" scale="10" size="36"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="652d3efb-0af6-479a-b6bc-904553f3b52f" name="samplename" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="614bf5e8-9825-43a4-9bdc-aa9066403c78" name="typeid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="d339ce7b-718c-4509-8ff3-36eb08e0ab9f" name="stamp" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="5da935ea-565f-43c4-b157-1167c38afc14" name="trackid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="TIMESTAMP" defaultvalue="CURRENT_TIMESTAMP" extra="" fraction="0" id="3690ebe7-9543-4fdd-85d7-04563f02d4fe" name="created" nullable="false" scale="10" size="0"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="8b8be80c-9b74-445d-8726-faacf5f51375" name="FK_t_sample_type_typeid" nullable="false" scale="10" size="19"/>
+            <Index id="371a0f1b-3de7-4c73-8b11-4bc40b05afbe" indextype="PRIMARYKEY" name="PK_t_sample">
+                <Indexattribute attributerefid="a09f0613-bd18-4bcb-a949-2d98afc3bd6a" id="a6909a2f-b2fe-49ca-97fe-c695038b8d9b"/>
+            </Index>
+            <Index id="0110b2e1-6585-4c5b-800a-089405011ed7" indextype="NONUNIQUE" name="i_sam_sna">
+                <Indexattribute attributerefid="652d3efb-0af6-479a-b6bc-904553f3b52f" id="70760f17-c343-4459-8c4e-ccb7272f5a9b"/>
+            </Index>
+            <Index id="660767ae-e7d0-4b8b-b2d7-ac971730118e" indextype="NONUNIQUE" name="i_sam_sty">
+                <Indexattribute attributerefid="614bf5e8-9825-43a4-9bdc-aa9066403c78" id="e9be2996-1d7c-40ac-94e9-acbabe2690dd"/>
+            </Index>
+            <Index id="45cf3fb8-1ff7-4fba-9692-e5845907beec" indextype="NONUNIQUE" name="i_sam_tid">
+                <Indexattribute attributerefid="5da935ea-565f-43c4-b157-1167c38afc14" id="1dbf7f79-96ca-4e84-8b11-8269253a0b5d"/>
+            </Index>
+        </Table>
+        <Table id="5ff7c454-595b-4ccd-b764-b23df16c1760" name="t_sample_donor" schema="">
+            <Property name="LOCATION" value="4:164"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="797a4185-7d4c-4910-8c2c-4ff5dd416fc8" name="sampleid" nullable="true" scale="10" size="36"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="6c8c293c-e49a-4993-8f56-2727e1bbeca7" name="donorid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="d868fa5e-0bd8-4028-93fd-5ee435c53a07" name="trackid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="484d983c-5cf2-4094-b3f5-8c4c8c0fb067" name="FK_t_sample_sampleid" nullable="false" scale="10" size="36"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="be28b768-5dbd-4a04-b7de-09bddac9f512" name="FK_t_sample_subject_donorid" nullable="false" scale="10" size="19"/>
+            <Index id="f8b17527-5682-47df-b63b-2b5176e254ed" indextype="NONUNIQUE" name="i_sdo_sid">
+                <Indexattribute attributerefid="797a4185-7d4c-4910-8c2c-4ff5dd416fc8" id="33b9945f-bdda-470c-9bfa-8d178c391015"/>
+            </Index>
+            <Index id="17b46382-9be3-4329-8a9a-c622b7438b58" indextype="NONUNIQUE" name="i_sdo_did">
+                <Indexattribute attributerefid="6c8c293c-e49a-4993-8f56-2727e1bbeca7" id="21909cba-c4ee-44c5-92e0-6aa09dbdbdf5"/>
+            </Index>
+            <Index id="5572e2c8-a957-4f81-80fc-e6cb50173c1f" indextype="NONUNIQUE" name="i_sdo_tid">
+                <Indexattribute attributerefid="d868fa5e-0bd8-4028-93fd-5ee435c53a07" id="c65f38d4-5c38-4c68-aa03-44f4c2a863b4"/>
+            </Index>
+        </Table>
+        <Table id="fe04e07e-1ed6-45af-8ae2-e1d2fe751572" name="t_sample_tracker" schema="">
+            <Property name="LOCATION" value="1784:1107"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="6e4287d4-be13-4f27-8997-3839a17d78b8" name="trackid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="TIMESTAMP" defaultvalue="CURRENT_TIMESTAMP" extra="" fraction="0" id="8cbf5fb1-6e9c-4647-9157-f3bc65f40c4b" name="modified" nullable="false" scale="10" size="0"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="d20b55a3-2cbe-4ea0-b3de-73e1d77d0f9b" name="previd" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="812a0861-65bc-49cf-87d1-2aa7fd4a0692" name="item" nullable="true" scale="10" size="30"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="2cb86ec1-ff04-4f6b-86bc-ee43a2dcf2d3" name="activity" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="72b4939a-b49d-4c17-a89a-7ef16c748d63" name="uid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="c693847b-d391-48eb-924f-07710a5b8f27" name="remark" nullable="true" scale="10" size="254"/>
+            <Attribute datatype="TEXT" defaultvalue="" extra="" fraction="0" id="ba5ef3a4-84c2-449d-9b77-30bd426de9e5" name="content" nullable="true" scale="10" size="65535"/>
+            <Index id="c799ac2f-795f-412c-bbf8-64ddc3dfd1ef" indextype="PRIMARYKEY" name="PK_t_sample_tracker">
+                <Indexattribute attributerefid="6e4287d4-be13-4f27-8997-3839a17d78b8" id="5b4c3321-aca5-4215-b892-abd958dce923"/>
+            </Index>
+            <Index id="504b109a-b4c0-4052-a67d-04875d8d9274" indextype="NONUNIQUE" name="i_tra_pid">
+                <Indexattribute attributerefid="d20b55a3-2cbe-4ea0-b3de-73e1d77d0f9b" id="9756d458-0cdc-4f00-b113-cf7dd12a7679"/>
+            </Index>
+            <Index id="67593b8e-9202-48f4-a249-5174d72751e0" indextype="NONUNIQUE" name="i_tra_ite">
+                <Indexattribute attributerefid="812a0861-65bc-49cf-87d1-2aa7fd4a0692" id="3a36d795-6dfb-4c17-a1c9-b1ce9284aef5"/>
+            </Index>
+            <Index id="20b26761-ffd6-49a2-a699-0e2e0c27ff3e" indextype="NONUNIQUE" name="i_tra_uid">
+                <Indexattribute attributerefid="72b4939a-b49d-4c17-a89a-7ef16c748d63" id="c24095f0-d3e2-49b7-a20a-f8540d641b26"/>
+            </Index>
+        </Table>
+        <Table id="2c0f0b2a-b3e2-46ba-ba2c-b4c78d4a5b85" name="t_sample_containment" schema="">
+            <Property name="LOCATION" value="1306:631"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="0ec5c0c5-8a21-4c82-9b7a-ec55526eb1dd" name="containerid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="fb18b492-3b2e-4e4c-994c-530d992e2766" name="parentid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="06b71977-3f7b-4b71-bb27-63b425b13a74" name="location" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="b9e4e2a9-ced5-42f6-956a-2ef8d4c19d5f" name="soid" nullable="true" scale="10" size="36"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="bcdf5db1-c73d-47de-8153-0d876d5817b9" name="trackid" nullable="true" scale="10" size="19"/>
+            <Index id="371d184c-2c4b-455d-8c23-3c78ae96223a" indextype="NONUNIQUE" name="i_cont_cid">
+                <Indexattribute attributerefid="0ec5c0c5-8a21-4c82-9b7a-ec55526eb1dd" id="bcd6ec10-8f0c-471f-bbb4-06be9bb90414"/>
+            </Index>
+            <Index id="d1b06b8a-1749-41f0-9cc1-ce6d18092ff7" indextype="NONUNIQUE" name="i_cont_sid">
+                <Indexattribute attributerefid="b9e4e2a9-ced5-42f6-956a-2ef8d4c19d5f" id="0db53431-911c-402f-91da-4e93b4ca0516"/>
+            </Index>
+            <Index id="4b5c85fd-ea24-4eea-b333-d5b6a893db19" indextype="NONUNIQUE" name="i_cont_pid">
+                <Indexattribute attributerefid="fb18b492-3b2e-4e4c-994c-530d992e2766" id="643c4c0e-7426-4115-b4f1-9e8552d342e9"/>
+            </Index>
+            <Index id="8a363177-fcb9-4afc-905b-17a3ce0f70b9" indextype="NONUNIQUE" name="i_cont_loc">
+                <Indexattribute attributerefid="06b71977-3f7b-4b71-bb27-63b425b13a74" id="5d5c7964-e651-4522-8385-5179faf0f998"/>
+            </Index>
+            <Index id="0435135f-9ac7-43b6-93cd-f5d93811bfee" indextype="NONUNIQUE" name="i_cont_tid">
+                <Indexattribute attributerefid="bcdf5db1-c73d-47de-8153-0d876d5817b9" id="39b6174b-cc70-4187-80c0-2f65b3456b2a"/>
+            </Index>
+        </Table>
+        <Table id="29f91eaa-7012-44cb-8840-380faebc719f" name="t_sample_tissue" schema="">
+            <Property name="LOCATION" value="1555:631"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="56551ccb-61b4-434a-8b1c-bef1c441755b" name="tissueid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="0436732e-f292-495b-8f7e-f69c909b60c0" name="tissue" nullable="true" scale="10" size="128"/>
+            <Index id="f68f5eaa-e1df-4aa1-ba4b-b0ef7f665231" indextype="PRIMARYKEY" name="PK_t_sample_tissue">
+                <Indexattribute attributerefid="56551ccb-61b4-434a-8b1c-bef1c441755b" id="f04ee2c2-cceb-4d10-96ef-348edb137fa6"/>
+            </Index>
+            <Index id="232365b3-1fdb-4f5a-bf61-8290453d09f9" indextype="NONUNIQUE" name="i_tis_tissue">
+                <Indexattribute attributerefid="0436732e-f292-495b-8f7e-f69c909b60c0" id="19021c17-b147-4052-ba86-c7b53e3799bc"/>
+            </Index>
+        </Table>
+        <Table id="3374072c-b407-447a-b549-63b977921a43" name="t_inventory_raw" schema="">
+            <Property name="LOCATION" value="1198:1252"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="79b54ace-a17d-417f-a3e7-4a6f419f8dc2" name="md5sum" nullable="false" scale="10" size="32"/>
+            <Attribute datatype="LONGTEXT" defaultvalue="" extra="" fraction="0" id="ebcc5e31-d99d-4bc6-a504-90072ebcb463" name="upload" nullable="true" scale="10" size="2147483647"/>
+            <Index id="eae11b0b-d0d7-4fb2-8959-d59ffac1827f" indextype="PRIMARYKEY" name="PK_t_inventory_raw">
+                <Indexattribute attributerefid="79b54ace-a17d-417f-a3e7-4a6f419f8dc2" id="09a91c61-a819-4caf-afcc-fcdf77bf16cc"/>
+            </Index>
+        </Table>
+        <Table id="eb75ea88-1d15-4a1c-8288-75cd5c2dd2ba" name="t_inventory_template" schema="">
+            <Property name="LOCATION" value="54:860"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="d4a07732-3f6f-4cb9-bc72-55f54bb40987" name="templateid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="bb3c21d5-1f5e-40c2-88d4-0d934d0a9755" name="templatename" nullable="true" scale="10" size="80"/>
+            <Attribute datatype="TEXT" defaultvalue="" extra="" fraction="0" id="271061bf-d551-4e65-8b79-1257052d2b28" name="template" nullable="true" scale="10" size="65535"/>
+            <Index id="8cc7b263-aa7f-4933-a4da-81b611b658c9" indextype="PRIMARYKEY" name="PK_t_inventory_template">
+                <Indexattribute attributerefid="d4a07732-3f6f-4cb9-bc72-55f54bb40987" id="db3f1fcb-7945-476a-9474-ec140f702340"/>
+            </Index>
+            <Index id="c53334f4-9d77-4bcc-b22e-7e0a5fe3e696" indextype="NONUNIQUE" name="i_inv_tna">
+                <Indexattribute attributerefid="bb3c21d5-1f5e-40c2-88d4-0d934d0a9755" id="61f8716d-6a9c-44ce-aa62-03a7640d0855"/>
+            </Index>
+        </Table>
+        <Table id="a4b86a45-962f-49aa-8b39-4603d047251b" name="t_storage_registration" schema="">
+            <Property name="LOCATION" value="1103:1339"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="f4880b86-edfd-4d42-bc3f-907a4ab309d2" name="projectid" nullable="true" scale="10" size="20"/>
+            <Attribute datatype="BINARY" defaultvalue="" extra="" fraction="0" id="ee518917-bc41-4e7f-833a-cb3ae9488a95" name="projectdef" nullable="true" scale="10" size="1"/>
+        </Table>
+        <Table id="69708f8b-3ffd-4b25-860b-8b2773db87db" name="t_sample_processing" schema="">
+            <Property name="LOCATION" value="935:294"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="7826ef90-fdfa-4ea3-9797-b5cce9a47cc9" name="sampleid" nullable="true" scale="10" size="36"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="1b3d7a7b-2475-4c6b-951a-989bb38529dc" name="treatid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="cc335c75-751f-498c-a4b1-4d27a84b8d89" name="timeid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="INT" defaultvalue="" extra="" fraction="0" id="033c80fa-a821-4801-965c-a7be3f841a65" name="step" nullable="true" scale="10" size="10"/>
+            <Attribute datatype="TIMESTAMP" defaultvalue="CURRENT_TIMESTAMP" extra="" fraction="0" id="953e628d-2c56-4389-a5ea-253107aa0bdb" name="processed" nullable="false" scale="10" size="0"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="abc34251-e450-4951-b1b7-83ad8e0841f8" name="trackid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="94dd9649-730c-4ac4-b14f-aba70a9a8b1b" name="FK_t_sample_time_timeid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="7190ad40-f995-493a-855d-cf7ac79abfd7" name="FK_t_sample_sampleid" nullable="false" scale="10" size="36"/>
+            <Index id="f0c2676f-527f-47d3-8296-a3755322d9c3" indextype="NONUNIQUE" name="i_spc_sid">
+                <Indexattribute attributerefid="7826ef90-fdfa-4ea3-9797-b5cce9a47cc9" id="fd160c1e-1d3e-4c96-93e2-7ac0ceeb76c2"/>
+            </Index>
+            <Index id="3a26f3c0-7def-4e81-9c00-31a81ca8236b" indextype="NONUNIQUE" name="i_spc_trd">
+                <Indexattribute attributerefid="1b3d7a7b-2475-4c6b-951a-989bb38529dc" id="c402f4b1-ba2e-478a-a3b6-cc4f0049d567"/>
+            </Index>
+            <Index id="3cefbb75-8e86-42f9-aa81-29517948f7de" indextype="NONUNIQUE" name="i_spc_tmd">
+                <Indexattribute attributerefid="cc335c75-751f-498c-a4b1-4d27a84b8d89" id="688b87ee-885b-4368-bd4e-ebc9f830a3de"/>
+            </Index>
+            <Index id="1b1773f6-7860-4944-995c-d7d66b5d0a7e" indextype="NONUNIQUE" name="i_spc_pro">
+                <Indexattribute attributerefid="953e628d-2c56-4389-a5ea-253107aa0bdb" id="15bcf0e6-f968-4f61-8518-359de4faaed8"/>
+            </Index>
+            <Index id="533838a3-88ae-496a-a810-2a605cf7c839" indextype="NONUNIQUE" name="i_spc_tid">
+                <Indexattribute attributerefid="abc34251-e450-4951-b1b7-83ad8e0841f8" id="b6969745-f390-44a9-a1c0-27e5dd952d38"/>
+            </Index>
+        </Table>
+        <Table id="e8847102-f2c4-4725-b66b-b2ffe8eb7c1b" name="t_sample_parent" schema="">
+            <Property name="LOCATION" value="821:1009"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="8e7f4a25-adfb-4da6-b268-76b22fccf532" name="poid" nullable="true" scale="10" size="36"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="9f96aa89-5111-4beb-9fc1-736fe42eceba" name="coid" nullable="true" scale="10" size="36"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="5d48aa21-e223-4e71-b2ea-b90d7d70c65d" name="trackid" nullable="true" scale="10" size="19"/>
+            <Index id="03c5f67e-6daf-405e-a42d-01cc6331fdd1" indextype="NONUNIQUE" name="i_spa_soi">
+                <Indexattribute attributerefid="8e7f4a25-adfb-4da6-b268-76b22fccf532" id="7261ec7e-55e6-4d36-a23a-db677ead7cf6"/>
+            </Index>
+            <Index id="309db613-0bc5-4dc6-863c-1bad01ba74e8" indextype="NONUNIQUE" name="i_spa_cid">
+                <Indexattribute attributerefid="9f96aa89-5111-4beb-9fc1-736fe42eceba" id="a63224ac-9bd1-4690-860d-1e2383c4d974"/>
+            </Index>
+            <Index id="a898d90e-6eb3-430a-a8d4-64c13fd726f3" indextype="NONUNIQUE" name="i_spa_tid">
+                <Indexattribute attributerefid="5d48aa21-e223-4e71-b2ea-b90d7d70c65d" id="136e718a-c0bc-4cc6-9e94-740b585d3772"/>
+            </Index>
+        </Table>
+        <Table id="c229e521-357f-475d-869b-98a6e9cbfaf8" name="t_sample_groupmember" schema="">
+            <Property name="LOCATION" value="1029:914"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="0b0ba54f-95ba-4abf-b9a3-c05e239b26aa" name="sampleid" nullable="true" scale="10" size="36"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="f84a2cbb-f704-47d2-9739-94f2046f1a56" name="groupid" nullable="true" scale="10" size="19"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="dc94c83d-a738-4c5f-bef1-249925fce579" name="trackid" nullable="true" scale="10" size="19"/>
+            <Index id="46c64eb1-0e56-43da-8a16-dd73cc2018e8" indextype="NONUNIQUE" name="i_sgm_soi">
+                <Indexattribute attributerefid="0b0ba54f-95ba-4abf-b9a3-c05e239b26aa" id="05ce6af9-b539-4e12-90da-1bf224b4840d"/>
+            </Index>
+            <Index id="b69e93f2-b857-438a-913a-93e7421dcff7" indextype="NONUNIQUE" name="i_sgm_gid">
+                <Indexattribute attributerefid="f84a2cbb-f704-47d2-9739-94f2046f1a56" id="a12e6506-5994-4f98-99cf-88a5f6161044"/>
+            </Index>
+            <Index id="329c5960-a400-410f-bfd8-5db61ddbb439" indextype="NONUNIQUE" name="i_sgm_tid">
+                <Indexattribute attributerefid="dc94c83d-a738-4c5f-bef1-249925fce579" id="608dfbda-d53a-4a2a-a318-676a808c2a55"/>
+            </Index>
+        </Table>
+        <Table id="fbd3a615-6666-4746-a9f0-cf8fd3090e9f" name="t_sample_organization" schema="">
+            <Property name="LOCATION" value="1229:10"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="4fd412ba-bdfa-40ce-92d3-3c2d149c5c57" name="orgid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="edf4a46e-0f73-4103-9ff3-ac17208c61b1" name="orgname" nullable="true" scale="10" size="50"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="5836acf1-bdbf-4ec1-ad00-4168f698605d" name="siteid" nullable="true" scale="10" size="20"/>
+            <Attribute datatype="SMALLINT UNSIGNED" defaultvalue="" extra="" fraction="0" id="64e67b2d-d457-4770-b9f2-6da80bd3b776" name="countryid" nullable="true" scale="10" size="5"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="76284fc4-3e76-43fd-a518-dcaeba4b9726" name="orgtype" nullable="true" scale="10" size="50"/>
+            <Index id="e3b49520-ff28-43c5-9ddc-d863f1bbcd98" indextype="PRIMARYKEY" name="PK_t_sample_organization">
+                <Indexattribute attributerefid="4fd412ba-bdfa-40ce-92d3-3c2d149c5c57" id="eb6bcb53-7649-432d-b18e-7c80a40e90d1"/>
+            </Index>
+            <Index id="893cc76b-e052-430f-a0ff-f2967023a41a" indextype="NONUNIQUE" name="i_sor_nam">
+                <Indexattribute attributerefid="edf4a46e-0f73-4103-9ff3-ac17208c61b1" id="ee0460d8-f0bf-4bfa-95b1-20f347bcb05e"/>
+            </Index>
+            <Index id="cb111174-df0f-4b56-9819-b8828a97d74c" indextype="NONUNIQUE" name="i_sor_sit">
+                <Indexattribute attributerefid="5836acf1-bdbf-4ec1-ad00-4168f698605d" id="efac0e92-546f-4068-a3d3-4ec883d69154"/>
+            </Index>
+            <Index id="6372423e-bb44-4117-ae72-ba0d299014ed" indextype="NONUNIQUE" name="i_sor_typ">
+                <Indexattribute attributerefid="76284fc4-3e76-43fd-a518-dcaeba4b9726" id="1ac99b10-13b7-452b-ac8c-c41b9a5cd34f"/>
+            </Index>
+        </Table>
+        <Table id="3fd5be1e-f1ff-4f70-bed5-5d0b6ed25f03" name="t_sample_condition" schema="">
+            <Property name="LOCATION" value="1465:917"/>
+            <Attribute datatype="BIGINT" defaultvalue="" extra="" fraction="0" id="385e0d68-9562-4766-924b-bbfc5446a92f" name="condid" nullable="false" scale="10" size="19"/>
+            <Attribute datatype="VARCHAR" defaultvalue="" extra="" fraction="0" id="c7005160-2c25-444f-a709-3fb5c61bae7e" name="specification" nullable="true" scale="10" size="50"/>
+            <Index id="afc88eb1-630d-45b0-8b6a-9b340b8fab27" indextype="PRIMARYKEY" name="PK_t_sample_condition">
+                <Indexattribute attributerefid="385e0d68-9562-4766-924b-bbfc5446a92f" id="c8632c74-b9b3-4b1d-bff4-3957a8d35dcb"/>
+            </Index>
+            <Index id="23cc2520-3f34-4cd4-8a1f-2498374e1191" indextype="NONUNIQUE" name="i_cond_cond">
+                <Indexattribute attributerefid="c7005160-2c25-444f-a709-3fb5c61bae7e" id="d8a6234e-1fc6-4a8e-8bd6-498d6a12792c"/>
+            </Index>
+        </Table>
+    </Tables>
+    <Relations>
+        <Relation exportingtablerefid="9cf8c6e6-211f-4f3b-b87e-0b000a6c0316" id="353a6f5b-0759-4ea5-861b-5d6bc1feebcd" importingtablerefid="0e00bd5a-d44c-4087-8966-c98ea13db8f7" name="is_a" ondelete="NOTHING" onupdate="NOTHING">
+            <Mapping exportingexpressionrefid="b7daeeee-f4a4-40ff-8293-2b903cc4d4e5" importingattributerefid="8b8be80c-9b74-445d-8726-faacf5f51375"/>
+        </Relation>
+        <Relation exportingtablerefid="0e00bd5a-d44c-4087-8966-c98ea13db8f7" id="ed9d56ac-f351-481a-822c-508802b068b1" importingtablerefid="5ff7c454-595b-4ccd-b764-b23df16c1760" name="taken_from" ondelete="NOTHING" onupdate="NOTHING">
+            <Mapping exportingexpressionrefid="a6909a2f-b2fe-49ca-97fe-c695038b8d9b" importingattributerefid="484d983c-5cf2-4094-b3f5-8c4c8c0fb067"/>
+        </Relation>
+        <Relation exportingtablerefid="4a126785-36bf-40ec-aa86-d531c81353b3" id="bff37f6c-563d-4869-a361-324de914fb87" importingtablerefid="69708f8b-3ffd-4b25-860b-8b2773db87db" name="occured" ondelete="NOTHING" onupdate="NOTHING">
+            <Mapping exportingexpressionrefid="ac3878f0-6833-4bc8-90dd-c74c5cd76d01" importingattributerefid="94dd9649-730c-4ac4-b14f-aba70a9a8b1b"/>
+        </Relation>
+        <Relation exportingtablerefid="0e00bd5a-d44c-4087-8966-c98ea13db8f7" id="bed56921-59d6-4eea-9dec-cab4c2fa844a" importingtablerefid="69708f8b-3ffd-4b25-860b-8b2773db87db" name="processed" ondelete="NOTHING" onupdate="NOTHING">
+            <Mapping exportingexpressionrefid="a6909a2f-b2fe-49ca-97fe-c695038b8d9b" importingattributerefid="7190ad40-f995-493a-855d-cf7ac79abfd7"/>
+        </Relation>
+        <Relation exportingtablerefid="0e00bd5a-d44c-4087-8966-c98ea13db8f7" id="b75e83c5-e84a-44a6-b44f-8658e427094f" importingtablerefid="f4bcdc39-3881-4a31-ae7f-e64a83bdcd66" name="member_of" ondelete="NOTHING" onupdate="NOTHING">
+            <Mapping exportingexpressionrefid="a6909a2f-b2fe-49ca-97fe-c695038b8d9b" importingattributerefid="6b3b5741-e137-40c5-ad8d-8aa5fee8999f"/>
+        </Relation>
+        <Relation exportingtablerefid="ec8c555c-7363-42d6-94b6-cc1d710ed4f8" id="d4d869b3-fc34-4d93-95ef-5eb925b8158b" importingtablerefid="f4bcdc39-3881-4a31-ae7f-e64a83bdcd66" name="studied" ondelete="NOTHING" onupdate="NOTHING">
+            <Mapping exportingexpressionrefid="4866cdd6-92dc-4d3d-b1a1-2fba948a8af4" importingattributerefid="102f010d-ed27-4e6c-94c6-c678420af445"/>
+        </Relation>
+        <Relation exportingtablerefid="fbd3a615-6666-4746-a9f0-cf8fd3090e9f" id="a9560761-99a8-4f9b-ad61-a2f0f13a1cdd" importingtablerefid="4a126785-36bf-40ec-aa86-d531c81353b3" name="happened_at" ondelete="NOTHING" onupdate="NOTHING">
+            <Mapping exportingexpressionrefid="eb6bcb53-7649-432d-b18e-7c80a40e90d1" importingattributerefid="7361fd62-7c28-46c1-8ca6-84a15271718f"/>
+        </Relation>
+        <Relation exportingtablerefid="0e00bd5a-d44c-4087-8966-c98ea13db8f7" id="cafb3149-8ba7-40ab-aa20-bb382d07ca5e" importingtablerefid="7451d085-a9db-43eb-8cc6-01c3d02c1c12" name="accessioned" ondelete="NOTHING" onupdate="NOTHING">
+            <Mapping exportingexpressionrefid="a6909a2f-b2fe-49ca-97fe-c695038b8d9b" importingattributerefid="61c11a15-78f1-4045-adb1-9ed167637747"/>
+        </Relation>
+        <Relation exportingtablerefid="6aa55206-5dc3-48a7-a79f-01a6e823467d" id="64cdf396-6e23-437a-9b01-a933dcf8ee78" importingtablerefid="5ff7c454-595b-4ccd-b764-b23df16c1760" name="provided" ondelete="NOTHING" onupdate="NOTHING">
+            <Mapping exportingexpressionrefid="9d5527a7-503c-4a63-ae39-1c2598bd1f83" importingattributerefid="be28b768-5dbd-4a04-b7de-09bddac9f512"/>
+        </Relation>
+        <Relation exportingtablerefid="ec8c555c-7363-42d6-94b6-cc1d710ed4f8" id="b115fde5-8e56-4924-80a7-1d16fe1fdf4f" importingtablerefid="6aa55206-5dc3-48a7-a79f-01a6e823467d" name="participates" ondelete="NOTHING" onupdate="NOTHING">
+            <Mapping exportingexpressionrefid="4866cdd6-92dc-4d3d-b1a1-2fba948a8af4" importingattributerefid="04b60980-4263-4c70-8088-d67ff80c6b94"/>
+        </Relation>
+    </Relations>
+    <Views/>
+    <Subjectareas/>
+    <Comments/>
+</Model>

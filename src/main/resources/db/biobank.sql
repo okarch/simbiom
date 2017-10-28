@@ -1,0 +1,533 @@
+--
+-- Creates the Biobank sample inventory database
+--
+
+--
+-- t_sample
+--   main sample entry
+--
+drop table if exists t_sample;
+create table t_sample(
+  sampleid   varchar(36) primary key,
+  samplename varchar(50),
+  typeid      bigint,
+  stamp      bigint,
+  trackid    bigint,
+  created    timestamp
+);
+create index i_sam_sna on t_sample (samplename);
+create index i_sam_sty on t_sample (typeid);
+create index i_sam_tid on t_sample (trackid);
+
+--
+-- t_sample_type
+--   sample type e.g. plasma, biopsy etc.
+--
+drop table if exists t_sample_type;
+create table t_sample_type(
+  typeid     bigint primary key,
+  typename  varchar(80),
+  created   timestamp
+); 
+create index i_sty_typ on t_sample_type (typename);
+
+insert into t_sample_type (typeid, typename) values ( 1, 'unknown' );
+
+--
+-- t_sample_property
+--   sample properties (name value pairs)
+--   proptype provides information about the property's context
+--   e.g. a property can be linked to additional properties (e.g. can act as a qualifier)
+--   or it can be linked to a study context i.e. proptype=study etc.
+--
+drop table if exists t_sample_property;
+create table t_sample_property(
+  propid     bigint primary key,
+  proptype   varchar(20),
+  instanceid bigint,
+  propname   varchar(50),
+  unit       varchar(10)
+); 
+create index i_spr_typ on t_sample_property (proptype);
+create index i_spr_iid on t_sample_property (instanceid);
+
+--
+-- t_sample_property_value
+--   a property's value
+--
+drop table if exists t_sample_property_value;
+create table t_sample_property_value(
+  valid      bigint primary key,
+  propid     bigint,
+  sampleid       varchar(36),
+  charvalue  varchar(254),
+  numvalue   double,
+  rank       int
+);
+create index i_spv_pid on t_sample_property_value (propid);
+create index i_spv_sid on t_sample_property_value (sampleid);
+create index i_spv_ran on t_sample_property_value (rank);
+create index i_spv_cva on t_sample_property_value (charvalue);
+create index i_spv_nva on t_sample_property_value (numvalue);
+
+--
+-- t_sample_parent
+--   sample parent - child relationship
+--
+drop table if exists t_sample_parent;
+create table t_sample_parent(
+  poid      varchar(36),
+  coid      varchar(36),
+  trackid   bigint
+);
+create index i_spa_soi on t_sample_parent (poid);
+create index i_spa_cid on t_sample_parent (coid);
+create index i_spa_tid on t_sample_parent (trackid);
+
+--
+-- t_sample_group
+--   a grouping of samples e.g. pbmc samples
+--
+drop table if exists t_sample_group;
+create table t_sample_group(
+  groupid     bigint primary key,
+  groupname   varchar(50),
+  status      varchar(30)
+);
+create index i_sgr_gna on t_sample_group (groupname);
+
+--
+-- t_sample_groupmember
+--   sample group membership (n:m), trackid is used to track the sample's group
+--   membership. trackid is equivalent to a timestamp (nanosecs since 1.1.1970)
+--
+drop table if exists t_sample_groupmember;
+create table t_sample_groupmember(
+  sampleid        varchar(36),
+  groupid     bigint,
+  trackid     bigint
+);
+create index i_sgm_soi on t_sample_groupmember (sampleid);
+create index i_sgm_gid on t_sample_groupmember (groupid);
+create index i_sgm_tid on t_sample_groupmember (trackid);
+
+--
+-- t_sample_tracker
+--   tracks changes to sample membership in groups, studies, accessions etc.
+--   previd referes to the previous state's trackid
+--   item describes the context (group, study etc.)
+--   content holds an xml representation of the items to be tracked
+--
+drop table if exists t_sample_tracker;
+create table t_sample_tracker(
+  trackid   bigint primary key,
+  modified  timestamp,
+  previd    bigint,
+  item      varchar(30),
+  activity  varchar(50),
+  uid       bigint,
+  remark    varchar(254),
+  content   text
+); 
+create index i_tra_pid on t_sample_tracker (previd);
+create index i_tra_ite on t_sample_tracker (item);
+create index i_tra_uid on t_sample_tracker (uid);
+
+--
+-- t_sample_user
+--   sample user
+--
+drop table if exists t_sample_user;
+create table t_sample_user(
+  userid    bigint primary key,
+  muid      varchar(20),
+  username  varchar(80),
+  apikey    varchar(20),
+  email     varchar(80),
+  active    varchar(5),
+  roles     bigint,
+  created   timestamp
+);
+create index i_sus_muid on t_sample_user (muid);
+create index i_sus_una on t_sample_user (username);
+create index i_sus_api on t_sample_user (apikey);
+create index i_sus_ema on t_sample_user (email);
+
+insert into t_sample_user values( 0, 'm01061', 'Oliver Karch', '220466', 'Oliver.K.Karch@merckgroup.com', 'true', 1, '2015-02-20 01:01:01' );
+insert into t_sample_user values( 1, 'guest', 'Guest', '', 'bmdm@merckgroup.com', 'true', 2, '2015-02-20 01:01:01' );
+
+--
+-- t_sample_treatment
+--   molecule the sample has been treated with
+--
+drop table if exists t_sample_treatment;
+create table t_sample_treatment(
+  treatid     bigint primary key,
+  treatment   varchar(80),
+  treatdesc   varchar(254)
+);
+create index i_tre_tre on t_sample_treatment (treatment);
+
+insert into t_sample_treatment (treatid, treatment) values ( 0, 'Unknown' );
+insert into t_sample_treatment (treatid, treatment) values ( 1, 'Untreated' );
+insert into t_sample_treatment (treatid, treatment) values ( 2, 'DMSO' );
+insert into t_sample_treatment (treatid, treatment) values ( 3, 'Stimulated' );
+insert into t_sample_treatment (treatid, treatment) values ( 4, 'Treated' );
+insert into t_sample_treatment (treatid, treatment) values ( 5, 'Collected' );
+insert into t_sample_treatment (treatid, treatment) values ( 6, 'Packaged' );
+insert into t_sample_treatment (treatid, treatment) values ( 7, 'Unpacked' );
+
+--
+-- t_sample_study
+--   study / trial annotation
+--
+drop table if exists t_sample_study;
+create table t_sample_study(
+  studyid     bigint primary key,
+  studyname   varchar(50),
+  started     timestamp,
+  expire      timestamp,
+  status      varchar(30)
+);
+create index i_stu_nam on t_sample_study (studyname);
+create index i_stu_exp on t_sample_study (expire);
+
+--
+-- t_sample_studymember
+--   sample study association
+--
+drop table if exists t_sample_studymember;
+create table t_sample_studymember(
+  sampleid        varchar(36),
+  studyid     bigint,
+  trackid     bigint
+);
+create index i_ssm_soi on t_sample_studymember (sampleid);
+create index i_ssm_ssi on t_sample_studymember (studyid);
+create index i_ssm_tid on t_sample_studymember (trackid);
+
+--
+-- t_sample_accession
+--   sample accession codes, barcodes, ids etc. assigned by other labs
+--
+drop table if exists t_sample_accession;
+create table t_sample_accession(
+  sampleid        varchar(36),
+  accession   varchar(50),
+  acctype     varchar(30),
+  orgid       bigint,
+  trackid     bigint
+);
+create index i_sac_soi on t_sample_accession (sampleid);
+create index i_sac_acc on t_sample_accession (accession);
+create index i_sac_aty on t_sample_accession (acctype);
+create index i_sac_org on t_sample_accession (orgid);
+create index i_sac_tid on t_sample_accession (trackid);
+
+--
+-- t_sample_organization
+--   sample accession codes, barcodes, ids etc. assigned by other labs
+--
+drop table if exists t_sample_organization;
+create table t_sample_organization(
+  orgid       bigint primary key,
+  orgname     varchar(50),
+  siteid      varchar(20),
+  countryid   smallint(5) unsigned,
+  orgtype     varchar(50)
+);
+create index i_sor_nam on t_sample_organization (orgname);
+create index i_sor_sit on t_sample_organization (siteid);
+create index i_sor_cou on t_sample_organization (countyid);
+create index i_sor_typ on t_sample_organization (orgtype);
+
+insert into t_sample_organization (orgid,orgname,countryid,orgtype) values( 0, 'Unknown origin', 0, 'unknown' );
+insert into t_sample_organization (orgid,orgname,countryid,orgtype) values( -2, 'Merck Serono', 0, 'sponsor' );
+
+--
+-- t_sample_subject
+--   the origin of the sample, typically a patient
+--
+drop table if exists t_sample_subject;
+create table t_sample_subject(
+  donorid     bigint primary key,
+  studyid     bigint,
+  subjectid   varchar(50),
+  species     varchar(30),
+  taxon       bigint
+);
+create index i_sub_stu on t_sample_subject (studyid);
+create index i_sub_sid on t_sample_subject (subjectid);
+create index i_sub_tax on t_sample_subject (taxon);
+
+--
+-- t_sample_donor
+--   associates the sample with a donor
+-- 
+drop table if exists t_sample_donor;
+create table t_sample_donor(
+  sampleid        varchar(36),
+  donorid     bigint,
+  trackid     bigint
+);
+create index i_sdo_sid on t_sample_donor (sampleid);
+create index i_sdo_did on t_sample_donor (donorid);
+create index i_sdo_tid on t_sample_donor (trackid);
+
+--
+-- t_sample_time
+--   the timepoint the sample has been taken
+--
+drop table if exists t_sample_time;
+create table t_sample_time(
+  timeid      bigint primary key,
+  orgid       bigint,
+  visit       varchar(50),
+  cycle      varchar(10),
+  day        int,
+  hour       float,
+  dosage      varchar(50),
+  quantity    float,
+  unit        varchar(10)
+);
+create index i_sti_oid on t_sample_time (orgid);
+create index i_sti_vis on t_sample_time (visit);
+
+--
+-- t_sample_processing
+--   captures how the sample has been processed 
+--   (optionally linked to a specific sampling timepoint)
+--
+drop table if exists t_sample_processing;
+create table t_sample_processing(
+  sampleid        varchar(36),
+  treatid     bigint,
+  timeid      bigint,
+  step        int,
+  processed   timestamp,
+  trackid     bigint
+);
+create index i_spc_sid on t_sample_processing (sampleid);
+create index i_spc_trd on t_sample_processing (treatid);
+create index i_spc_tmd on t_sample_processing (timeid);
+create index i_spc_pro on t_sample_processing (processed);
+create index i_spc_tid on t_sample_processing (trackid);
+
+--
+-- t_sample_container
+--   the container used to store the sample(s)
+--
+drop table if exists t_sample_container;
+create table t_sample_container(
+  containerid     bigint primary key,
+  cname           varchar(50),
+  ctype           varchar(20),
+  capacity        float,
+  unit            varchar(10)
+);
+create index i_cnt_nam on t_sample_container (cname);
+
+--
+-- t_sample_containment
+--   the association of a sample to a container or a container to another one
+--
+drop table if exists t_sample_containment;
+create table t_sample_containment(
+  containerid     bigint,
+  parentid        bigint,
+  location        varchar(50),
+  sampleid            varchar(36),
+  trackid         bigint
+);
+create index i_cont_cid on t_sample_containment (containerid);
+create index i_cont_sid on t_sample_containment (sampleid);
+create index i_cont_pid on t_sample_containment (parentid);
+create index i_cont_loc on t_sample_containment (location);
+create index i_cont_tid on t_sample_containment (trackid);
+
+--
+-- t_sample_relocation
+--   data on sample movement
+--
+drop table if exists t_sample_relocation;
+create table t_sample_relocation(
+  relocid       bigint primary key,
+  fromorgid     bigint,
+  toorgid       bigint,
+  containerid   bigint,
+  sampleid          varchar(36),
+  sent          timestamp,
+  received      timestamp,
+  trackid       bigint
+);
+create index i_rel_for on t_sample_relocation (fromorgid);
+create index i_rel_tor on t_sample_relocation (toorgid);
+create index i_rel_con on t_sample_relocation (containerid);
+create index i_rel_sid on t_sample_relocation (sampleid);
+create index i_rel_tid on t_sample_relocation (trackid);
+
+--
+-- t_sample_tissue
+--   tissue characteristics, the sample assignment and additional properties
+--   are held in the property tables
+--
+drop table if exists t_sample_tissue;
+create table t_sample_tissue(
+   tissueid       bigint primary key,
+   tissue         varchar(128)
+);
+create index i_tis_tissue on t_sample_tissue (tissue);
+
+--
+-- t_sample_condition
+--   sample conditions, the sample assignment and additional properties
+--   are held in the property tables
+--
+drop table if exists t_sample_condition;
+create table t_sample_condition(
+   condid        bigint primary key,
+   specification varchar(50)
+);
+create index i_cond_cond on t_sample_condition (specification);
+
+--
+-- t_sample_restriction
+--   sample restrictions, the sample assignment and additional properties
+--   are held in the property tables
+--
+drop table if exists t_sample_restriction;
+create table t_sample_restriction(
+   restrictid   bigint primary key,
+   restriction  varchar(50)
+);
+create index i_res_res on t_sample_restriction (restriction);
+   
+--
+-- Storage provider related tables
+--
+
+--
+-- t_storage_project
+--   the project definition created by  the storage provider
+-- 
+drop table if exists t_storage_project;
+create table t_storage_project(
+  projectid      varchar(20),
+  projectdef     binary
+);
+
+drop table if exists t_storage_registration;
+create table t_storage_registration(
+  projectid      varchar(20),
+  projectdef     binary
+);
+
+drop table if exists t_storage_cost;
+create table t_storage_cost(
+  costid         bigint primary key,
+  region         varchar(10),
+  servicegroup   varchar(80),
+  serviceitem    varchar(100),
+  unit           varchar(30),
+  frequency      varchar(20),
+  price          float,  
+  currency       varchar(3)
+);
+create index i_cos_region on t_storage_cost (region);
+create index i_cos_servicegroup on t_storage_cost (servicegroup);
+create index i_cos_serviceitem on t_storage_cost (serviceitem);
+
+drop table if exists t_storage_costestimate;
+create table t_storage_costestimate(
+  estimateid     bigint primary key,
+  projectname    varchar(80),
+  created        timestamp,
+  duration       int,
+  total          float
+);
+create index i_ces_projectname on t_storage_costestimate (projectname);
+
+drop table if exists t_storage_cost_item;
+create table t_storage_cost_item(
+  costitemid     bigint primary key,
+  estimateid     bigint,
+  itemtype       varchar(80),
+  costid         bigint,
+  itemcount      bigint
+);
+create index i_cit_estimateid on t_storage_cost_item (estimateid);
+create index i_cit_itemtype on t_storage_cost_item (itemtype);
+create index i_cit_costid on t_storage_cost_item (costid);
+
+drop table if exists t_storage_cost_preference;
+create table t_storage_cost_preference(
+  preferenceid   bigint primary key,
+  typename       varchar(80),
+  rank           int,
+  costtype       varchar(20),
+  costid         bigint
+);
+create index i_cop_typename on t_storage_cost_preference (typename);
+create index i_cop_rank on t_storage_cost_preference (rank);
+create index i_cop_ctype on t_storage_cost_preference (costtype);
+create index i_cop_costid on t_storage_cost_preference (costid);
+
+
+--
+-- Inventory related tables, e.g. upload of data sheets
+--
+
+--
+-- t_inventory_template
+--   the upload template
+-- 
+drop table if exists t_inventory_template;
+create table t_inventory_template(
+  templateid     bigint primary key,
+  templatename   varchar(80),
+  template       text
+);
+create index i_inv_tna on t_inventory_template (templatename);
+
+--
+-- t_inventory_upload
+--   the upload (raw) content typically delimited text
+-- 
+drop table if exists t_inventory_upload;
+create table t_inventory_upload(
+  uploadid       bigint primary key,
+  templateid     bigint,
+  uploaded       timestamp,
+  userid         bigint,
+  md5sum         varchar(32),
+  upload         text
+);
+create index i_upl_tid on t_inventory_upload (templateid);
+create index i_upl_uid on t_inventory_upload (userid);
+create index i_upl_md5 on t_inventory_upload (md5sum);
+
+--
+-- t_inventory_raw
+--   the upload (raw) content typically delimited text which
+--   was moved to the archival area in case of multiple time
+--   upload
+-- 
+drop table if exists t_inventory_raw;
+create table t_inventory_raw(
+  md5sum         varchar(32) primary key,
+  upload         text
+);
+
+drop table if exists t_inventory_log;
+create table t_inventory_log(
+  logid        bigint primary key, 
+  uploadid     bigint, 
+  logstamp     timestamp, 
+  level        varchar(10), 
+  line         bigint, 
+  message      varchar(80) 
+);
+create index i_log_uid on t_inventory_log( uploadid );
+create index i_log_lst on t_inventory_log( logstamp );
+create index i_log_lev on t_inventory_log( level );
+create index i_log_lin on t_inventory_log( line );

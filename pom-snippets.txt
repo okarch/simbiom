@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.emd.simbiom</groupId>
+  <artifactId>simbiom-dao</artifactId>
+  <packaging>jar</packaging>
+  <version>1.0</version>
+  <name>simbiom</name>
+
+  <url>http://biobank.merckgroup.com</url>
+
+  <description>
+The aim of the project is to provide a data access layer to the sample inventory management.
+  </description>
+
+<!--
+    <groupId>org.springframework</groupId>
+    <artifactId>gs-rest-service</artifactId>
+    <version>0.1.0</version>
+-->
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>1.1.10.RELEASE</version>
+    </parent>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+    </dependencies>
+
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <repositories>
+        <repository>
+            <id>spring-releases</id>
+            <url>https://repo.spring.io/libs-release</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>spring-releases</id>
+            <url>https://repo.spring.io/libs-release</url>
+        </pluginRepository>
+    </pluginRepositories>
+</project>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.velocity</groupId>
+      <artifactId>velocity</artifactId>
+      <version>1.7</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.velocity</groupId>
+      <artifactId>velocity-tools</artifactId>
+      <version>2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>1.8.3</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-cli</groupId>
+      <artifactId>commons-cli</artifactId>
+      <version>1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.3</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+      <version>1.1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>jdom</groupId>
+      <artifactId>jdom</artifactId>
+      <version>1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.16</version>
+    </dependency>
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>5.1.20</version>
+    </dependency>
+    <dependency>
+      <groupId>velosurf</groupId>
+      <artifactId>velosurf</artifactId>
+      <version>2.3</version>
+    </dependency>
+    <dependency>
+      <groupId>net.sourceforge.owlapi</groupId>
+      <artifactId>owlapi-api</artifactId>
+      <version>3.3</version>
+    </dependency>
+    <dependency>
+      <groupId>net.sourceforge.owlapi</groupId>
+      <artifactId>owlapi-apibinding</artifactId>
+      <version>3.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.nanopub</groupId>
+      <artifactId>nanopub</artifactId>
+      <version>1.3</version>
+    </dependency>
+  </dependencies>
+
+  <properties>
+    <encoding>UTF-8</encoding>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>org.openphacts.nextprot.TemplateAssembler</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.dstovall</groupId>
+        <artifactId>onejar-maven-plugin</artifactId>
+        <version>1.4.4</version>
+        <executions>
+          <execution>
+            <configuration>
+              <filename>nextor-${project.version}.jar</filename>
+              <!-- Optional -->
+              <onejarVersion>0.97</onejarVersion>
+              <!-- Optional, use only if you need to include native libraries (dll's) -->
+              <fileSet>
+                <directory>${project.build.outputDirectory}</directory>
+                <includes>
+                  <include>log4j.xml</include>
+                </includes>
+              </fileSet>
+<!--
+              <fileset>
+                <directory>${basedir}/src/main/resources</directory>
+                <includes>
+                  <include>*.xml</include>
+                </includes>
+              </fileset>
+-->
+              <!-- Optional, default is false -->
+              <attachToBuild>true</attachToBuild>
+              <!-- Optional, default is "onejar" -->
+              <classifier>onejar</classifier>
+            </configuration>
+            <goals>
+              <goal>one-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>3.1</version>
+        <configuration>
+          <relativizeDecorationLinks>false</relativizeDecorationLinks>
+        </configuration>
+
+<!--
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.wagon</groupId>
+            <artifactId>wagon-ssh-external</artifactId>
+            <version>1.0</version>
+          </dependency>
+        </dependencies>
+-->
+      </plugin>
+
+    </plugins>
+  </build>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>onejar-maven-plugin.googlecode.com</id>
+      <url>http://onejar-maven-plugin.googlecode.com/svn/mavenrepo</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+  <licenses>
+    <license>
+      <name>The GNU General Public License (GPL)</name>
+      <url>http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt</url>
+      <distribution>repo</distribution>
+      <comments>The GNU General Public License (GPL)</comments>
+    </license>
+  </licenses>  
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-changelog-plugin</artifactId>
+        <reportSets>
+          <reportSet>
+          	<id></id>
+            <reports>
+              <report>changelog</report>
+              <report>file-activity</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+        <configuration>
+          <type>range</type>
+          <range>30</range>
+          <dateFormat>EEE MMM dd HH:mm:ss yyyy Z</dateFormat>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <configuration>
+          <encoding>${encoding}</encoding>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <quiet>true</quiet>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jxr-plugin</artifactId>
+        <configuration>
+          <inputEncoding>${encoding}</inputEncoding>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <configuration>
+          <sourceEncoding>${encoding}</sourceEncoding>
+          <targetJdk>1.5</targetJdk>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>javancss-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>jdepend-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>taglist-maven-plugin</artifactId>
+        <configuration>
+          <tags>
+            <tag>TODO</tag>
+          </tags>
+          <encoding>${encoding}</encoding>
+        </configuration>
+      </plugin>
+    </plugins>
+  </reporting>
+
+  <developers>
+    <developer>
+      <id>oli</id>
+      <name>Oliver</name>
+      <email>okarch@users.sourceforge.net</email>
+      <organization>Merck Serono</organization>
+      <organizationUrl>http://www.merckgroup.com</organizationUrl>
+      <roles>
+        <role>developer</role>
+      </roles>
+      <timezone>2</timezone>
+      <properties>
+        <picUrl>http://tinyurl.com/5qh3sb</picUrl>
+      </properties>
+    </developer>
+  </developers>
+
+  <mailingLists>
+    <mailingList>
+      <name>nextprot2rdf-general</name>
+      <subscribe>https://lists.sourceforge.net/lists/listinfo/nextprot2rdf-general</subscribe>
+      <unsubscribe>https://lists.sourceforge.net/lists/listinfo/nextprot2rdf-general</unsubscribe>
+      <post>nextprot2rdf-general@lists.sourceforge.net</post>
+      <archive>https://sourceforge.net/mailarchive/forum.php?forum_name=nextprot2rdf-general</archive>
+    </mailingList>
+    <mailingList>
+      <name>OpenPHACTS datasources list</name>
+      <subscribe>mailto:ops-ds2rdf@lists.univie.ac.at</subscribe>
+      <unsubscribe>mailto:ops-ds2rdf@lists.univie.ac.at</unsubscribe>
+      <post>ops-ds2rdf@lists.univie.ac.at</post>
+<!--
+      <archive>http://sourceforge.net/mailarchive/forum.php?forum_name=molwind-users</archive>
+-->
+    </mailingList>
+  </mailingLists>
+
+  <scm>
+    <connection>scm:hg:http://hg.code.sf.net/p/nextprot2rdf/code-0</connection>
+    <developerConnection>scm:hg:https://okarch@hg.code.sf.net/p/nextprot2rdf/code-0</developerConnection>
+    <url>http://hg.code.sf.net/p/nextprot2rdf</url>
+  </scm>
+
+  <distributionManagement>
+    <site>
+      <id>nextprot2rdf.site.local</id>
+      <name>NeXtprot2RDF Project Website</name>
+      <url>file:target/page/</url>
+    </site>
+<!--
+    <site>
+      <id>nextprot2rdf.sf.net</id>
+      <url>scpexe://shell.sourceforge.net/home/project-web/nextprot2rdf/htdocs</url>
+    </site>
+-->
+
+  </distributionManagement>
+
+</project>

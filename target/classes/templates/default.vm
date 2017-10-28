@@ -1,0 +1,18 @@
+##
+## Default template reads lines and does nothing
+##
+
+#set( $delim = "|" )
+
+#if( !$upload )
+  #stop
+#end
+
+#set( $lines = $upload.readLines() )
+start processing upload $upload.getUploadid() $upload.getUploaded()
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "${lines.size()} lines read" ) )
+${lines.size()} lines read
+#foreach( $line in $lines )
+  #set( $columns = $line.split( $delim ) )
+
+#end

@@ -1,0 +1,61 @@
+#!/bin/sh
+
+ENDPOINT=localhost:8080
+
+if [ "$1" = "" -o "$1" = "-h" ]; then
+    echo
+    echo "Usage: $0 <options>"
+    echo
+    echo "  <options>:"
+    echo
+    echo "    -l                                  lists all templates registered"
+    echo "    -t <template-file>                  registers a template in the database"
+    echo "    -h                                  displays this help screen"
+    echo "    -u <template-name> <content-file>   uploads a delimited content file using the template"
+    echo
+    exit 1
+fi
+
+template=
+reqMethod=GET
+reqHeader=
+command=$1
+if [ "$command" = "-l" ]; then
+    uripath=inventory/template
+else
+    shift
+    template=$1
+    if [ "$template" = "" ]; then
+	echo
+	echo "Error: template name or file is missing. Use -h for help."
+	echo
+	exit 2
+    fi
+fi
+
+if [ "$command" = "-u" ]; then
+    shift
+    fname=$1
+    if [ ! -e $fname ]; then
+	echo
+	echo "Error: template name is missing. Use -h for help."
+	echo
+	exit 2
+    fi
+    curlOpts="--form file=@$fname"
+    uripath=inventory/upload/$template
+elif [ "$command" = "-t" ]; then
+    if [ ! -e $template ]; then
+	echo
+	echo "Error: cannot read template. Use -h for help."
+	echo
+	exit 2
+    fi
+    uripath=inventory/template/create
+    curlOpts="--header \"Content-Type: application/json\" -d@$template"
+fi
+
+echo "curl $curlOpts http://$ENDPOINT/$uripath"
+curl -X $reqMethod $curlOpts http://$ENDPOINT/$uripath
+echo
+
