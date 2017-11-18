@@ -40,6 +40,7 @@ import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.dbutils.DbUtils;
 
 import org.apache.commons.lang.StringEscapeUtils;
+import org.apache.commons.lang.StringUtils;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -52,6 +53,10 @@ import com.emd.simbiom.model.CostItem;
 import com.emd.simbiom.model.CostSample;
 import com.emd.simbiom.model.Donor;
 import com.emd.simbiom.model.Organization;
+import com.emd.simbiom.model.Property;
+import com.emd.simbiom.model.PropertySet;
+import com.emd.simbiom.model.PropertyType;
+import com.emd.simbiom.model.RestrictionRule;
 import com.emd.simbiom.model.Sample;
 import com.emd.simbiom.model.SampleEvent;
 import com.emd.simbiom.model.SampleProcess;
@@ -67,6 +72,8 @@ import com.emd.simbiom.model.User;
 import com.emd.simbiom.upload.InventoryUploadTemplate;
 import com.emd.simbiom.upload.UploadBatch;
 import com.emd.simbiom.upload.UploadLog;
+
+import com.emd.simbiom.util.DataHasher;
 
 import com.emd.util.Stringx;
 
@@ -115,6 +122,8 @@ public class SampleInventoryDAO {
     private static final String STMT_ACC_BY_SAMPLE       = "biobank.accession.findSampleAccession";
     private static final String STMT_ACC_INSERT          = "biobank.accession.insert";
 
+    private static final String STMT_COLSPEC_DELETE      = "biobank.column.delete";
+
     private static final String STMT_COST_BY_ID          = "biobank.cost.findById";
 
     private static final String STMT_COSTITEM_INSERT     = "biobank.item.insert";
@@ -148,8 +157,32 @@ public class SampleInventoryDAO {
     private static final String STMT_PROCESS_INSERT      = "biobank.process.insert";
     private static final String STMT_PROCESS_UPDATE      = "biobank.process.update";
 
+    private static final String STMT_PROPERTY_BY_ID      = "biobank.property.findById";
+    private static final String STMT_PROPERTY_BY_NAME    = "biobank.property.findByName";
+    private static final String STMT_PROPERTY_BY_NAMETYPE= "biobank.property.findById";
+    private static final String STMT_PROPERTY_DELETE     = "biobank.property.delete";
+    private static final String STMT_PROPERTY_INSERT     = "biobank.property.insert";
+    private static final String STMT_PROPERTY_UPDATE     = "biobank.property.update";
+
+    private static final String STMT_PROPERTYSET_BY_NAME = "biobank.propertyset.findByName";
+    private static final String STMT_PROPERTYSET_BY_ID   = "biobank.propertyset.findById";
+    private static final String STMT_PROPERTYSET_INSERT  = "biobank.propertyset.insert";
+    private static final String STMT_PROPERTYSET_DELETE  = "biobank.propertyset.delete";
+
+    private static final String STMT_PROPMEMBER_DELETE   = "biobank.member.delete";
+    private static final String STMT_PROPMEMBER_INSERT   = "biobank.member.insert";
+    private static final String STMT_PROPMEMBER_PROPERTY = "biobank.member.property";
+
+    private static final String STMT_PROPERTYTYPE_BY_NAME= "biobank.propertytype.findByName";
+    private static final String STMT_PROPERTYTYPE_INSERT = "biobank.propertytype.insert";
+
     private static final String STMT_RAW_FIND_OLD        = "biobank.uploadraw.findArchiveLoads";
     private static final String STMT_RAW_INSERT          = "biobank.uploadraw.insert";
+
+    private static final String STMT_RESTRICT_BY_ID      = "biobank.restrict.findById";
+    private static final String STMT_RESTRICT_BY_RULE    = "biobank.restrict.findByRule";
+    private static final String STMT_RESTRICT_INSERT     = "biobank.restrict.insert";
+    private static final String STMT_RESTRICT_UPDATE     = "biobank.restrict.update";
 
     private static final String STMT_SAMPLE_INSERT       = "biobank.sample.insert";
     private static final String STMT_SAMPLE_BY_ID        = "biobank.sample.findById";
@@ -199,6 +232,8 @@ public class SampleInventoryDAO {
     private static final String STMT_LOG_INSERT          = "biobank.log.insert";
     private static final String STMT_LOG_DELETE          = "biobank.log.deleteAll";
     private static final String STMT_LOG_FIND_BY_UPLOAD  = "biobank.log.findByUpload";
+
+    private static final String TYPE_ITEM_LIST           = "choice";
 
     private static final long   COST_EXPIRE              = 3L * 24L * 60L * 60L * 1000L; // 3 days
 
@@ -538,6 +573,11 @@ public class SampleInventoryDAO {
 	    createTable( con, "costsample" ); 
 	    createTable( con, "item" ); 
 	    createTable( con, "estimate" ); 
+
+	    createTable( con, "column" ); 
+	    createTable( con, "property" ); 
+	    createTable( con, "propertytype" ); 
+	    createTable( con, "propertyset" ); 
 
 // 	    con.close();
 	    log.debug( "Initialize sample inventory database done" );
@@ -2586,6 +2626,611 @@ public class SampleInventoryDAO {
 	log.debug( "Cost estimate updated: "+estimate );
 
 	return estimate;
+    }
+
+    /**
+     * Returns a specific <code>PropertyType</code> by name.
+     *
+     * @param typeName The type name.
+     * @return the <code>PropertyType</code> object.
+     */
+    public PropertyType findTypeByName( String typeName ) throws SQLException {
+ 	PreparedStatement pstmt = getStatement( STMT_PROPERTYTYPE_BY_NAME );
+     	pstmt.setString( 1, typeName );
+     	ResultSet res = pstmt.executeQuery();
+     	PropertyType prop = null;
+     	if( res.next() ) 
+     	    prop = (PropertyType)TableUtils.toObject( res, new PropertyType() );
+     	res.close();
+     	return prop;
+    }
+
+    /**
+     * Returns a newly created <code>PropertyType</code> object.
+     *
+     * @param typeName The type name.
+     * @param label The type label (can be null).
+     * @return the <code>PropertyType</code> object.
+     */
+    public PropertyType createType( String typeName, String label ) throws SQLException {
+	if( (typeName == null) || (typeName.trim().length() <= 0) ) 
+	    throw new SQLException( "Property type is invalid" );
+
+	PropertyType pType = new PropertyType();
+	pType.setTypename( typeName.trim() );
+	pType.setLabel( Stringx.getDefault( label, StringUtils.capitalize( typeName.trim() ) ) );
+
+	PreparedStatement pstmt = getStatement( STMT_PROPERTYTYPE_INSERT );
+
+	pstmt.setLong( 1, pType.getTypeid() );
+	pstmt.setString( 2, pType.getTypename() );
+	pstmt.setString( 3, pType.getLabel() );
+	pstmt.executeUpdate();
+
+	log.debug( "Property type created: ("+pType.getTypeid()+") "+pType.getTypename() );
+
+	return pType;
+    }
+
+    /**
+     * Returns property information by id.
+     *
+     * @param propertyid The property id.
+     * @return the <code>Property</code> object.
+     */
+    public Property findPropertyById( long propertyid ) throws SQLException {
+ 	PreparedStatement pstmt = getStatement( STMT_PROPERTY_BY_ID );
+     	pstmt.setLong( 1, propertyid );
+     	ResultSet res = pstmt.executeQuery();
+     	Property prop = null;
+     	if( res.next() ) 
+     	    prop = (Property)TableUtils.toObject( res, new Property() );
+     	res.close();
+     	return prop;
+    }
+
+    /**
+     * Returns property information by name (and type).
+     *
+     * @param pName The property name.
+     * @param pType The property type (can be null).
+     * @return a (potentially empty) list of matching <code>Property</code> objects.
+     */
+    public Property[] findPropertyByName( String pName, String pType ) throws SQLException {
+
+ 	PreparedStatement pstmt = null;
+	if( pType == null )
+	    pstmt = getStatement( STMT_PROPERTY_BY_NAME );
+	else {
+	    pstmt = getStatement( STMT_PROPERTY_BY_NAMETYPE );
+	    pstmt.setString( 2, pType );
+	}
+
+     	pstmt.setString( 1, pName );
+
+     	ResultSet res = pstmt.executeQuery();
+     	List<Property> fl = new ArrayList<Property>();
+     	Iterator it = TableUtils.toObjects( res, new Property() );
+	while( it.hasNext() ) {
+	    fl.add( (Property)it.next() );
+	}
+	res.close();
+
+	Property[] props = new Property[ fl.size() ];
+	return (Property[])fl.toArray( props );
+    }
+
+    /**
+     * Returns property information by name (and type).
+     *
+     * @param pName The property name.
+     * @param pType The property type (can be null).
+     * @return a (potentially empty) list of matching <code>Property</code> objects.
+     */
+    public Property[] findPropertyByName( String pName ) throws SQLException {
+	return findPropertyByName( pName, null );
+    }
+
+    /**
+     * Removes property with the given id.
+     *
+     * @param propertyid The property id.
+     * @return the property removed.
+     */
+    public Property deleteProperty( long propertyid ) throws SQLException {
+	Property prop = findPropertyById( propertyid );
+	if( prop == null ) {
+	    log.warn( "Cannot delete property: "+propertyid );
+	    return null;
+	}
+
+	// delete property
+
+	PreparedStatement pstmt = getStatement( STMT_PROPERTY_DELETE );
+	pstmt.setLong( 1, propertyid );
+	pstmt.executeUpdate();
+
+	log.debug( "Property deleted: "+prop );
+
+	// delete column spec if existing
+
+	// if( prop.getColumnid() != 0L ) {
+	pstmt = getStatement( STMT_COLSPEC_DELETE );
+	pstmt.setLong( 1, propertyid );
+	pstmt.executeUpdate();
+	log.debug( "Column specification deleted: "+prop.getColumnid() );
+
+     	return prop;
+    }
+
+    /**
+     * Stores a property.
+     *
+     * @param prop The property.
+     * @return the stored property.
+     */
+    public Property storeProperty( long userId, Property prop ) throws SQLException {
+	Property pUpd = findPropertyById( prop.getPropertyid() );
+
+     	PreparedStatement pstmt = null;
+     	int nn = 2;
+     	if( pUpd == null ) {
+     	    pstmt = getStatement( STMT_PROPERTY_INSERT );
+     	    pstmt.setLong( 1, prop.getPropertyid() );
+     	    log.debug( "Creating a new property: "+prop.getPropertyid()+" called \""+prop.toString()+"\"" );
+     	}
+     	else {
+     	    pstmt = getStatement( STMT_PROPERTY_UPDATE );
+     	    pstmt.setLong( 7, prop.getPropertyid() );
+     	    log.debug( "Updating existing property: "+prop.getPropertyid()+" called \""+prop.toString()+"\"" );
+	    nn--;
+     	}
+	
+     	pstmt.setString( nn, prop.getPropertyname() );
+     	nn++;
+
+     	pstmt.setString( nn, prop.getLabel() );
+     	nn++;
+
+     	pstmt.setLong( nn, prop.getTypeid() );
+     	nn++;
+
+     	pstmt.setString( nn, prop.getUnit() );
+     	nn++;
+
+     	pstmt.setLong( nn, prop.getParentid() );
+     	nn++;
+
+	prop.updateTrackid();
+
+     	pstmt.setLong( nn, prop.getTrackid() );
+     	nn++;
+
+     	pstmt.executeUpdate();
+
+	log.debug( "Property stored: "+prop.getPropertyid()+" "+prop.toString() );
+
+	pstmt = getStatement( STMT_COLSPEC_DELETE );
+	pstmt.setLong( 1, prop.getPropertyid() );
+	pstmt.executeUpdate();
+
+	if( prop.hasColumnSpec() ) {
+	    prop.setColumnid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
+	    pstmt = getStatement( STMT_COLSPEC_DELETE );
+	    pstmt.setLong( 1, prop.getColumnid() );
+	    pstmt.setLong( 2, prop.getPropertyid() );
+	    pstmt.setString( 3, prop.getDbformat() );
+	    pstmt.setString( 4, prop.getInformat() );
+	    pstmt.setString( 5, prop.getOutformat() );
+	    pstmt.setInt( 6, prop.getDigits() );
+	    pstmt.setInt( 7, prop.getMinoccurs() );
+	    pstmt.setInt( 8, prop.getMaxoccurs() );
+	    pstmt.setString( 9, String.valueOf(prop.isMandatory()));
+	    pstmt.executeUpdate();
+	}
+
+	trackChange( pUpd, prop, userId, "Property "+((pUpd==null)?"created":"updated"), null );
+
+     	return prop;
+    }
+
+    /**
+     * Returns an property set by id.
+     *
+     * @param setId the id of the property set.
+     *
+     * @return the <code>PropertySet</code> object matching the query.
+     */
+    public PropertySet findPropertySetById( long setId ) throws SQLException {
+	PreparedStatement pstmt = getStatement( STMT_PROPERTYSET_BY_ID );
+	pstmt.setLong( 1, setId );
+	ResultSet res = pstmt.executeQuery();
+	List<PropertySet> fl = new ArrayList<PropertySet>();
+	Iterator it = TableUtils.toObjects( res, new PropertySet() );
+	long lastSetid = -1L;
+	PropertySet propSet = null;
+     	while( it.hasNext() ) {
+     	    PropertySet pSet = (PropertySet)it.next();
+	    if( pSet.getListid() != lastSetid ) {
+		propSet = pSet;
+		fl.add( propSet );
+		lastSetid = pSet.getListid();
+	    }
+	    Property prop = findPropertyById( pSet.getPropertyid() );
+	    if( prop != null )
+		propSet.addProperty( prop );
+	}
+     	res.close();
+
+	return ((fl.size() <= 0)?null:fl.get(0));
+    }
+
+    /**
+     * Returns an property set by name.
+     *
+     * @param setName the name of the property set.
+     *
+     * @return the <code>PropertySet</code> objects matching the query.
+     */
+    public PropertySet[] findPropertySetByName( String setName ) throws SQLException {
+	String sName = Stringx.getDefault( setName, "" ).trim();
+	if( sName.length() <= 0 )
+	    sName = "%";
+     	
+	PreparedStatement pstmt = getStatement( STMT_PROPERTYSET_BY_NAME );
+	pstmt.setString( 1, sName );
+	ResultSet res = pstmt.executeQuery();
+	List<PropertySet> fl = new ArrayList<PropertySet>();
+	Iterator it = TableUtils.toObjects( res, new PropertySet() );
+	long lastSetid = -1L;
+	PropertySet propSet = null;
+     	while( it.hasNext() ) {
+     	    PropertySet pSet = (PropertySet)it.next();
+	    if( pSet.getListid() != lastSetid ) {
+		propSet = pSet;
+		fl.add( propSet );
+		lastSetid = pSet.getListid();
+	    }
+	    Property prop = findPropertyById( pSet.getPropertyid() );
+	    if( prop != null )
+		propSet.addProperty( prop );
+     	}	       
+     	res.close();
+
+      	PropertySet[] facs = new PropertySet[ fl.size() ];
+      	return (PropertySet[])fl.toArray( facs );	
+    }
+
+    /**
+     * Create a property set.
+     *
+     * @param setName the property set name.
+     * @param setType the type of the property set.
+     *
+     * @return the newly allocated property set.
+     */
+    public PropertySet createPropertySet( String setName, String setType ) throws SQLException {
+	String sName = setName;
+	if( (setName == null) || (setName.trim().length() <= 0) )
+	    sName = UUID.randomUUID().toString();
+
+	// return property set if existing
+
+	PropertySet[] pSets = findPropertySetByName( sName );
+     	if( pSets.length > 0 )
+	    return pSets[0]; 
+
+	// create property set type if not existing
+	
+	String sType = Stringx.getDefault( setType, "unknown" ).trim();
+	if( sType.length() <= 0 )
+	    sType = "unknown";
+	PropertyType pType = findTypeByName( sType );
+	if( pType == null )
+	    pType = createType( sType );
+
+	// create property set
+
+	PropertySet pSet = new PropertySet();
+	pSet.setListname( sName );
+	pSet.setTypeid( pType.getTypeid() );
+
+	PreparedStatement pstmt = getStatement( STMT_PROPERTYSET_INSERT );
+
+	pstmt.setLong( 1, pSet.getListid() );
+	pstmt.setString( 2, pSet.getListname() );
+	pstmt.setLong( 3, pSet.getTypeid() );
+
+	pstmt.executeUpdate();
+
+	log.debug( "Property set created: "+pSet.getListname()+" ("+
+		   pSet.getListid()+") typeid: "+pSet.getTypeid() );
+
+	return pSet;
+    }
+
+    /**
+     * Store a property set.
+     *
+     * @param userId the user id.
+     * @param pSet the property set.
+     *
+     * @return the updated property set.
+     */
+    public PropertySet storePropertySet( long userId, PropertySet pSet ) throws SQLException {
+	PropertySet eSet = findPropertySetById( pSet.getListid() );
+	if( eSet == null ) 
+	    throw new SQLException( "Property set does not exist: "+pSet );
+
+	Property[] props = pSet.getProperties();
+	for( int i = 0; i < props.length; i++ ) {
+	    Property prop = storeProperty( userId, props[i] );
+	    pSet.setProperty( i, prop );
+	}
+	log.debug( "Number of properties stored: "+props.length );
+
+	// delete property membership if existing and re-establish to ensure proper order 
+	// and to confirm attributes changed
+
+	props = pSet.getProperties();
+
+	PreparedStatement delStmt = getStatement( STMT_PROPMEMBER_DELETE );
+	delStmt.setLong( 1, pSet.getListid() );
+	delStmt.executeUpdate();
+
+	log.debug( "Removed all members from property set: "+pSet );
+
+	PreparedStatement insStmt = getStatement( STMT_PROPMEMBER_INSERT );
+	for( int i = 0; i < props.length; i++ ) {
+	    insStmt.setLong( 1, pSet.getListid() );
+	    insStmt.setLong( 2, props[i].getPropertyid() );
+	    insStmt.setInt( 3, i+1 );
+	    insStmt.setString( 4, String.valueOf(props[i].isDisplay()) );
+	    insStmt.executeUpdate();
+	}
+
+	log.debug( props.length+" members re-confirmed, property set: "+pSet );
+	
+	return pSet;
+    }
+
+    /**
+     * Returns a newly created <code>PropertyType</code> object.
+     *
+     * @param typeName The type name.
+     * @return the <code>PropertyType</code> object.
+     */
+    public PropertyType createType( String typeName ) throws SQLException {
+	return createType( typeName, null );
+    }
+
+    /**
+     * Returns a restriction rule identified by the short rule name.
+     *
+     * @param rule the rule name.
+     *
+     * @return an array of <code>RestrictionRule</code> objects which can be empty.
+     */
+    public RestrictionRule[] findRestrictionRule( String rule ) throws SQLException {
+
+	PreparedStatement pstmt = getStatement( STMT_RESTRICT_BY_RULE );
+     	pstmt.setString( 1, Stringx.getDefault(rule,"") );
+
+     	ResultSet res = pstmt.executeQuery();
+     	List<RestrictionRule> fl = new ArrayList<RestrictionRule>();
+     	Iterator it = TableUtils.toObjects( res, new RestrictionRule() );
+	RestrictionRule rr = null;
+	while( it.hasNext() ) {
+	    rr = (RestrictionRule)it.next();
+	    fl.add( rr );
+	    if( rr.getParentid() != 0 ) {
+		PropertySet pSet = findPropertySetById( rr.getParentid() );
+		if( pSet != null )
+		    rr.addChoices( pSet.getItems() );
+	    }
+	}	       
+	res.close();
+
+	RestrictionRule[] rules = new RestrictionRule[ fl.size() ];
+	return (RestrictionRule[])fl.toArray( rules );
+    }
+
+    /**
+     * Returns a restriction rule identified by id.
+     *
+     * @param ruleId the rule id.
+     *
+     * @return an array of <code>RestrictionRule</code> objects which can be empty.
+     */
+    public RestrictionRule findRestrictionRuleById( long ruleId ) throws SQLException {
+	PreparedStatement pstmt = getStatement( STMT_RESTRICT_BY_ID );
+     	pstmt.setLong( 1, ruleId );
+
+     	ResultSet res = pstmt.executeQuery();
+     	RestrictionRule rule = null;
+     	if( res.next() ) 
+     	    rule = (RestrictionRule)TableUtils.toObject( res, new RestrictionRule() );
+     	res.close();
+	if( (rule != null) && (rule.getParentid() != 0) ) {
+	    PropertySet pSet = findPropertySetById( rule.getParentid() );
+	    if( pSet != null )
+		rule.addChoices( pSet.getItems() );
+	}
+	return rule;
+    }
+
+    /**
+     * Creates a new restriction rule with the given name.
+     *
+     * @param userId the user creating the restriction rule.
+     * @param ruleName the rule name.
+     * @param type the rule type.
+     * @param property the referencing property name.
+     *
+     * @return a newly created <code>RestrictionRule</code> object.
+     *
+     * @exception SQLException in case of a duplicate rule has been found.
+     */
+    public RestrictionRule createRestrictionRule( long userId, String ruleName, String type, String property ) throws SQLException {
+	String rName = Stringx.getDefault( ruleName, "" ).trim();
+	if( rName.length() <= 0 )
+	    throw new SQLException( "Empty rule name cannot be created." );
+
+	RestrictionRule[] rules = findRestrictionRule( rName );
+	if( rules.length > 0 )
+	    throw new SQLException( "Rule \""+Stringx.getDefault(rName,"")+"\" exists already." );
+
+	String pName = Stringx.getDefault( property, "" ).trim();
+	if( pName.length() <= 0 )
+	    throw new SQLException( "Property name is invalid." );
+
+	RestrictionRule rule = new RestrictionRule();
+	rule.setRule( rName );
+	rule.setRestriction( "" );
+	rule.setDatatype( "" );
+
+	String tName = Stringx.getDefault( type, "" ).trim().toLowerCase();
+	if( tName.length() <= 0 )
+	    tName = "unknown";
+
+	PropertyType pType = findTypeByName( tName );
+	if( pType == null )
+	    pType = createType( tName, type );
+	
+	Property[] props = findPropertyByName( property, pType.getTypename() );
+	Property prop = null;
+	if( props.length <= 0 ) {
+	    prop = new Property();
+	    prop.setPropertyname( property );
+	    prop.setLabel( property );
+	    prop.setTypeid( pType.getTypeid() );
+	    prop = storeProperty( userId, prop );
+	}
+	else {
+	    prop = props[0];
+	}
+	rule.setPropertyid( prop.getPropertyid() );
+	rule.setPropertyname( prop.getPropertyname() );
+	rule.setLabel( prop.getLabel() );
+	rule.setUnit( prop.getUnit() );
+	rule.setTypeid( pType.getTypeid() );
+	rule.setTypename( prop.getTypename() );
+	rule.setParentid( prop.getParentid() );
+
+	PreparedStatement pstmt = getStatement( STMT_RESTRICT_INSERT );
+
+	pstmt.setLong( 1, rule.getRestrictid() );
+	pstmt.setString( 2, rule.getRule() );
+	pstmt.setString( 3, rule.getRestriction() );
+	pstmt.setString( 4, rule.getDatatype() );
+	pstmt.setLong( 5, rule.getPropertyid() );
+
+	pstmt.executeUpdate();
+
+	log.debug( "New rule created: "+String.valueOf(rule.getRestrictid())+" "+rule.toString() );
+
+	return rule;
+    }
+
+    /**
+     * Strores the restriction rule.
+     *
+     * @param userId the user creating the restriction rule.
+     * @param rule the rule.
+     *
+     * @return the updated <code>RestrictionRule</code> object.
+     *
+     * @exception SQLException in case rule is not existing.
+     */
+    public RestrictionRule storeRestrictionRule( long userId, RestrictionRule rule ) throws SQLException {
+	RestrictionRule restr = findRestrictionRuleById( rule.getRestrictid() );
+	if( restr == null )
+	    throw new SQLException( "Rule "+String.valueOf(rule.getRestrictid())+" does not exist." );
+
+	Property prop = findPropertyById( rule.getPropertyid() );
+	if( prop == null )
+	    throw new SQLException( "Rule \""+rule.toString()+"\" property is invalid: "+String.valueOf(rule.getPropertyid()) );
+
+	String pName = Stringx.getDefault( rule.getPropertyname(), prop.getPropertyname() ).trim();
+	if( pName.length() <= 0 )
+	    throw new SQLException( "Rule \""+rule.toString()+"\" property name is invalid: "+String.valueOf(rule.getPropertyid()) );
+
+	String tName = Stringx.getDefault( rule.getTypename(), "" ).trim().toLowerCase();
+	if( tName.length() <= 0 )
+	    tName = "unknown";
+	PropertyType pType = findTypeByName( tName );
+	if( pType == null )
+	    pType = createType( tName );
+
+	prop.setPropertyname( pName );
+	prop.setLabel( pName );
+	prop.setTypeid( pType.getTypeid() );
+
+	rule.setPropertyname( prop.getPropertyname() );
+	rule.setLabel( prop.getLabel() );
+	rule.setUnit( prop.getUnit() );
+	rule.setTypeid( prop.getTypeid() );
+	rule.setTypename( pType.getTypename() );
+	rule.setParentid( prop.getParentid() );
+
+	String[] items = rule.getChoices();
+
+	long pSetId = rule.getParentid();
+	PropertySet pSet = null;
+	if( (pSetId == 0L) && (items.length > 0) ) {
+	    String setName = rule.toString()+"_choices";
+	    pSet = createPropertySet( setName, TYPE_ITEM_LIST );
+	    pSetId = pSet.getListid();
+	}
+	else if( pSetId != 0L ) {
+	    pSet = findPropertySetById( pSetId );
+	}
+
+	if( pSet != null ) {
+	    pSet.clearProperties();
+	    long tid = rule.getTypeid();
+	    for( int i = 0; i < items.length; i++ ) {
+		Property[] props = findPropertyByName( items[i] );
+		Property cProp = null;
+		if( props.length <= 0 ) {
+		    cProp = new Property();
+		    cProp.setPropertyname( Stringx.strtrunc( items[i], 50) );
+		    cProp.setLabel( Stringx.strtrunc(items[i], 80) );
+		    cProp.setTypeid( tid );
+		}
+		else {
+		    for( int j = 0; j < props.length; j++ ) {
+			if( props[j].getTypeid() == tid ) {
+			    cProp = props[j];
+			    break;
+			}
+		    }
+		    if( cProp == null )
+			cProp = props[0];
+		}
+		pSet.addProperty( cProp );
+	    }
+	    pSet = storePropertySet( userId, pSet );
+
+	    rule.setParentid( pSet.getListid() );
+	    prop.setParentid( pSet.getListid() );
+	}	
+
+	prop = storeProperty( userId, prop );
+
+	PreparedStatement pstmt = getStatement( STMT_RESTRICT_UPDATE );
+
+	pstmt.setString( 1, rule.getRule() );
+	pstmt.setString( 2, rule.getRestriction() );
+	pstmt.setString( 3, rule.getDatatype() );
+	pstmt.setLong( 4, rule.getPropertyid() );
+	pstmt.setLong( 5, rule.getRestrictid() );
+
+	pstmt.executeUpdate();
+
+	log.debug( "Rule updated: "+String.valueOf(rule.getRestrictid())+" "+rule.toString() );
+
+	return rule;
     }
 
     /**
