@@ -575,9 +575,15 @@ public class SampleInventoryDAO {
 	    createTable( con, "estimate" ); 
 
 	    createTable( con, "column" ); 
+	    createTable( con, "member" ); 
 	    createTable( con, "property" ); 
 	    createTable( con, "propertytype" ); 
 	    createTable( con, "propertyset" ); 
+
+	    createTable( con, "restrict" );
+	    createTable( con, "restrictstudy" );
+	    createTable( con, "restrictsite" );
+	    createTable( con, "restrictvalue" );
 
 // 	    con.close();
 	    log.debug( "Initialize sample inventory database done" );
