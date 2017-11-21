@@ -227,6 +227,7 @@ public class SampleInventoryDAO {
     private static final String STMT_UPLOAD_MOVE         = "biobank.upload.move";
 
     private static final String STMT_USER_BY_APIKEY      = "biobank.user.findByApikey";
+    private static final String STMT_USER_BY_MUID        = "biobank.user.findByMuid";
     private static final String STMT_USER_BY_ID          = "biobank.user.findById";
 
     private static final String STMT_LOG_INSERT          = "biobank.log.insert";
@@ -1265,6 +1266,23 @@ public class SampleInventoryDAO {
      */
     public User findUserByApikey( String apikey ) throws SQLException {
  	PreparedStatement pstmt = getStatement( STMT_USER_BY_APIKEY );
+     	pstmt.setString( 1, apikey );
+     	ResultSet res = pstmt.executeQuery();
+     	User user = null;
+     	if( res.next() ) 
+     	    user = (User)TableUtils.toObject( res, new User() );
+     	res.close();
+     	return user;
+    }
+
+    /**
+     * Returns user information by muid.
+     *
+     * @param muid The MUID.
+     * @return the User object.
+     */
+    public User findUserByMuid( String apikey ) throws SQLException {
+ 	PreparedStatement pstmt = getStatement( STMT_USER_BY_MUID );
      	pstmt.setString( 1, apikey );
      	ResultSet res = pstmt.executeQuery();
      	User user = null;
