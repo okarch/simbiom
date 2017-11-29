@@ -150,6 +150,7 @@ public class Property extends AbstractTrackable implements Comparable, Copyable 
 
     protected long contentId() {
 	StringBuilder stb = new StringBuilder();
+	stb.append( getPropertyid() );
 	stb.append( Stringx.getDefault( getPropertyname(), "" ) );
 	stb.append( getTypeid() );
 	stb.append( getParentid() );

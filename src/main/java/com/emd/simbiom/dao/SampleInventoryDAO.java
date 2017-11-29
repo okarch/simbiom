@@ -123,6 +123,7 @@ public class SampleInventoryDAO {
     private static final String STMT_ACC_INSERT          = "biobank.accession.insert";
 
     private static final String STMT_COLSPEC_DELETE      = "biobank.column.delete";
+    private static final String STMT_COLSPEC_INSERT      = "biobank.column.insert";
 
     private static final String STMT_COST_BY_ID          = "biobank.cost.findById";
 
@@ -159,7 +160,7 @@ public class SampleInventoryDAO {
 
     private static final String STMT_PROPERTY_BY_ID      = "biobank.property.findById";
     private static final String STMT_PROPERTY_BY_NAME    = "biobank.property.findByName";
-    private static final String STMT_PROPERTY_BY_NAMETYPE= "biobank.property.findById";
+    private static final String STMT_PROPERTY_BY_NAMETYPE= "biobank.property.findByNameType";
     private static final String STMT_PROPERTY_DELETE     = "biobank.property.delete";
     private static final String STMT_PROPERTY_INSERT     = "biobank.property.insert";
     private static final String STMT_PROPERTY_UPDATE     = "biobank.property.update";
@@ -803,7 +804,11 @@ public class SampleInventoryDAO {
 	    }
 	    
 	}
+	
+	log.debug( "before track id: "+prevId+" (no before: "+(before==null)+") changed track id: "+changed.getTrackid() );
 	if( changed != null ) {
+	    if( changed.getTrackid() == prevId )
+		return;
 	    insertTrack( changed, prevId, userId, activity, remark );
 	}
 	else if( prevId != -1L ) {
@@ -816,6 +821,43 @@ public class SampleInventoryDAO {
 	    pstmt.executeUpdate();
 	}
     }
+
+    // private void trackChange( Trackable before,
+    // 			      Trackable changed,
+    // 			      long userId,
+    // 			      String activity,
+    // 			      String remark )
+    // 	throws SQLException {
+
+    // 	PreparedStatement pstmt = null;
+    // 	long prevId = -1L;
+    // 	if( before != null ) {
+    // 	    pstmt = getStatement( STMT_TRACK_BY_ID );
+    // 	    pstmt.setLong( 1, before.getTrackid() );
+    // 	    ResultSet res = pstmt.executeQuery();
+    // 	    if( res.next() ) 
+    // 		prevId = before.getTrackid();
+    // 	    res.close();
+    // 	    if( prevId == -1L ) {
+    // 		String msg = "Previous track information could not be found";
+    // 		log.warn( msg );
+    // 		insertTrack( before, -1L, userId, activity, msg );
+    // 	    }
+	    
+    // 	}
+    // 	if( changed != null ) {
+    // 	    insertTrack( changed, prevId, userId, activity, remark );
+    // 	}
+    // 	else if( prevId != -1L ) {
+    // 	    pstmt = getStatement( STMT_TRACK_DELETE );
+    // 	    pstmt.setTimestamp( 1, new Timestamp(System.currentTimeMillis()) );
+    // 	    pstmt.setString( 2, activity );
+    // 	    pstmt.setLong( 3, userId );
+    // 	    pstmt.setString( 4, Stringx.getDefault( remark, "" ) );
+    // 	    pstmt.setLong( 5, prevId );
+    // 	    pstmt.executeUpdate();
+    // 	}
+    // }
 
     /**
      * Create a sample.
@@ -1239,7 +1281,7 @@ public class SampleInventoryDAO {
 	pstmt.setTimestamp( 3, updLog.getLogstamp() );
 	pstmt.setString( 4, updLog.getLevel() );
 	pstmt.setLong( 5, updLog.getLine() );
-	pstmt.setString( 6, updLog.getMessage() );
+	pstmt.setString( 6, Stringx.strtrunc(updLog.getMessage(),252,"..") );
 	pstmt.executeUpdate();
 
 	return updLog;
@@ -2840,7 +2882,7 @@ public class SampleInventoryDAO {
 
 	if( prop.hasColumnSpec() ) {
 	    prop.setColumnid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
-	    pstmt = getStatement( STMT_COLSPEC_DELETE );
+	    pstmt = getStatement( STMT_COLSPEC_INSERT );
 	    pstmt.setLong( 1, prop.getColumnid() );
 	    pstmt.setLong( 2, prop.getPropertyid() );
 	    pstmt.setString( 3, prop.getDbformat() );
@@ -2851,6 +2893,7 @@ public class SampleInventoryDAO {
 	    pstmt.setInt( 8, prop.getMaxoccurs() );
 	    pstmt.setString( 9, String.valueOf(prop.isMandatory()));
 	    pstmt.executeUpdate();
+	    log.debug( "Column specification updated: "+prop.getColumnid()+", property: "+prop.getPropertyid()+" "+prop.toString() );
 	}
 
 	trackChange( pUpd, prop, userId, "Property "+((pUpd==null)?"created":"updated"), null );
@@ -3118,8 +3161,10 @@ public class SampleInventoryDAO {
 	    tName = "unknown";
 
 	PropertyType pType = findTypeByName( tName );
-	if( pType == null )
+	if( pType == null ) 
 	    pType = createType( tName, type );
+
+	log.debug( "Type to be used: "+pType );
 	
 	Property[] props = findPropertyByName( property, pType.getTypename() );
 	Property prop = null;
@@ -3129,9 +3174,11 @@ public class SampleInventoryDAO {
 	    prop.setLabel( property );
 	    prop.setTypeid( pType.getTypeid() );
 	    prop = storeProperty( userId, prop );
+	    log.debug( "Property stored: "+prop );
 	}
 	else {
 	    prop = props[0];
+	    log.debug( "Property used: "+prop );
 	}
 	rule.setPropertyid( prop.getPropertyid() );
 	rule.setPropertyname( prop.getPropertyname() );

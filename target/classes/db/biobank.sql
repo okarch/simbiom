@@ -537,7 +537,7 @@ create table t_inventory_log(
   logstamp     timestamp, 
   level        varchar(10), 
   line         bigint, 
-  message      varchar(80) 
+  message      varchar(254) 
 );
 create index i_log_uid on t_inventory_log( uploadid );
 create index i_log_lst on t_inventory_log( logstamp );
