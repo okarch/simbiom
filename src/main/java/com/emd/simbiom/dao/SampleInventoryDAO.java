@@ -56,6 +56,7 @@ import com.emd.simbiom.model.Organization;
 import com.emd.simbiom.model.Property;
 import com.emd.simbiom.model.PropertySet;
 import com.emd.simbiom.model.PropertyType;
+import com.emd.simbiom.model.Restriction;
 import com.emd.simbiom.model.RestrictionRule;
 import com.emd.simbiom.model.Sample;
 import com.emd.simbiom.model.SampleEvent;
@@ -177,13 +178,20 @@ public class SampleInventoryDAO {
     private static final String STMT_PROPERTYTYPE_BY_NAME= "biobank.propertytype.findByName";
     private static final String STMT_PROPERTYTYPE_INSERT = "biobank.propertytype.insert";
 
+    private static final String STMT_PROPERTYVAL_DELETE  = "biobank.propertyvalue.delete";
+    private static final String STMT_PROPERTYVAL_INSERT  = "biobank.propertyvalue.insert";
+
     private static final String STMT_RAW_FIND_OLD        = "biobank.uploadraw.findArchiveLoads";
     private static final String STMT_RAW_INSERT          = "biobank.uploadraw.insert";
 
     private static final String STMT_RESTRICT_BY_ID      = "biobank.restrict.findById";
     private static final String STMT_RESTRICT_BY_RULE    = "biobank.restrict.findByRule";
+    private static final String STMT_RESTRICT_BY_STUDY   = "biobank.restrictapply.findRestriction";
     private static final String STMT_RESTRICT_INSERT     = "biobank.restrict.insert";
     private static final String STMT_RESTRICT_UPDATE     = "biobank.restrict.update";
+
+    private static final String STMT_RESTASSIGN_INSERT   = "biobank.restrictapply.insert";
+    private static final String STMT_RESTASSIGN_UPDATE   = "biobank.restrictapply.update";
 
     private static final String STMT_SAMPLE_INSERT       = "biobank.sample.insert";
     private static final String STMT_SAMPLE_BY_ID        = "biobank.sample.findById";
@@ -236,6 +244,8 @@ public class SampleInventoryDAO {
     private static final String STMT_LOG_FIND_BY_UPLOAD  = "biobank.log.findByUpload";
 
     private static final String TYPE_ITEM_LIST           = "choice";
+
+    private static final long TYPE_NUMERIC               = 2L; // as defined in biobank.sql
 
     private static final long   COST_EXPIRE              = 3L * 24L * 60L * 60L * 1000L; // 3 days
 
@@ -581,11 +591,10 @@ public class SampleInventoryDAO {
 	    createTable( con, "property" ); 
 	    createTable( con, "propertytype" ); 
 	    createTable( con, "propertyset" ); 
+	    createTable( con, "propertyvalue" ); 
 
 	    createTable( con, "restrict" );
-	    createTable( con, "restrictstudy" );
-	    createTable( con, "restrictsite" );
-	    createTable( con, "restrictvalue" );
+	    createTable( con, "restrictapply" );
 
 // 	    con.close();
 	    log.debug( "Initialize sample inventory database done" );
@@ -2826,7 +2835,79 @@ public class SampleInventoryDAO {
 	pstmt.executeUpdate();
 	log.debug( "Column specification deleted: "+prop.getColumnid() );
 
+	pstmt = getStatement( STMT_PROPERTYVAL_DELETE );
+	pstmt.setLong( 1, propertyid );
+	pstmt.executeUpdate();
+
+	log.debug( "Property value(s) removed: "+prop.getValueid() );
+
      	return prop;
+    }
+
+    /**
+     * Assigns a value to a property
+     *
+     * @param prop the property.
+     * @param numVal the numeric value.
+     *
+     * @return the updated numeric value.
+     */
+    public Property assignPropertyValue( Property prop, double numVal )
+	throws SQLException {
+
+	PreparedStatement pstmt = getStatement( STMT_PROPERTYVAL_DELETE );
+	pstmt.setLong( 1, prop.getPropertyid() );
+	pstmt.executeUpdate();
+	
+	long valId = prop.getValueid();
+	if( valId == 0L ) 
+	    valId = DataHasher.hash( UUID.randomUUID().toString().getBytes() );
+
+	pstmt = getStatement( STMT_PROPERTYVAL_INSERT );
+	pstmt.setLong( 1, valId );
+	pstmt.setLong( 2, prop.getPropertyid() );
+	pstmt.setString( 3, null );
+	pstmt.setDouble( 4, numVal );
+	pstmt.setInt( 5, 0 );
+	pstmt.executeUpdate();
+
+	prop.setValueid( valId );
+	prop.setNumvalue( numVal );
+
+	return prop;
+    }
+
+    /**
+     * Assigns a value to a property
+     *
+     * @param prop the property.
+     * @param numVal the numeric value.
+     *
+     * @return the updated numeric value.
+     */
+    public Property assignPropertyValue( Property prop, String charVal )
+	throws SQLException {
+
+	PreparedStatement pstmt = getStatement( STMT_PROPERTYVAL_DELETE );
+	pstmt.setLong( 1, prop.getPropertyid() );
+	pstmt.executeUpdate();
+	
+	long valId = prop.getValueid();
+	if( valId == 0L ) 
+	    valId = DataHasher.hash( UUID.randomUUID().toString().getBytes() );
+
+	pstmt = getStatement( STMT_PROPERTYVAL_INSERT );
+	pstmt.setLong( 1, valId );
+	pstmt.setLong( 2, prop.getPropertyid() );
+	pstmt.setString( 3, charVal );
+	pstmt.setDouble( 4, 0d );
+	pstmt.setInt( 5, 0 );
+	pstmt.executeUpdate();
+
+	prop.setValueid( valId );
+	prop.setCharvalue( charVal );
+
+	return prop;
     }
 
     /**
@@ -2894,6 +2975,26 @@ public class SampleInventoryDAO {
 	    pstmt.setString( 9, String.valueOf(prop.isMandatory()));
 	    pstmt.executeUpdate();
 	    log.debug( "Column specification updated: "+prop.getColumnid()+", property: "+prop.getPropertyid()+" "+prop.toString() );
+	}
+
+	if( prop.hasValue() ) {
+	    pstmt = getStatement( STMT_PROPERTYVAL_DELETE );
+	    pstmt.setLong( 1, prop.getPropertyid() );
+	    pstmt.executeUpdate();
+
+	    long valId = prop.getValueid();
+	    if( valId == 0L ) 
+		valId = DataHasher.hash( UUID.randomUUID().toString().getBytes() );
+
+	    pstmt = getStatement( STMT_PROPERTYVAL_INSERT );
+	    pstmt.setLong( 1, valId );
+	    pstmt.setLong( 2, prop.getPropertyid() );
+	    pstmt.setString( 3, prop.getCharvalue() );
+	    pstmt.setDouble( 4, prop.getNumvalue() );
+	    pstmt.setInt( 5, 0 );
+	    pstmt.executeUpdate();
+
+	    prop.setValueid( valId );
 	}
 
 	trackChange( pUpd, prop, userId, "Property "+((pUpd==null)?"created":"updated"), null );
@@ -3305,6 +3406,144 @@ public class SampleInventoryDAO {
     }
 
     /**
+     * Searches for a restriction Returns a restriction rule identified by id.
+     *
+     * @param ruleId the rule id.
+     *
+     * @return an array of <code>RestrictionRule</code> objects which can be empty.
+     */
+    public Restriction findRestriction( Study study, RestrictionRule rule, Organization site ) 
+	throws SQLException {
+
+	PreparedStatement pstmt = getStatement( STMT_RESTRICT_BY_STUDY );
+	long siteId = 0L;
+	if( site != null ) 
+	    siteId = site.getOrgid();
+	
+	pstmt.setLong( 1, rule.getRestrictid() );
+	pstmt.setLong( 2, study.getStudyid() );
+	pstmt.setLong( 3, siteId );
+
+     	ResultSet res = pstmt.executeQuery();
+	
+     	Restriction restrict = null;
+     	if( res.next() ) 
+     	    restrict = (Restriction)TableUtils.toObject( res, new Restriction() );
+     	res.close();
+
+	if( restrict != null ) {
+	    restrict.setRestrictionRule( findRestrictionRuleById( restrict.getRestrictid() ) );
+	    restrict.setStudy( findStudyById( restrict.getStudyid() ) );
+	    if( restrict.getOrgid() != 0L )
+		restrict.setOrganization( findOrganizationById( restrict.getOrgid() ) );
+	    restrict.setProperty( findPropertyById( restrict.getPropertyid() ) );
+	}
+	return restrict;
+    }
+    
+    /**
+     * Assigns a restriction realization to a study (and optionally to a site)
+     *
+     * @param study the study.
+     * @param rule the rule.
+     * @param site the organization (study site), can be null.
+     * @param restrictValue the restriction value (realization).
+     *
+     * @return the restriction assigned.
+     */
+    public Restriction assignRestriction( Study study, 
+					  RestrictionRule rule, 
+					  Organization site,
+					  String restrictValue )
+	throws SQLException {
+
+	if( (study == null) || (rule == null)  || (restrictValue == null) )
+	    throw new SQLException( "Cannot assign restriction as mandatory information is missing" );
+
+	Restriction restrict = findRestriction( study, rule, site );
+	boolean updRestrict = true;
+	if( restrict == null ) {
+	    restrict = new Restriction();
+	    restrict.setRestrictid( rule.getRestrictid() );
+	    restrict.setRestrictionRule( rule );
+	    restrict.setStudyid( study.getStudyid() );
+	    restrict.setStudy( study );
+	    if( site != null ) {
+		restrict.setOrgid( site.getOrgid() );
+		restrict.setOrganization( site );
+	    }
+	    updRestrict = false;
+	}
+
+	PropertySet pSet = findPropertySetById( rule.getParentid() );
+	if( pSet != null ) {
+	    Property[] props = pSet.getProperties( restrictValue );
+	    if( props.length > 0 ) {
+		restrict.setPropertyid( props[0].getPropertyid() );
+		restrict.setProperty( props[0] );
+	    }	    
+	}
+	else {
+	    Property prop = findPropertyById( rule.getPropertyid() );
+	    if( prop == null )
+		throw new SQLException( "Restriction property id invalid: "+rule.getPropertyid() );
+	    restrict.setPropertyid( prop.getPropertyid() );
+	    if( !prop.toString().equals( restrictValue ) ) {
+		if( prop.getTypeid() == TYPE_NUMERIC ) {
+		    restrict.setNumvalue( Stringx.toDouble( restrictValue, 0d ) );
+		    prop = assignPropertyValue( prop, restrict.getNumvalue() );
+		}
+		else {
+		    restrict.setCharvalue( restrictValue );
+		    prop = assignPropertyValue( prop, restrict.getCharvalue() );
+		}
+		restrict.setProperty( prop );
+	    }
+	}
+
+	int nn = 1;
+	PreparedStatement pstmt = null;
+	if( updRestrict ) {
+	    pstmt = getStatement( STMT_RESTASSIGN_UPDATE );
+	    pstmt.setLong( 5, restrict.getApplyid() );
+	}
+	else {
+	    pstmt = getStatement( STMT_RESTASSIGN_INSERT );
+	    pstmt.setLong( nn, restrict.getApplyid() );
+	    nn++;
+	}
+
+	pstmt.setLong( nn, restrict.getRestrictid() );
+	nn++;
+	pstmt.setLong( nn, restrict.getStudyid() );
+	nn++;
+	pstmt.setLong( nn, restrict.getOrgid() );
+	nn++;
+	pstmt.setLong( nn, restrict.getPropertyid() );
+
+	pstmt.executeUpdate();
+	
+	return restrict;
+    }
+
+    /**
+     * Assigns a restriction realization to a study.
+     *
+     * @param study the study.
+     * @param rule the rule.
+     * @param restrictValue the restriction value (realization).
+     *
+     * @return the restriction assigned.
+     */
+    public Restriction assignRestriction( Study study, 
+					  RestrictionRule rule, 
+					  String restrictValue )
+	throws SQLException {
+
+	return assignRestriction( study, rule, null, restrictValue );
+    }
+
+    /**
      * Clean up resources occupied by this DAO.
      *
      */
@@ -3334,3 +3573,78 @@ public class SampleInventoryDAO {
     }
 
 }
+
+
+// package proxy;
+
+// import java.lang.reflect.InvocationHandler;
+
+// import java.lang.reflect.InvocationTargetException;
+
+// import java.lang.reflect.Method;
+
+// import java.lang.reflect.Proxy;
+
+// public class JdkProxyDemo {
+
+//     interface If {
+
+//         void originalMethod(String s);
+
+//     }
+
+//     static class Original implements If {
+
+//         public void originalMethod(String s) {
+
+//             System.out.println(s);
+
+//         }
+
+//     }
+
+//     static class Handler implements InvocationHandler {
+
+//         private final If original;
+
+//         public Handler(If original) {
+
+//             this.original = original;
+
+//         }
+
+//         public Object invoke(Object proxy, Method method, Object[] args)
+
+//                 throws IllegalAccessException, IllegalArgumentException,
+
+//                 InvocationTargetException {
+
+//             System.out.println("BEFORE");
+
+//             method.invoke(original, args);
+
+//             System.out.println("AFTER");
+
+//             return null;
+
+//         }
+
+//     }
+
+//     public static void main(String[] args){
+
+//         Original original = new Original();
+
+//         Handler handler = new Handler(original);
+
+//         If f = (If) Proxy.newProxyInstance(If.class.getClassLoader(),
+
+//                 new Class[] { If.class },
+
+//                 handler);
+
+//         f.originalMethod("Hallo");
+
+//     }
+
+// }

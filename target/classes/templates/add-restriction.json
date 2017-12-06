@@ -25,8 +25,16 @@ ${lines.size()} lines read\\n
 ## search rule entry\\n
 ## ########################\\n
 #set( $ruleName = ${columns.get(1)} )\\n
+#set( $ruleName = $strings.trimToEmpty( $ruleName ) )\\n
 #set( $dataType = ${columns.get(3)} )\\n
+#set( $dataType = $strings.trimToEmpty( $dataType ) )\\n
 #set( $refType = ${columns.get(4)} )\\n
+#set( $refType = $strings.trimToEmpty( $refType ) )\\n
+#if( ${ruleName.length()} <= 0 )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Restriction rule is empty. Line ignored.\" ) )\\n
+#elseif( ${refType.length()} <= 0 )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Reference property is empty. Line ignored.\" ) )\\n
+#else\\n
 #set( $rules = $db.findRestrictionRule( \"$ruleName\" ) )\\n
 #if( $rules.size() <= 0 )\\n
 ## ########################\\n
@@ -34,7 +42,7 @@ ${lines.size()} lines read\\n
 ## ########################\\n
 #set( $rule = $db.createRestrictionRule( ${user.getUserid()}, \"$ruleName\", \"$dataType\", \"$refType\" ) )\\n
 #if( $rule )\\n
-#set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"Restriction rule created: ${rule.getRestrictid()} ${rule.getRule()}\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Restriction rule created: ${rule.getRestrictid()} ${rule.getRule()}\" ) )\\n
 #else\\n
 #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Cannot create restriction rule: $ruleName\" ) )\\n
 #end\\n
@@ -48,12 +56,18 @@ ${lines.size()} lines read\\n
 #set( $refValues = $strings.split( \"${columns.get(5)}\", \",\" ) )\\n
 #set( $vCount = $velocityCount )\\n
 #foreach( $refItem in $refValues )\\n
+#set( $refItem = $strings.trimToEmpty( $refItem ) )\\n
+#if( ${refItem.length()} <= 0 )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $vCount, \"Empty reference value ignored. Rule: ${rule.getRestrictid()}\" ) )\\n
+#else\\n
 #set( $dummy = $rule.addChoice( \"$refItem\" ) )\\n
-#set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $vCount, \"Reference value added to rule: ${rule.getRestrictid()} ${refItem}\" ) )\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $vCount, \"Reference value added to rule: ${rule.getRestrictid()} ${refItem}\" ) )\\n
+#end\\n
 #end\\n
 #set( $rule = $db.storeRestrictionRule( ${user.getUserid()}, $rule ) )\\n
 #if( !$rule )\\n
 #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Restriction rule cannot be stored: ${rule.getRestrictid()} $rule\" ) )\\n
+#end\\n
 #end\\n
 #end\\n
 #end\\n

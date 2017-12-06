@@ -152,6 +152,24 @@ public class PropertySet implements Comparable, Copyable {
     }
 
     /**
+     * Returns the list of properties matching the given name (label and / or name).
+     *
+     * @param item the item to search.
+     * 
+     * @return an (potentially empty) array of <code>Property</code> objects representing the item.
+     */
+    public Property[] getProperties( final String item ) {
+	Property[] props = getProperties();
+	List<Property> pnList = new ArrayList<Property>();
+	for( int i = 0; i < props.length; i++ ) {
+	    if( props[i].toString().equals( item ) ) 
+		pnList.add( props[i] );
+	}
+	Property[] cols = new Property[pnList.size()];
+	return (Property[])pnList.toArray( cols );
+    }	
+
+    /**
      * Empties the list of properties.
      *
      */

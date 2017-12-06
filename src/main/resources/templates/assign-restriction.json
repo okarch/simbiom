@@ -1,0 +1,85 @@
+{
+ "templatename":"Assign restriction rule",
+ "template":"
+## ########################\\n
+## Assign restriction rules\\n
+## ########################\\n
+#set( $dtFormat = \"dd-MMM-yyyy\" )\\n
+#set( $delim = \"[|]\" )\\n
+#if( !$upload )\\n
+  #stop\\n
+#end\\n
+#set( $mandatoryCols = 4 )\\n
+#set( $lines = $upload.readLines() )\\n
+start processing upload $upload.getUploadid() $upload.getUploaded()\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", \"Upload ${template.getTemplatename()} initiated by ${user.username}.\" ) )\\n
+${lines.size()} lines read\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", \"${lines.size()} lines read.\" ) )\\n
+#foreach( $line in $lines )\\n
+  #if( $velocityCount > 1 )\\n
+    #set( $columns = $line.split( $delim ) )\\n
+    #if( $columns.size() < $mandatoryCols )\\n
+      #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Columns expected ${mandatoryCols}, read ${columns.size()}.\" ) )\\n
+    #else\\n
+## ########################\\n
+## search rule entry\\n
+## ########################\\n
+      #set( $ruleName = ${columns.get(2)} )\\n
+      #set( $ruleName = $strings.trimToEmpty( $ruleName ) )\\n
+      #set( $studyName = ${columns.get(0)} )\\n
+      #set( $studyName = $strings.trimToEmpty( $studyName ) )\\n
+      #set( $siteName = ${columns.get(1)} )\\n
+      #set( $siteName = $strings.trimToEmpty( $siteName ) )\\n
+      #set( $restrictVal = ${columns.get(3)} )\\n
+      #set( $restrictVal = $strings.trimToEmpty( $restrictVal ) )\\n
+      #if( ${ruleName.length()} <= 0 )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Restriction rule is empty. Line ignored.\" ) )\\n
+      #elseif( ${studyName.length()} <= 0 )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Study name is empty. Line ignored.\" ) )\\n
+      #elseif( ${restrictVal.length()} <= 0 )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Restriction value is empty. Line ignored.\" ) )\\n
+      #else\\n
+        #set( $rules = $db.findRestrictionRule( \"$ruleName\" ) )\\n
+        #if( $rules.size() <= 0 )\\n
+          #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Restriction rule is not existing. Line ignored.\" ) )\\n
+        #else\\n
+          #set( $rule = $rules.get(0) )\\n
+## ########################\\n
+## create study if needed\\n
+## ########################\\n
+          #set( $study = $db.findStudyByName( \"$studyName\" ) )\\n
+          #if( !$study )\\n
+            #set( $study = $db.createStudy( \"$studyName\" ) )\\n
+            #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"Study created: ${study.getStudyname()}.\" ) )\\n
+          #end\\n
+          #if( ${siteName.length()} > 0 )\\n
+## ########################\\n
+## create site if needed\\n
+## ########################\\n
+            #set( $site = $db.findOrganizationByName( \"${study.getStudyname()} study site $siteName\" ) )\\n
+            #if( !$site )\\n
+              #set( $site = $db.createOrganization( \"${study.getStudyname()} study site $siteName\", \"clinical site\" ) )\\n
+              $!site.setSiteid( \"$siteName\" )\\n
+              #set( $site = $db.storeOrganization( $site ) )\\n
+              #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"An organization has been created: ${site.getOrgname()}.\" ) )\\n
+            #end\\n
+## ########################\\n
+## assign site restriction\\n
+## ########################\\n
+            #if( $site )
+              #set( $restrict = $db.assignRestriction( $study, $rule, $site, $restrictVal ) )\\n
+              #set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Site specific restriction assigned: ${restrict.getApplyid()} ${site.getOrgname()} $restrictVal\" ) )\\n
+            #end
+          #else
+## ########################\\n
+## assign study restriction\\n
+## ########################\\n
+              #set( $restrict = $db.assignRestriction( $study, $rule, $restrictVal ) )\\n
+              #set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Study specific restriction assigned: ${restrict.getApplyid()} ${study.getStudyname()} $restrictVal\" ) )\\n
+          #end\\n
+        #end\\n
+      #end\\n
+    #end\\n
+  #end\\n
+#end\\n"
+}

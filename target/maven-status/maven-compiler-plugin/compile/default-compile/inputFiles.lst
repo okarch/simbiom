@@ -19,6 +19,7 @@
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/rest/SampleInventoryException.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/feeds/FeedRestConfiguration.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Treatment.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Restriction.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Property.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/PropertyType.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/upload/InventoryUploadTemplate.java

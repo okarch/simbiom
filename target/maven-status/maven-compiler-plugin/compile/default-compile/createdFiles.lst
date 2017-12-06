@@ -10,6 +10,7 @@ com/emd/simbiom/upload/UploadException.class
 com/emd/simbiom/rest/SampleInventoryController.class
 com/emd/simbiom/model/SampleProcess.class
 com/emd/simbiom/model/Roles.class
+com/emd/simbiom/model/Restriction.class
 com/emd/simbiom/upload/UploadBatch.class
 com/emd/simbiom/dao/TableUtils.class
 com/emd/simbiom/model/SampleType.class

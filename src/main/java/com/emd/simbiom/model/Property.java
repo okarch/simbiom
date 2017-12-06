@@ -20,6 +20,7 @@ public class Property extends AbstractTrackable implements Comparable, Copyable 
     private long typeid;
     private long columnid;
     private long parentid;
+    private long valueid;
 
     private String propertyname;
     private String label;
@@ -28,6 +29,7 @@ public class Property extends AbstractTrackable implements Comparable, Copyable 
     private String informat;
     private String outformat;
     private String unit;
+    private String charvalue;
 
     private int columnsize;
     private int digits;
@@ -37,7 +39,13 @@ public class Property extends AbstractTrackable implements Comparable, Copyable 
     private boolean mandatory;
     private boolean display;
 
+    private boolean valuePresent;
+
     private static final String ITEM_TYPE = "property";
+    /**
+     * Describe numvalue here.
+     */
+    private double numvalue;
 
   
     public Property() {
@@ -45,6 +53,7 @@ public class Property extends AbstractTrackable implements Comparable, Copyable 
 	this.propertyid = DataHasher.hash( UUID.randomUUID().toString().getBytes() );
 	this.setTrackid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
 	this.display = true;
+	this.valuePresent = false;
     }
 
     /**
@@ -386,6 +395,69 @@ public class Property extends AbstractTrackable implements Comparable, Copyable 
     public boolean hasColumnSpec() {
 	return ( (dbformat != null) || (informat != null) || (outformat != null) ||
 		 (columnsize > 0) || (digits != 0) || (minoccurs > 0) || (maxoccurs != 0) ); 
+    }
+
+    /**
+     * Get the <code>Valueid</code> value.
+     *
+     * @return a <code>long</code> value
+     */
+    public final long getValueid() {
+	return valueid;
+    }
+
+    /**
+     * Set the <code>Valueid</code> value.
+     *
+     * @param valueid The new Valueid value.
+     */
+    public final void setValueid(final long valueid) {
+	this.valueid = valueid;
+    }
+
+    /**
+     * Get the <code>Charvalue</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getCharvalue() {
+	return charvalue;
+    }
+
+    /**
+     * Set the <code>Charvalue</code> value.
+     *
+     * @param charvalue The new Charvalue value.
+     */
+    public final void setCharvalue(final String charvalue) {
+	this.valuePresent = true;
+	this.charvalue = charvalue;
+    }
+
+    /**
+     * Get the <code>Numvalue</code> value.
+     *
+     * @return a <code>double</code> value
+     */
+    public final double getNumvalue() {
+	return numvalue;
+    }
+
+    /**
+     * Set the <code>Numvalue</code> value.
+     *
+     * @param numvalue The new Numvalue value.
+     */
+    public final void setNumvalue(final double numvalue) {
+	this.valuePresent = true;
+	this.numvalue = numvalue;
+    }
+
+    /**
+     * Checks if a value has been set.
+     */
+    public boolean hasValue() {
+	return ((this.valueid != 0L) || (this.valuePresent));
     }
 
     /**

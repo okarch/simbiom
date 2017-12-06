@@ -375,17 +375,21 @@ create index i_rru_res on t_restrict_rule (restriction);
 create index i_rru_pid on t_restrict_rule (propertyid);
 
 --
--- t_restrict_study
---   a rule applicable in a study scope
+-- t_restrict_apply
+--   a rule applied to study / site scope
 --
-drop table if exists t_restrict_study;
-create table t_restrict_study(
-   studyrestrictid bigint primary key,
-   restrictid      bigint,
-   studyid         bigint
+drop table if exists t_restrict_apply;
+create table t_restrict_apply(
+  applyid         bigint primary key,
+  restrictid      bigint,
+  studyid         bigint,
+  orgid           bigint,
+  propertyid      bigint
 );
-create index i_rst_rid on t_restrict_study (restrictid);
-create index i_rst_sid on t_restrict_study (studyid);
+create index i_rap_rid on t_restrict_apply (restrictid);
+create index i_rap_sid on t_restrict_apply (studyid);
+create index i_rap_oid on t_restrict_apply (orgid);
+create index i_rap_vid on t_restrict_apply (propertyid);
 
 --
 -- t_restrict_site
@@ -655,8 +659,7 @@ create table t_property_value(
   numvalue   double,
   rank       int
 );
-create index i_spv_pid on t_property_value (propid);
-create index i_spv_sid on t_property_value (sampleid);
+create index i_spv_pid on t_property_value (propertyid);
 create index i_spv_ran on t_property_value (rank);
 create index i_spv_cva on t_property_value (charvalue);
 create index i_spv_nva on t_property_value (numvalue);
@@ -665,12 +668,17 @@ create index i_spv_nva on t_property_value (numvalue);
 -- t_sample_property
 --   sample properties (name value pairs)
 --   proptype provides information about the property's context
---   e.g. a property can be linked to additional properties (e.g. can act as a qualifier)
---   or it can be linked to a study context i.e. proptype=study etc.
 --
--- drop table if exists t_sample_property;
--- create table t_sample_property(
---   propid     bigint primary key,
+drop table if exists t_sample_property;
+create table t_sample_property(
+  sampleid       varchar(36),
+  propertyid     bigint
+);
+create index i_spr_sid on t_sample_property (sampleid);
+create index i_spr_pid on t_sample_property (propertyid);
+
+-- create index i_spr_iid on t_sample_property (instanceid);
+
 --   proptype   varchar(20),
 --   instanceid bigint,
 --   propname   varchar(50),

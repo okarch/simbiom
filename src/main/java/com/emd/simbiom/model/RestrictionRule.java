@@ -268,6 +268,23 @@ public class RestrictionRule implements Copyable {
     }
 
     /**
+     * Tests if a given choice is present and returns the index.
+     *
+     * @param choice the item to test
+     * 
+     * @return index of the item or -1 if not found.
+     */
+    public int getChoiceIndex( final String choice ) {
+	int i = 0;
+	for( String item : choices ) {
+	    if( item.equals( choice ) )
+		return i;
+	    i++;
+	}
+	return -1;
+    }
+
+    /**
      * Creates and returns a copy of this object. 
      *
      * @return a copy of the implementing object.
@@ -292,7 +309,7 @@ public class RestrictionRule implements Copyable {
      * @return true if this object is the same as the obj argument; false otherwise.
      */
     public boolean equals(Object obj) {
-	if( obj instanceof User ) {
+	if( obj instanceof RestrictionRule ) {
 	    RestrictionRule f = (RestrictionRule)obj;
 	    return (f.getRestrictid() == this.getRestrictid() );
 	}
