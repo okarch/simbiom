@@ -1,8 +1,8 @@
 {
- "templatename":"Assign restriction rule",
+ "templatename":"Add subject",
  "template":"
 ## ########################\\n
-## Assign restriction rules\\n
+## Add subject\\n
 ## ########################\\n
 #set( $dtFormat = \"dd-MMM-yyyy\" )\\n
 #set( $delim = \"[|]\" )\\n

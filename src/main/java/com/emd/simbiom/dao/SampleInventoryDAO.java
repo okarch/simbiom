@@ -175,6 +175,7 @@ public class SampleInventoryDAO {
     private static final String STMT_PROPMEMBER_INSERT   = "biobank.member.insert";
     private static final String STMT_PROPMEMBER_PROPERTY = "biobank.member.property";
 
+    private static final String STMT_PROPERTYTYPE_BY_ID  = "biobank.propertytype.findById";
     private static final String STMT_PROPERTYTYPE_BY_NAME= "biobank.propertytype.findByName";
     private static final String STMT_PROPERTYTYPE_INSERT = "biobank.propertytype.insert";
 
@@ -2721,6 +2722,23 @@ public class SampleInventoryDAO {
     }
 
     /**
+     * Returns a specific <code>PropertyType</code> by id.
+     *
+     * @param tid The type id.
+     * @return the <code>PropertyType</code> object.
+     */
+    public PropertyType findTypeById( long tid ) throws SQLException {
+ 	PreparedStatement pstmt = getStatement( STMT_PROPERTYTYPE_BY_ID );
+     	pstmt.setLong( 1, tid );
+     	ResultSet res = pstmt.executeQuery();
+     	PropertyType prop = null;
+     	if( res.next() ) 
+     	    prop = (PropertyType)TableUtils.toObject( res, new PropertyType() );
+     	res.close();
+     	return prop;
+    }
+
+    /**
      * Returns a newly created <code>PropertyType</code> object.
      *
      * @param typeName The type name.
@@ -2919,6 +2937,16 @@ public class SampleInventoryDAO {
     public Property storeProperty( long userId, Property prop ) throws SQLException {
 	Property pUpd = findPropertyById( prop.getPropertyid() );
 
+	// confirm type
+
+	PropertyType pType = findTypeById( prop.getTypeid() );
+	if( pType == null ) {
+	    log.warn( "Property type id "+prop.getTypeid()+" does not exist. Assuming type id 0 (unknown)" );
+	    pType = findTypeById( 0L );
+	    prop.setTypeid( 0L );
+	}
+	prop.setTypename( pType.getTypename() );
+
      	PreparedStatement pstmt = null;
      	int nn = 2;
      	if( pUpd == null ) {
@@ -2956,6 +2984,8 @@ public class SampleInventoryDAO {
      	pstmt.executeUpdate();
 
 	log.debug( "Property stored: "+prop.getPropertyid()+" "+prop.toString() );
+
+	    
 
 	pstmt = getStatement( STMT_COLSPEC_DELETE );
 	pstmt.setLong( 1, prop.getPropertyid() );
@@ -3219,7 +3249,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    rule = (RestrictionRule)TableUtils.toObject( res, new RestrictionRule() );
      	res.close();
-	if( (rule != null) && (rule.getParentid() != 0) ) {
+	if( (rule != null) && (rule.getParentid() != 0L) ) {
 	    PropertySet pSet = findPropertySetById( rule.getParentid() );
 	    if( pSet != null )
 		rule.addChoices( pSet.getItems() );
@@ -3265,15 +3295,18 @@ public class SampleInventoryDAO {
 	if( pType == null ) 
 	    pType = createType( tName, type );
 
-	log.debug( "Type to be used: "+pType );
+	log.debug( "Type to be used: "+pType.getTypename() );
 	
 	Property[] props = findPropertyByName( property, pType.getTypename() );
+        log.debug( props.length+" existing properties for \""+property+"\" type: "+pType.getTypename() );
+ 
 	Property prop = null;
 	if( props.length <= 0 ) {
 	    prop = new Property();
 	    prop.setPropertyname( property );
 	    prop.setLabel( property );
 	    prop.setTypeid( pType.getTypeid() );
+	    prop.setTypename( pType.getTypename() );
 	    prop = storeProperty( userId, prop );
 	    log.debug( "Property stored: "+prop );
 	}
@@ -3328,6 +3361,8 @@ public class SampleInventoryDAO {
 	    throw new SQLException( "Rule \""+rule.toString()+"\" property name is invalid: "+String.valueOf(rule.getPropertyid()) );
 
 	String tName = Stringx.getDefault( rule.getTypename(), "" ).trim().toLowerCase();
+	log.debug( "Rule "+rule.getRule()+" property: "+pName+" type created: "+tName );
+
 	if( tName.length() <= 0 )
 	    tName = "unknown";
 	PropertyType pType = findTypeByName( tName );
@@ -3475,15 +3510,27 @@ public class SampleInventoryDAO {
 	    updRestrict = false;
 	}
 
+	log.debug( "Rule "+rule+" choice list: "+rule.getParentid() );
+
 	PropertySet pSet = findPropertySetById( rule.getParentid() );
+	boolean valueAssigned = false;
 	if( pSet != null ) {
 	    Property[] props = pSet.getProperties( restrictValue );
 	    if( props.length > 0 ) {
 		restrict.setPropertyid( props[0].getPropertyid() );
 		restrict.setProperty( props[0] );
+		valueAssigned = true;
+		log.debug( "Property label used: "+restrictValue );
 	    }	    
+	    else {
+		log.warn( "Restriction value \""+restrictValue+"\" not found in list" );
+	    }
 	}
-	else {
+	else if( rule.getParentid() != 0L ) {
+	    log.warn( "Choice list not found: "+rule.getParentid() );
+	}
+
+	if( !valueAssigned ) {
 	    Property prop = findPropertyById( rule.getPropertyid() );
 	    if( prop == null )
 		throw new SQLException( "Restriction property id invalid: "+rule.getPropertyid() );

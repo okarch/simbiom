@@ -217,7 +217,11 @@ create table t_sample_subject(
   studyid     bigint,
   subjectid   varchar(50),
   species     varchar(30),
-  taxon       bigint
+  taxon       bigint,
+  orgid       bigint,
+  age         int,
+  gender      varchar(2),
+  ethnicity   varchar(50)
 );
 create index i_sub_stu on t_sample_subject (studyid);
 create index i_sub_sid on t_sample_subject (subjectid);
@@ -676,6 +680,18 @@ create table t_sample_property(
 );
 create index i_spr_sid on t_sample_property (sampleid);
 create index i_spr_pid on t_sample_property (propertyid);
+
+--
+-- t_donor_property
+--   donor properties (name value pairs)
+--
+drop table if exists t_donor_property;
+create table t_donor_property(
+  donorid       bigint,
+  propertyid    bigint
+);
+create index i_don_did on t_donor_property (donorid);
+create index i_don_pid on t_donor_property (propertyid);
 
 -- create index i_spr_iid on t_sample_property (instanceid);
 

@@ -66,11 +66,11 @@ ${lines.size()} lines read\\n
 ## ########################\\n
 ## assign site restriction\\n
 ## ########################\\n
-            #if( $site )
+            #if( $site )\\n
               #set( $restrict = $db.assignRestriction( $study, $rule, $site, $restrictVal ) )\\n
               #set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Site specific restriction assigned: ${restrict.getApplyid()} ${site.getOrgname()} $restrictVal\" ) )\\n
-            #end
-          #else
+            #end\\n
+          #else\\n
 ## ########################\\n
 ## assign study restriction\\n
 ## ########################\\n
