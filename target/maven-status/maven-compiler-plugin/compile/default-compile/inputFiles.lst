@@ -15,6 +15,7 @@
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/FullContentSearch.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Accession.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/TableUtils.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Country.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Donor.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/rest/SampleInventoryException.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/feeds/FeedRestConfiguration.java

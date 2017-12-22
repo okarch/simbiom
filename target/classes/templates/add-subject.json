@@ -1,6 +1,7 @@
 {
  "templatename":"Add subject",
- "template":"## ########################\\n
+ "template":"
+## ########################\\n
 ## Add subject\\n
 ## ########################\\n
 #set( $dtFormat = \"dd-MMM-yyyy\" )\\n

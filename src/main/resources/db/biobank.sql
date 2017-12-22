@@ -221,7 +221,9 @@ create table t_sample_subject(
   orgid       bigint,
   age         int,
   gender      varchar(2),
-  ethnicity   varchar(50)
+  ethnicity   varchar(50),
+  usubjid     varchar(60),
+  enrolled    timestamp
 );
 create index i_sub_stu on t_sample_subject (studyid);
 create index i_sub_sid on t_sample_subject (subjectid);

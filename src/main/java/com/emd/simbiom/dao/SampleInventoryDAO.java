@@ -51,6 +51,7 @@ import com.emd.simbiom.model.Cost;
 import com.emd.simbiom.model.CostEstimate;
 import com.emd.simbiom.model.CostItem;
 import com.emd.simbiom.model.CostSample;
+import com.emd.simbiom.model.Country;
 import com.emd.simbiom.model.Donor;
 import com.emd.simbiom.model.Organization;
 import com.emd.simbiom.model.Property;
@@ -135,6 +136,9 @@ public class SampleInventoryDAO {
     private static final String STMT_COSTSAMPLE_BY_TYPE  = "biobank.costsample.findByType";
     private static final String STMT_COSTSAMPLE_ALL_TYPE = "biobank.costsample.findAllTypes";
 
+    private static final String STMT_COUNTRY_BY_ID       = "biobank.country.findById";
+    private static final String STMT_COUNTRY_BY_NAME     = "biobank.country.findByName";
+
     private static final String STMT_DONOR_BY_SAMPLE     = "biobank.donor.findBySample";
     private static final String STMT_DONOR_DUPLICATE     = "biobank.donor.duplicate";
     private static final String STMT_DONOR_INSERT        = "biobank.donor.insert";
@@ -214,9 +218,11 @@ public class SampleInventoryDAO {
     private static final String STMT_STSAMP_DUPLICATE    = "biobank.studysample.duplicate";
     private static final String STMT_STSAMP_INSERT       = "biobank.studysample.insert";
 
+    private static final String STMT_SUBJECT_BY_ID       = "biobank.subject.findById";
     private static final String STMT_SUBJECT_BY_NAME     = "biobank.subject.findByName";
     private static final String STMT_SUBJECT_BY_SAMPLE   = "biobank.subject.findBySample";
     private static final String STMT_SUBJECT_INSERT      = "biobank.subject.insert";
+    private static final String STMT_SUBJECT_UPDATE      = "biobank.subject.update";
 
     private static final String STMT_TEMPLATE_BY_ID      = "biobank.template.findById";
     private static final String STMT_TEMPLATE_BY_NAME    = "biobank.template.findByName";
@@ -1546,6 +1552,24 @@ public class SampleInventoryDAO {
     }
 
     /**
+     * Returns a subject by id.
+     *
+     * @param donorId the subject's id.
+     *
+     * @return the <code>Subject</code> object.
+     */
+    public Subject findSubjectById( long donorId ) throws SQLException {
+ 	PreparedStatement pstmt = getStatement( STMT_SUBJECT_BY_ID );
+	pstmt.setLong( 1, donorId );
+     	ResultSet res = pstmt.executeQuery();
+     	Subject sType = null;
+     	if( res.next() ) 
+     	    sType = (Subject)TableUtils.toObject( res, new Subject() );
+     	res.close();
+     	return sType;
+    }
+
+    /**
      * Returns a subject by study and sample.
      *
      * @param study the study.
@@ -1587,12 +1611,57 @@ public class SampleInventoryDAO {
 	pstmt.setString( 3, subj.getSubjectid() );
 	pstmt.setString( 4, subj.getSpecies() );
 	pstmt.setLong( 5, subj.getTaxon() );
+	pstmt.setLong( 6, subj.getOrgid() );
+	pstmt.setInt( 7, subj.getAge() );
+	pstmt.setString( 8, subj.getGender() );
+	pstmt.setString( 9, subj.getEthnicity() );
+	pstmt.setString( 10, subj.getUsubjid() );
+	pstmt.setTimestamp( 11, subj.getEnrolled() );
+
 	pstmt.executeUpdate();
 
 	log.debug( "Subject created: "+subj.getSubjectid()+" ("+
 		   subj.getDonorid()+")" );
 	 
 	return subj;
+    }
+
+    /**
+     * Updates a subject.
+     *
+     * @param subj the subject.
+     *
+     * @return the updated subject.
+     */
+    public Subject storeSubject( Subject subject ) throws SQLException {
+	if( subject == null )
+	    throw new SQLException( "Subject is invalid" );
+	    
+	Subject subj = findSubjectById( subject.getDonorid() );
+	if( subj == null )
+	    throw new SQLException( "Cannot find subject id: "+subject.getDonorid() );
+
+	PreparedStatement pstmt = getStatement( STMT_SUBJECT_UPDATE );
+
+	pstmt.setLong( 11, subject.getDonorid() );
+
+	pstmt.setLong( 1, subject.getStudyid() );
+	pstmt.setString( 2, subject.getSubjectid() );
+	pstmt.setString( 3, subject.getSpecies() );
+	pstmt.setLong( 4, subject.getTaxon() );
+	pstmt.setLong( 5, subject.getOrgid() );
+	pstmt.setInt( 6, subject.getAge() );
+	pstmt.setString( 7, subject.getGender() );
+	pstmt.setString( 8, subject.getEthnicity() );
+	pstmt.setString( 9, subject.getUsubjid() );
+	pstmt.setTimestamp( 10, subject.getEnrolled() );
+
+	pstmt.executeUpdate();
+
+	log.debug( "Subject updated: "+subject.getSubjectid()+" ("+
+		   subject.getDonorid()+")" );
+
+	return subject;
     }
 
     /**
@@ -3588,6 +3657,54 @@ public class SampleInventoryDAO {
 	throws SQLException {
 
 	return assignRestriction( study, rule, null, restrictValue );
+    }
+
+    /**
+     * Returns a country entry by name.
+     *
+     * @param countryName the name of country.
+     *
+     * @return an (potentially empty) array of <code>Country</code> objects.
+     */
+    public Country[] findCountryByName( String countryName ) throws SQLException {
+	String cName = Stringx.getDefault( countryName, "" ).trim();
+	if( cName.length() <= 0 )
+	    cName = "%";
+	
+	PreparedStatement pstmt = getStatement( STMT_COUNTRY_BY_NAME );
+     	pstmt.setString( 1, cName.toLowerCase() );
+
+     	ResultSet res = pstmt.executeQuery();
+
+     	List<Country> fl = new ArrayList<Country>();
+     	Iterator it = TableUtils.toObjects( res, new Country() );
+	Country rr = null;
+	while( it.hasNext() ) {
+	    rr = (Country)it.next();
+	    fl.add( rr );
+	}	       
+	res.close();
+
+	Country[] countries = new Country[ fl.size() ];
+	return (Country[])fl.toArray( countries );
+    }
+
+    /**
+     * Returns the country entry by id.
+     *
+     * @param countryId the id of the country.
+     *
+     * @return the <code>Country</code> object (or null).
+     */
+    public Country findCountryById( int countryId ) throws SQLException {
+	PreparedStatement pstmt = getStatement( STMT_COUNTRY_BY_ID );
+	pstmt.setInt( 1, countryId );
+	ResultSet res = pstmt.executeQuery();
+	Country sType = null;
+	if( res.next() ) 
+	    sType = (Country)TableUtils.toObject( res, new Country() ); 
+     	res.close();
+	return sType;
     }
 
     /**

@@ -33,6 +33,7 @@ com/emd/simbiom/feeds/FeedRestConfiguration.class
 com/emd/simbiom/model/Organization.class
 com/emd/simbiom/model/Age.class
 com/emd/simbiom/model/CostSample.class
+com/emd/simbiom/model/Country.class
 com/emd/simbiom/model/Study.class
 com/emd/simbiom/model/Subject.class
 com/emd/simbiom/model/SampleEvent.class

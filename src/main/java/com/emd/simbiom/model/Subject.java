@@ -34,6 +34,30 @@ public class Subject implements Copyable {
     private String species;
 
     private static Log log = LogFactory.getLog(Subject.class);
+    /**
+     * Describe orgid here.
+     */
+    private long orgid;
+    /**
+     * Describe age here.
+     */
+    private int age;
+    /**
+     * Describe gender here.
+     */
+    private String gender;
+    /**
+     * Describe ethnicity here.
+     */
+    private String ethnicity;
+    /**
+     * Describe Usubjid here.
+     */
+    private String Usubjid;
+    /**
+     * Describe enrolled here.
+     */
+    private Timestamp enrolled;
 
     /**
      * Creates a new <code>Subject</code> instance.
@@ -156,6 +180,114 @@ public class Subject implements Copyable {
      */
     public final void setSpecies(final String species) {
 	this.species = species;
+    }
+
+    /**
+     * Get the <code>Orgid</code> value.
+     *
+     * @return a <code>long</code> value
+     */
+    public final long getOrgid() {
+	return orgid;
+    }
+
+    /**
+     * Set the <code>Orgid</code> value.
+     *
+     * @param orgid The new Orgid value.
+     */
+    public final void setOrgid(final long orgid) {
+	this.orgid = orgid;
+    }
+
+    /**
+     * Get the <code>Age</code> value.
+     *
+     * @return an <code>int</code> value
+     */
+    public final int getAge() {
+	return age;
+    }
+
+    /**
+     * Set the <code>Age</code> value.
+     *
+     * @param age The new Age value.
+     */
+    public final void setAge(final int age) {
+	this.age = age;
+    }
+
+    /**
+     * Get the <code>Gender</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getGender() {
+	return gender;
+    }
+
+    /**
+     * Set the <code>Gender</code> value.
+     *
+     * @param gender The new Gender value.
+     */
+    public final void setGender(final String gender) {
+	this.gender = gender;
+    }
+
+    /**
+     * Get the <code>Ethnicity</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getEthnicity() {
+	return ethnicity;
+    }
+
+    /**
+     * Set the <code>Ethnicity</code> value.
+     *
+     * @param ethnicity The new Ethnicity value.
+     */
+    public final void setEthnicity(final String ethnicity) {
+	this.ethnicity = ethnicity;
+    }
+
+    /**
+     * Get the <code>Usubjid</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getUsubjid() {
+	return Usubjid;
+    }
+
+    /**
+     * Set the <code>Usubjid</code> value.
+     *
+     * @param Usubjid The new Usubjid value.
+     */
+    public final void setUsubjid(final String Usubjid) {
+	this.Usubjid = Usubjid;
+    }
+
+    /**
+     * Get the <code>Enrolled</code> value.
+     *
+     * @return a <code>Timestamp</code> value
+     */
+    public final Timestamp getEnrolled() {
+	return enrolled;
+    }
+
+    /**
+     * Set the <code>Enrolled</code> value.
+     *
+     * @param enrolled The new Enrolled value.
+     */
+    public final void setEnrolled(final Timestamp enrolled) {
+	this.enrolled = enrolled;
     }
 
     /**
