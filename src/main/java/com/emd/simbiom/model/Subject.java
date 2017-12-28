@@ -2,10 +2,14 @@ package com.emd.simbiom.model;
 
 import java.sql.Timestamp;
 
+import java.util.Date;
 import java.util.Properties;
 import java.util.UUID;
 
+import java.text.ParseException;
+
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DateUtils;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,35 +33,29 @@ public class Subject implements Copyable {
     private long donorid;
     private long studyid;
     private long taxon;
+    private long orgid;
+
+    private int age;
 
     private String subjectid;
     private String species;
+    private String gender;
+    private String ethnicity;
+    private String Usubjid;
+
+    private Timestamp enrolled;
 
     private static Log log = LogFactory.getLog(Subject.class);
-    /**
-     * Describe orgid here.
-     */
-    private long orgid;
-    /**
-     * Describe age here.
-     */
-    private int age;
-    /**
-     * Describe gender here.
-     */
-    private String gender;
-    /**
-     * Describe ethnicity here.
-     */
-    private String ethnicity;
-    /**
-     * Describe Usubjid here.
-     */
-    private String Usubjid;
-    /**
-     * Describe enrolled here.
-     */
-    private Timestamp enrolled;
+
+    private static final String[] DATE_FORMATS = {
+	"yyyy-MM-dd",
+	"dd-MMM-yyyy",
+	"yyyy-MMM-dd",
+	"yyyy.MM.dd",
+	"dd.MM.yyyy",
+	"dd-MM-yyyy"
+    };
+
 
     /**
      * Creates a new <code>Subject</code> instance.
@@ -90,6 +88,87 @@ public class Subject implements Copyable {
 	vars.put( "subject", StringUtils.replaceChars(Stringx.getDefault( subjectId,"" ).trim(),"_:.- =#/+", "" ));
 
 	return Stringx.substituteAll( format, "%{", "}", new SubjectFormatter( vars ) );
+    }
+
+    /**
+     * Calculates the age from the birth date. If format is not given (null) multiple formats are tested.
+     *
+     * @param dtString the birth date.
+     * @param format the format of the date, see SimpleDateFormatter.
+     *
+     * @return the age or 0 (in case of invalid date)
+     */
+    public static int ageFromBirthDate( String dtString, String format ) {
+	String[] fmts = null;
+	if( format == null ) 
+	    fmts = DATE_FORMATS;
+	else
+	    fmts = new String[] { format };
+
+	Date birthDt = null;
+	try {
+	    birthDt = DateUtils.parseDateStrictly( dtString, fmts );
+	}
+	catch( ParseException pex ) {
+	    birthDt = null;
+	}
+
+	if( birthDt == null )
+	    return 0;
+	long ageMillis = System.currentTimeMillis() - birthDt.getTime();
+	double ageNum = (double) (ageMillis / (365L * 24L * 60L * 60L * 1000L));
+	if( (ageNum < 0) || (ageNum > 120d) )
+	    return 0;
+	if( (ageNum > 0) && (ageNum < 1) )
+	    return 1;
+	return (int)ageNum;
+    }
+
+    /**
+     * Calculates the age from the birth date. Multiple date formats will be tested.
+     *
+     * @param dtString the birth date.
+     *
+     * @return the age or 0 (in case of invalid date)
+     */
+    public static int ageFromBirthDate( String dtString ) {
+	return ageFromBirthDate( dtString, null );
+    }
+
+    /**
+     * Creates a Timestamp from a date string. 
+     *
+     * @param dtString the date string.
+     * @param format the format of the date, see SimpleDateFormatter.
+     *
+     * @return the <code>Timestamp</code> object.
+     */
+    public static Timestamp formatTimestamp( String dtString, String format ) {
+	String[] fmts = null;
+	if( format == null ) 
+	    fmts = DATE_FORMATS;
+	else
+	    fmts = new String[] { format };
+
+	Date dt = null;
+	try {
+	    dt = DateUtils.parseDateStrictly( dtString, fmts );
+	}
+	catch( ParseException pex ) {
+	    dt = null;
+	}
+	return ((dt != null)?(new Timestamp( dt.getTime() )):null);
+    }
+
+    /**
+     * Creates a Timestamp from a date string. 
+     *
+     * @param dtString the date string.
+     *
+     * @return the <code>Timestamp</code> object.
+     */
+    public static Timestamp formatTimestamp( String dtString ) {
+	return formatTimestamp( dtString, null );
     }
 
     /**

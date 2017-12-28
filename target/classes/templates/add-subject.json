@@ -1,7 +1,6 @@
 {
  "templatename":"Add subject",
- "template":"
-## ########################\\n
+ "template":"## ########################\\n
 ## Add subject\\n
 ## ########################\\n
 #set( $dtFormat = \"dd-MMM-yyyy\" )\\n
@@ -30,7 +29,7 @@ ${lines.size()} lines read\\n
       #set( $siteName = ${columns.get(1)} )\\n
       #set( $siteName = $strings.trimToEmpty( $siteName ) )\\n
       #set( $subjectId = ${columns.get(2)} )\\n
-      #set( $subjectId = $strings.trimToEmpty( $ubjectId ) )\\n
+      #set( $subjectId = $strings.trimToEmpty( $subjectId ) )\\n
       #if( ${studyName.length()} <= 0 )\\n
         #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Study name is empty. Line ignored.\" ) )\\n
       #elseif( ${siteName.length()} <= 0 )\\n
@@ -54,23 +53,23 @@ ${lines.size()} lines read\\n
           #set( $site = $db.createOrganization( \"${study.getStudyname()} study site $siteName\", \"clinical site\" ) )\\n
           $!site.setSiteid( \"$siteName\" )\\n
           #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"An organization has been created: ${site.getOrgid()} $siteName\" ) )\\n
+        #end\\n
 ## ########################\\n
 ## setup country info\\n
 ## ########################\\n
-          #set( $countryName = ${columns.get(9)} )\\n
-          #set( $countryName = $strings.trimToEmpty( $countryName ) )\\n
-          #set( $countryId = 0 )\\n
-          #if( ${countryName.length()} > 0 )\\n
-            #set( $countries = $db.findCountryByName( \"$countryName\" )\\n
-            #if( ${countries.size()} > 1 )\\n
-              #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"Multiple countries matching $countryName\" ) )\\n
-            #elseif( ${countries.size()} <= 0 )\\n
-              #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"No country found matching $countryName\" ) )\\n
-            #else\\n
-              #set( $country = ${countries.get(0)} )\\n
-              #set( $countryId = ${country.getCountryid()} )\\n
-              #set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Using country id: $countryId ($country)\" ) )\\n
-            #end\\n
+        #set( $countryName = ${columns.get(9)} )\\n
+        #set( $countryName = $strings.trimToEmpty( $countryName ) )\\n
+        #set( $countryId = 0 )\\n
+        #if( ${countryName.length()} > 0 )\\n
+          #set( $countries = $db.findCountryByName( \"$countryName\" ) )\\n
+          #if( ${countries.size()} > 1 )\\n
+            #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"Multiple countries matching $countryName\" ) )\\n
+          #elseif( ${countries.size()} <= 0 )\\n
+            #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"No country found matching $countryName\" ) )\\n
+          #else\\n
+            #set( $country = ${countries.get(0)} )\\n
+            #set( $countryId = ${country.getId()} )\\n
+            #set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Using country id: $countryId ($country)\" ) )\\n
           #end\\n
         #end\\n
         $!site.setCountryid( $countryId )\\n
@@ -79,13 +78,44 @@ ${lines.size()} lines read\\n
 ## ########################\\n
 ## create subject if required\\n
 ## ########################\\n
-        #set( $subjectId = $subjects.formatSubjectId( \"${site.getSiteid()}\", \"$subjectId\", \"%{site:????}%{subject:----?????}\" ) )\\n
+        #set( $subjectId = $subjects.formatSubjectId( \"${site.getSiteid()}\", \"$subjectId\", \"%{site:????}%{subject:????}\" ) )\\n
         #set( $subject = $db.findSubjectByName( $study, \"$subjectId\" ) )\\n
         #if( !$subject )\\n
           #set( $subject = $db.createSubject( $study, \"$subjectId\" ) )\\n
           #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"Subject has been created: ${subject.getSubjectid()}.\" ) )\\n
         #end\\n
-        $!subject.setSiteid( \"$siteName\" )\\n
+## ########################\\n
+## set subject properties\\n
+## ########################\\n
+        $!subject.setSiteid( \"${site.getSiteid()}\" )\\n
+        $!subject.setGender( \"${$strings.trimToEmpty( $columns.get(4) )}\" )\\n
+        #set( $age = ${columns.get(6)} )\\n
+        #set( $age = $strings.trimToEmpty( $age ) )\\n
+        #set( $ageNum = $convert.toInteger( $age ) )\\n
+        #if( !$ageNum )\\n
+          #set( $dob = ${columns.get(5)} )\\n
+          #set( $dob = $strings.trimToEmpty( $dob ) )\\n
+          #set( $age = \"${subjects.ageFromBirthDate( $dob )}\" )\\n
+          #set( $ageNum = $convert.toInteger( $age ) )\\n
+        #end\\n
+        $!subject.setAge( ${ageNum.intValue()} )\\n
+        #set( $race = ${columns.get(10)} )\\n
+        #set( $race = $strings.trimToEmpty( $race ) )\\n
+        $!subject.setEthnicity( \"$race\" )\\n
+        #set( $enrolled = ${columns.get(7)} )\\n
+        #set( $enrolled = $strings.trimToEmpty( $enrolled ) )\\n
+        #set( $enrollDt = ${subjects.formatTimestamp( $enrolled )} )\\n
+        #if( $enrollDt )\\n
+          $!subject.setEnrolled( $enrollDt )\\n
+        #end\\n
+        #set( $usubjid = ${columns.get(8)} )\\n
+        #set( $usubjid = $strings.trimToEmpty( $usubjid ) )\\n
+        $!subject.setUsubjid( $usubjid )\\n
+## ########################\\n
+## store subject properties\\n
+## ########################\\n
+        #set( $subject = $db.storeSubject( $subject ) )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"A subject has been updated: $subject.\" ) )\\n
       #end\\n
     #end\\n
   #end\\n

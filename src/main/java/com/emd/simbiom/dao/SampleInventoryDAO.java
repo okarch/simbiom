@@ -1633,7 +1633,7 @@ public class SampleInventoryDAO {
      *
      * @return the updated subject.
      */
-    public Subject storeSubject( Subject subject ) throws SQLException {
+    public Subject storeSubject( Subject subject, Map props ) throws SQLException {
 	if( subject == null )
 	    throw new SQLException( "Subject is invalid" );
 	    
@@ -1662,6 +1662,17 @@ public class SampleInventoryDAO {
 		   subject.getDonorid()+")" );
 
 	return subject;
+    }
+
+    /**
+     * Updates a subject.
+     *
+     * @param subj the subject.
+     *
+     * @return the updated subject.
+     */
+    public Subject storeSubject( Subject subject ) throws SQLException {
+	return storeSubject( subject, null );
     }
 
     /**
