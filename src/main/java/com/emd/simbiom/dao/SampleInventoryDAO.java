@@ -143,6 +143,8 @@ public class SampleInventoryDAO {
     private static final String STMT_DONOR_DUPLICATE     = "biobank.donor.duplicate";
     private static final String STMT_DONOR_INSERT        = "biobank.donor.insert";
 
+    private static final String STMT_DONORPROP_INSERT    = "biobank.donorproperty.insert";
+
     private static final String STMT_ESTIMATE_BY_ID      = "biobank.estimate.findById";
     private static final String STMT_ESTIMATE_INSERT     = "biobank.estimate.insert";
     private static final String STMT_ESTIMATE_UPDATE     = "biobank.estimate.update";
@@ -572,6 +574,7 @@ public class SampleInventoryDAO {
 
 	    createTable( con, "accession" ); 
 	    createTable( con, "donor" ); 
+	    createTable( con, "donorproperty" ); 
 	    createTable( con, "event" ); 
 	    createTable( con, "organization" ); 
 	    createTable( con, "sample" ); 
@@ -1544,11 +1547,25 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 1, study.getStudyid() );
      	pstmt.setString( 2, Stringx.getDefault(subjectId,"").trim() );
      	ResultSet res = pstmt.executeQuery();
-     	Subject sType = null;
-     	if( res.next() ) 
-     	    sType = (Subject)TableUtils.toObject( res, new Subject() );
-     	res.close();
-     	return sType;
+
+     	// Subject sType = null;
+     	// if( res.next() ) 
+     	//     sType = (Subject)TableUtils.toObject( res, new Subject() );
+     	// res.close();
+
+	Iterator it = TableUtils.toObjects( res, new Subject() );
+	Subject subject = null;
+	while( it.hasNext() ) {
+	    Subject subj = (Subject)it.next();
+	    if( subject == null )
+		subject = subj;
+	    Property prop = findPropertyById( subj.getPropertyid() );
+	    if( prop != null )
+	 	subject.addProperty( prop );
+	}
+	res.close();
+
+     	return subject;
     }
 
     /**
@@ -1562,11 +1579,25 @@ public class SampleInventoryDAO {
  	PreparedStatement pstmt = getStatement( STMT_SUBJECT_BY_ID );
 	pstmt.setLong( 1, donorId );
      	ResultSet res = pstmt.executeQuery();
-     	Subject sType = null;
-     	if( res.next() ) 
-     	    sType = (Subject)TableUtils.toObject( res, new Subject() );
-     	res.close();
-     	return sType;
+
+     	// Subject sType = null;
+     	// if( res.next() ) 
+     	//     sType = (Subject)TableUtils.toObject( res, new Subject() );
+     	// res.close();
+
+	Iterator it = TableUtils.toObjects( res, new Subject() );
+	Subject subject = null;
+	while( it.hasNext() ) {
+	    Subject subj = (Subject)it.next();
+	    if( subject == null )
+		subject = subj;
+	    Property prop = findPropertyById( subj.getPropertyid() );
+	    if( prop != null )
+	 	subject.addProperty( prop );
+	}
+	res.close();
+
+     	return subject;
     }
 
     /**
@@ -1581,11 +1612,26 @@ public class SampleInventoryDAO {
 	pstmt.setString( 1, sample.getSampleid() );
 	pstmt.setLong( 2, study.getStudyid() );
      	ResultSet res = pstmt.executeQuery();
-     	Subject sType = null;
-     	if( res.next() ) 
-     	    sType = (Subject)TableUtils.toObject( res, new Subject() );
-     	res.close();
-     	return sType;
+
+	Iterator it = TableUtils.toObjects( res, new Subject() );
+	Subject subject = null;
+	while( it.hasNext() ) {
+	    Subject subj = (Subject)it.next();
+	    if( subject == null )
+		subject = subj;
+	    Property prop = findPropertyById( subj.getPropertyid() );
+	    if( prop != null )
+	 	subject.addProperty( prop );
+	}
+	res.close();
+
+     	// Subject sType = null;
+     	// if( res.next() ) 
+     	//     sType = (Subject)TableUtils.toObject( res, new Subject() );
+     	// res.close();
+     	// return sType;
+
+     	return subject;
     }
 
     /**
@@ -1629,17 +1675,21 @@ public class SampleInventoryDAO {
     /**
      * Updates a subject.
      *
-     * @param subj the subject.
+     * @param userId the user id.
+     * @param subject the subject.
+     * @param props additional properties of the subject (can be null).
      *
      * @return the updated subject.
      */
-    public Subject storeSubject( Subject subject, Map props ) throws SQLException {
+    public Subject storeSubject( long userId, Subject subject ) throws SQLException {
 	if( subject == null )
 	    throw new SQLException( "Subject is invalid" );
 	    
 	Subject subj = findSubjectById( subject.getDonorid() );
 	if( subj == null )
 	    throw new SQLException( "Cannot find subject id: "+subject.getDonorid() );
+
+	log.debug( "Subject "+subject+" age: "+subject.getAge()+" gender: "+subject.getGender()+" ethnicity: "+subject.getEthnicity() );
 
 	PreparedStatement pstmt = getStatement( STMT_SUBJECT_UPDATE );
 
@@ -1661,6 +1711,53 @@ public class SampleInventoryDAO {
 	log.debug( "Subject updated: "+subject.getSubjectid()+" ("+
 		   subject.getDonorid()+")" );
 
+	Set<Map.Entry<String,Object>> entries = subject.getAttributes();
+	for( Map.Entry me : entries ) {
+	    Object key = me.getKey();
+	    Object val = me.getValue();
+	    boolean addProp = false;
+	    if( key != null ) {
+		Property prop = subject.getProperty( key.toString() );
+		if( prop == null ) {
+		    prop = new Property();
+		    prop.setPropertyname( key.toString() );
+		    prop.setLabel( key.toString() );
+		    addProp = true;
+		}
+		else if( val == null ) {
+		    // delete property
+		    prop = null;
+		}
+
+		if( prop != null ) {
+		    long typeid = ((prop.getTypeid() == 0L)?PropertyType.suggestTypeid( val ):prop.getTypeid());
+		    
+		    PropertyType pType = findTypeById( typeid );
+		    if( pType == null )
+			pType = findTypeById( 0L );
+		    prop.setTypeid( pType.getTypeid() );
+		    prop.setTypename( pType.getTypename() );
+
+		    prop = storeProperty( userId, prop );
+
+		    if( prop.getTypeid() == TYPE_NUMERIC ) 
+			prop = assignPropertyValue( prop, PropertyType.toDouble( val, 0d ) );
+		    else
+			prop = assignPropertyValue( prop, val.toString() );
+		}
+
+		if( addProp ) {
+
+		    pstmt = getStatement( STMT_DONORPROP_INSERT );
+		    pstmt.setLong( 1, subject.getDonorid() );
+		    pstmt.setLong( 2, prop.getPropertyid() );
+		    pstmt.executeUpdate();
+
+		    subject.addProperty( prop );
+		}
+	    }
+	}
+	
 	return subject;
     }
 
@@ -1671,9 +1768,9 @@ public class SampleInventoryDAO {
      *
      * @return the updated subject.
      */
-    public Subject storeSubject( Subject subject ) throws SQLException {
-	return storeSubject( subject, null );
-    }
+    // public Subject storeSubject( Subject subject ) throws SQLException {
+    // 	return storeSubject( subject, null );
+    // }
 
     /**
      * Returns a list of accessions associated with a study and issued by a certain organization.
@@ -3683,7 +3780,7 @@ public class SampleInventoryDAO {
 	    cName = "%";
 	
 	PreparedStatement pstmt = getStatement( STMT_COUNTRY_BY_NAME );
-     	pstmt.setString( 1, cName.toLowerCase() );
+     	pstmt.setString( 1, cName.toLowerCase()+"%" );
 
      	ResultSet res = pstmt.executeQuery();
 

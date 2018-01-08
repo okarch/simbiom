@@ -88,7 +88,10 @@ ${lines.size()} lines read\\n
 ## set subject properties\\n
 ## ########################\\n
         $!subject.setSiteid( \"${site.getSiteid()}\" )\\n
-        $!subject.setGender( \"${$strings.trimToEmpty( $columns.get(4) )}\" )\\n
+        $!subject.setOrgid( ${site.getOrgid()} )\\n
+        #set( $gender = ${columns.get(4)} )\\n
+        #set( $gender = $strings.trimToEmpty( $gender ) )\\n
+        $!subject.setGender( \"$gender\" )\\n
         #set( $age = ${columns.get(6)} )\\n
         #set( $age = $strings.trimToEmpty( $age ) )\\n
         #set( $ageNum = $convert.toInteger( $age ) )\\n
@@ -111,10 +114,15 @@ ${lines.size()} lines read\\n
         #set( $usubjid = ${columns.get(8)} )\\n
         #set( $usubjid = $strings.trimToEmpty( $usubjid ) )\\n
         $!subject.setUsubjid( $usubjid )\\n
+        #set( $subjectType = ${columns.get(3)} )\\n
+        #set( $subjectType = $strings.trimToEmpty( $subjectType ) )\\n
+        #if( $subjectType.length() > 0 )\\n
+          $!subject.setAttribute( \"group\", \"$subjectType\" )\\n
+        #end\\n
 ## ########################\\n
 ## store subject properties\\n
 ## ########################\\n
-        #set( $subject = $db.storeSubject( $subject ) )\\n
+        #set( $subject = $db.storeSubject( ${user.getUserid()}, $subject ) )\\n
         #set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"A subject has been updated: $subject.\" ) )\\n
       #end\\n
     #end\\n

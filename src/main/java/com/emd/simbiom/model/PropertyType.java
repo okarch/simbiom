@@ -1,5 +1,7 @@
 package com.emd.simbiom.model;
 
+import java.math.BigDecimal;
+
 import java.util.UUID;
 
 import com.emd.simbiom.util.DataHasher;
@@ -21,9 +23,48 @@ public class PropertyType implements Copyable {
     private String typename;
     private String label;
 
+    public static final long TYPE_UNKNOWN   = 0L;
+    public static final long TYPE_NUMBER    = 2L;
+    public static final long TYPE_STRING    = 4L;
 
     public PropertyType() {
 	this.typeid = DataHasher.hash( UUID.randomUUID().toString().getBytes() );
+    }
+
+    /**
+     * Suggests a typid from the content of the object.
+     *
+     * @param value the value to inspect.
+     * @return an property type (or unknown if it could not be detected).
+     */
+    public static long suggestTypeid( Object value ) {
+	if( value != null ) {
+	    if( value instanceof Number )
+		return TYPE_NUMBER;
+	    try {
+		BigDecimal nn = new BigDecimal( value.toString() );
+		return TYPE_NUMBER;
+	    }
+	    catch( NumberFormatException nfe ) {
+		// ignore, it's always string
+	    }
+	    return TYPE_STRING;
+	}
+	return TYPE_UNKNOWN;
+    }
+
+    public static double toDouble( Object value, double def ) {
+	if( value == null )
+	    return def;
+	if( value instanceof Number )
+	    return ((Number)value).doubleValue();
+	try {
+	    BigDecimal nn = new BigDecimal( value.toString() );
+	    return nn.doubleValue();
+	}
+	catch( NumberFormatException nfe ) {
+	}
+	return def;
     }
 
     /**
