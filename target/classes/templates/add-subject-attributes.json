@@ -1,0 +1,84 @@
+{
+ "templatename":"Add subject attributes",
+ "template":"## ########################\\n
+## Add subject attributes\\n
+## ########################\\n
+#set( $dtFormat = \"dd-MMM-yyyy\" )\\n
+#set( $delim = \"[|]\" )\\n
+#if( !$upload )\\n
+  #stop\\n
+#end\\n
+#set( $mandatoryCols = 5 )\\n
+#set( $lines = $upload.readLines() )\\n
+start processing upload $upload.getUploadid() $upload.getUploaded()\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", \"Upload ${template.getTemplatename()} initiated by ${user.username}.\" ) )\\n
+${lines.size()} lines read\\n
+#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", \"${lines.size()} lines read.\" ) )\\n
+#foreach( $line in $lines )\\n
+  #if( $velocityCount > 1 )\\n
+    #set( $columns = $line.split( $delim ) )\\n
+    #if( $columns.size() < $mandatoryCols )\\n
+      #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Columns expected ${mandatoryCols}, read ${columns.size()}.\" ) )\\n
+    #else\\n
+## ########################\\n
+## ensure mandatory content\\n
+## ########################\\n
+      #set( $studyName = ${columns.get(0)} )\\n
+      #set( $studyName = $strings.trimToEmpty( $studyName ) )\\n
+      #set( $studyName = $studies.formatName( \"$studyName\" ) )\\n
+      #set( $siteName = ${columns.get(1)} )\\n
+      #set( $siteName = $strings.trimToEmpty( $siteName ) )\\n
+      #set( $subjectId = ${columns.get(2)} )\\n
+      #set( $subjectId = $strings.trimToEmpty( $subjectId ) )\\n
+      #set( $attrName = ${columns.get(3)} )\\n
+      #set( $attrName = $strings.trimToEmpty( $attrName ) )\\n
+      #set( $attrVal = ${columns.get(4)} )\\n
+      #set( $attrVal = $strings.trimToEmpty( $attrVal ) )\\n
+      #if( ${studyName.length()} <= 0 )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Study name is empty. Line ignored.\" ) )\\n
+      #elseif( ${siteName.length()} <= 0 )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Site is missing. Line ignored.\" ) )\\n
+      #elseif( ${subjectId.length()} <= 0 )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Subject id is missing. Line ignored.\" ) )\\n
+      #elseif( ${attrName.length()} <= 0 )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Property name is missing. Line ignored.\" ) )\\n
+      #elseif( ${attrVal.length()} <= 0 )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"Subject ${siteName}-${subjectId} $attrName is empty. Line ignored.\" ) )\\n
+      #else\\n
+## ########################\\n
+## create study if needed\\n
+## ########################\\n
+        #set( $study = $db.findStudyByName( \"$studyName\" ) )\\n
+        #if( !$study )\\n
+          #set( $study = $db.createStudy( \"$studyName\" ) )\\n
+          #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"Study created: ${study.getStudyname()}.\" ) )\\n
+        #end\\n
+## ########################\\n
+## create site entry if needed\\n
+## ########################\\n
+        #set( $site = $db.findOrganizationByName( \"${study.getStudyname()} study site $siteName\" ) )\\n
+        #if( !$site )\\n
+          #set( $site = $db.createOrganization( \"${study.getStudyname()} study site $siteName\", \"clinical site\" ) )\\n
+          $!site.setSiteid( \"$siteName\" )\\n
+          #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"An organization has been created: ${site.getOrgid()} $siteName\" ) )\\n
+        #end\\n
+## ########################\\n
+## search subject and set attribute.\\n
+## ########################\\n
+        #set( $subjectId = $subjects.formatSubjectId( \"${site.getSiteid()}\", \"$subjectId\", \"%{site:????}%{subject:????}\" ) )\\n
+        #set( $subject = $db.findSubjectByName( $study, \"$subjectId\" ) )\\n
+        #if( !$subject )\\n
+          #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Study $studyName subject $subjectId does not exist. Property $attrName has not has been updated.\" ) )\\n
+        #else\\n
+          $!subject.setAttribute( \"$attrName\", \"$attrVal\" )\\n
+        #end\\n
+## ########################\\n
+## store subject properties\\n
+## ########################\\n
+        #set( $subject = $db.storeSubject( ${user.getUserid()}, $subject ) )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Subject ${subject} property $attrName updated.\" ) )\\n
+      #end\\n
+    #end\\n
+  #end\\n
+#end\\n"
+}
