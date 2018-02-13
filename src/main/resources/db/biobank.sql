@@ -605,6 +605,7 @@ insert into t_property_type values( 4, 'string', 'String' );
 --
 insert into t_property_type values( 5, 'header', 'Column header' ); 
 insert into t_property_type values( 6, 'choice', 'Item list' ); 
+insert into t_property_type values( 7, 'report', 'Reports' ); 
 
 --
 -- t_property_list
@@ -694,6 +695,19 @@ create table t_donor_property(
 );
 create index i_don_did on t_donor_property (donorid);
 create index i_don_pid on t_donor_property (propertyid);
+
+--
+-- t_sample_report
+--   sample details report
+--
+drop table if exists t_sample_report;
+create table t_sample_report(
+  sampleid       varchar(36) primary key,
+  created        timestamp,
+  details        text
+);
+create index i_sre_created on t_sample_report (created);
+
 
 -- create index i_spr_iid on t_sample_property (instanceid);
 

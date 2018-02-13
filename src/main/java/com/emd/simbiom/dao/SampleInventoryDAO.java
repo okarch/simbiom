@@ -52,6 +52,7 @@ import com.emd.simbiom.model.CostEstimate;
 import com.emd.simbiom.model.CostItem;
 import com.emd.simbiom.model.CostSample;
 import com.emd.simbiom.model.Country;
+import com.emd.simbiom.model.DetailsSection;
 import com.emd.simbiom.model.Donor;
 import com.emd.simbiom.model.Organization;
 import com.emd.simbiom.model.Property;
@@ -61,6 +62,7 @@ import com.emd.simbiom.model.Restriction;
 import com.emd.simbiom.model.RestrictionRule;
 import com.emd.simbiom.model.Sample;
 import com.emd.simbiom.model.SampleEvent;
+import com.emd.simbiom.model.SampleDetails;
 import com.emd.simbiom.model.SampleProcess;
 import com.emd.simbiom.model.SampleSummary;
 import com.emd.simbiom.model.SampleType;
@@ -186,6 +188,8 @@ public class SampleInventoryDAO {
     private static final String STMT_PROPERTYTYPE_INSERT = "biobank.propertytype.insert";
 
     private static final String STMT_PROPERTYVAL_DELETE  = "biobank.propertyvalue.delete";
+    private static final String STMT_PROPERTYVAL_BY_ID   = "biobank.propertyvalue.findById";
+    private static final String STMT_PROPERTYVAL_BY_PROPERTY = "biobank.propertyvalue.findByProperty";
     private static final String STMT_PROPERTYVAL_INSERT  = "biobank.propertyvalue.insert";
 
     private static final String STMT_RAW_FIND_OLD        = "biobank.uploadraw.findArchiveLoads";
@@ -206,6 +210,10 @@ public class SampleInventoryDAO {
     private static final String STMT_SAMPLE_BY_TYPE      = "biobank.sample.findByType";
     private static final String STMT_SAMPLE_LAST_CREATED = "biobank.sample.findByLastCreated";
 
+    private static final String STMT_SAMPLEDETAIL_INSERT = "biobank.sampledetail.insert";
+    private static final String STMT_SAMPLEDETAIL_BY_ID  = "biobank.sampledetail.findById";
+    private static final String STMT_SAMPLEDETAIL_DELETE = "biobank.sampledetail.delete";
+
     private static final String STMT_STYPE_BY_ID         = "biobank.sampleType.findById";
     private static final String STMT_STYPE_BY_NAME       = "biobank.sampleType.findByName";
     private static final String STMT_STYPE_LIKE_NAME     = "biobank.sampleType.findLikeName";
@@ -214,6 +222,7 @@ public class SampleInventoryDAO {
 
     private static final String STMT_STUDY_BY_ID         = "biobank.study.findById";
     private static final String STMT_STUDY_BY_NAME       = "biobank.study.findByName";
+    private static final String STMT_STUDY_BY_SAMPLE     = "biobank.study.findBySample";
     private static final String STMT_STUDY_TERMS         = "biobank.study.findTerms";
     private static final String STMT_STUDY_INSERT        = "biobank.study.insert";
 
@@ -605,6 +614,8 @@ public class SampleInventoryDAO {
 
 	    createTable( con, "restrict" );
 	    createTable( con, "restrictapply" );
+
+	    createTable( con, "sampledetail" ); 
 
 // 	    con.close();
 	    log.debug( "Initialize sample inventory database done" );
@@ -1423,6 +1434,27 @@ public class SampleInventoryDAO {
      	    sType = (Study)TableUtils.toObject( res, new Study() );
      	res.close();
      	return sType;
+    }
+
+    /**
+     * Returns a study by id.
+     *
+     * @param sample the sample.
+     * @return the <code>Study</code> objects (or empty array.
+     */
+    public Study[] findStudySample( Sample sample ) throws SQLException {
+ 	PreparedStatement pstmt = getStatement( STMT_STUDY_BY_SAMPLE );
+	pstmt.setString( 1, sample.getSampleid() );
+     	ResultSet res = pstmt.executeQuery();
+     	List<Study> fl = new ArrayList<Study>();
+     	Iterator it = TableUtils.toObjects( res, new Study() );
+	while( it.hasNext() ) {
+	    Study study = (Study)it.next();
+	    fl.add( study );
+	}	       
+	res.close();
+	Study[] terms = new Study[fl.size()];
+     	return (Study[])fl.toArray( terms );
     }
 
     /**
@@ -2519,7 +2551,10 @@ public class SampleInventoryDAO {
 		isValue = true;
 	    }
 	}
-	props.put( "path", stb.toString() );
+	String pSt = stb.toString();
+	if( pSt.endsWith( "." ) )
+	    pSt = pSt.substring( 0, pSt.length()-1 );
+	props.put( "path", pSt );
 	return props;
     }
 
@@ -3106,6 +3141,38 @@ public class SampleInventoryDAO {
     }
 
     /**
+     * Retrieves the a value of a property
+     *
+     * @param prop the property.
+     *
+     * @return the updated numeric value.
+     */
+    public Property retrievePropertyValue( Property prop ) 
+	throws SQLException {
+
+	PreparedStatement pstmt = getStatement( STMT_PROPERTYVAL_BY_PROPERTY );
+	pstmt.setLong( 1, prop.getPropertyid() );
+     	ResultSet res = pstmt.executeQuery();
+     	List<Property> fl = new ArrayList<Property>();
+     	Iterator it = TableUtils.toObjects( res, new Property() );
+	while( it.hasNext() ) {
+	    fl.add( (Property)it.next() );
+	}
+	res.close();
+	if( fl.size() > 0 ) {
+	    Property pVal = fl.get(0);
+	    prop.setValueid( pVal.getValueid() );
+	    String charVal = pVal.getCharvalue();
+	    if( charVal != null )
+		prop.setCharvalue( charVal );
+	    double numVal = pVal.getNumvalue();
+	    if( numVal != 0d )
+		prop.setNumvalue( numVal );
+	}
+	return prop;
+    }
+
+    /**
      * Stores a property.
      *
      * @param prop The property.
@@ -3320,6 +3387,34 @@ public class SampleInventoryDAO {
 
 	log.debug( "Property set created: "+pSet.getListname()+" ("+
 		   pSet.getListid()+") typeid: "+pSet.getTypeid() );
+
+	return pSet;
+    }
+
+    /**
+     * Returns an property set by id.
+     *
+     * @param setId the id of the property set.
+     *
+     * @return the <code>PropertySet</code> object matching the query.
+     */
+    public PropertySet deletePropertySet( long setId ) throws SQLException {
+	PropertySet pSet = findPropertySetById( setId );
+	if( pSet == null ) {
+	    log.error( "Cannot find property set "+setId );
+	    return null;
+	}
+	Property[] props = pSet.getProperties();
+	for( int i = 0; i < props.length; i++ ) 
+	    deleteProperty( props[i].getPropertyid() );
+
+	PreparedStatement pstmt = getStatement( STMT_PROPERTYSET_DELETE );
+	pstmt.setLong( 1, pSet.getListid() );
+	ResultSet res = pstmt.executeQuery();
+
+	pstmt = getStatement( STMT_PROPMEMBER_DELETE );
+	pstmt.setLong( 1, pSet.getListid() );
+	pstmt.executeUpdate();
 
 	return pSet;
     }
@@ -3813,6 +3908,89 @@ public class SampleInventoryDAO {
 	    sType = (Country)TableUtils.toObject( res, new Country() ); 
      	res.close();
 	return sType;
+    }
+
+    /**
+     * Returns the sample details of the given sample id.
+     *
+     * @param sampleId the id of the sample.
+     *
+     * @return the <code>SampleDetails</code> object (or null).
+     */
+    public SampleDetails findSampleDetailsById( String sampleId ) throws SQLException {
+	PreparedStatement pstmt = getStatement( STMT_SAMPLEDETAIL_BY_ID );
+	pstmt.setString( 1, sampleId );
+	ResultSet res = pstmt.executeQuery();
+	SampleDetails sDetails = null;
+	if( res.next() ) {
+	    sDetails = (SampleDetails)TableUtils.toObject( res, new SampleDetails() ); 
+	}
+	res.close();
+	return sDetails;
+    }
+
+    /**
+     * Creates a report of all attributes linked to a sample.
+     *
+     * @param sample the sample. 
+     *
+     * @return a newly created <code>RestrictionRule</code> object.
+     *
+     * @exception SQLException in case of a duplicate rule has been found.
+     */
+    public SampleDetails createSampleDetails( Sample sample ) throws SQLException {
+	SampleDetails sDetails = findSampleDetailsById( sample.getSampleid() );
+	PreparedStatement pstmt = null;
+	if( sDetails != null ) {
+	    if( !sDetails.isExpired() ) 
+		return sDetails;
+
+	    pstmt = getStatement( STMT_SAMPLEDETAIL_DELETE );
+	    pstmt.setString( 1, sample.getSampleid() );
+	    pstmt.executeUpdate();
+
+	    log.debug( "Sample details expired: "+sample.getSampleid() );
+	    sDetails = null;
+	}
+	    
+	sDetails = new SampleDetails();
+	sDetails.setSample( sample );
+	sDetails.setSampleid( sample.getSampleid() );
+
+	DetailsSection section = sDetails.createSection( "accessions" );
+	Accession[] accs = findSampleAccession( sample );
+	for( int i = 0; i < accs.length; i++ ) {
+	    Organization org = findOrganizationById( accs[i].getOrgid() );
+	    section.addProperties( "accession["+String.valueOf(i)+"]", accs[i] );
+	    section.addProperties( "accession["+String.valueOf(i)+"]/organization["+String.valueOf(i)+"]", org );
+	}
+	log.debug( "Prepared section accessions: "+accs.length+" accessions" );
+
+	Study[] studies = findStudySample( sample );
+	section = sDetails.createSection( "studies" );
+	for( int i = 0; i < studies.length; i++ ) {
+	    section.addProperties( "study["+String.valueOf(i)+"]", studies[i] );
+	    Subject subj = findSubjectBySample( studies[i], sample );
+	    if( subj != null ) {
+		section.addProperties( "study["+String.valueOf(i)+"]/subject["+String.valueOf(i)+"]", subj );
+		Property[] sProps = subj.getProperties();
+		for( int j = 0; j < sProps.length; j++ ) {
+		    Property prop = retrievePropertyValue( sProps[j] );
+		    section.addProperties( "study["+String.valueOf(i)+"]/subject["+
+					   String.valueOf(i)+"]/subject-attr["+
+					   String.valueOf(j)+"]", prop );
+		}
+	    }
+	}
+	
+	pstmt = getStatement( STMT_SAMPLEDETAIL_INSERT );
+	pstmt.setString( 1, sDetails.getSampleid() );
+	pstmt.setTimestamp( 2, sDetails.getCreated() );
+	pstmt.setString( 3, sDetails.getDetails() );
+	pstmt.executeUpdate();
+
+	log.debug( "Sample details created: "+sample.getSampleid() );
+	return sDetails;
     }
 
     /**

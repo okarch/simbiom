@@ -35,7 +35,7 @@ if [ "$1" = "" -o "$1" = "-h" ]; then
 fi
 
 logdir=`dirname $0`/../log
-targetdir=`dirname $0`
+targetdir=`dirname $0`/../target
 
 template=
 reqMethod=GET
