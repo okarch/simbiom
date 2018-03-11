@@ -29,6 +29,9 @@ public class DetailsSection {
 
     private static Log log = LogFactory.getLog(DetailsSection.class);
 
+    private final static String CDATA_START = "<![CDATA[";
+    private final static String CDATA_END   = "]]>";
+
     public DetailsSection( String sectionName ) {
 	this.sectionName = sectionName;
 	// this.paths = new TreeSet<String>();
@@ -91,6 +94,21 @@ public class DetailsSection {
 	this.sectionName = sectionName;
     }
 
+    private boolean containsMetaChars( String cont ) {
+	if( cont.indexOf( CDATA_START ) >= 0 )
+	    return false;
+	int k = -1;
+	if( (k = cont.indexOf( '&' )) >= 0 ) {
+	    int l = -1;
+	    if( (l = cont.indexOf(';',k)) < k )
+		return true;
+	    if( l-k > 4 )
+		return true;
+	}
+	return (( cont.indexOf( '>' ) >= 0 ) ||
+		( cont.indexOf( '<' ) >= 0 ));
+    }
+
     private void renderProperties( StringBuilder stb, String path ) {
      	Properties props = entries.get( path );
      	if( props == null )
@@ -106,14 +124,20 @@ public class DetailsSection {
 		stb.append( "/>\n" );
 	    else {
 		stb.append( ">" );
+		boolean needsEsc = containsMetaChars( pVal );
+		if( needsEsc )
+		    stb.append( CDATA_START );
 		stb.append( pVal );
+		if( needsEsc )
+		    stb.append( CDATA_END );
 		stb.append( "</property>\n" );
 	    }
 	}
     }
 
     private void closeTag( StringBuilder stb, String[] lastPath, String[] currentPath ) {
-	if( (lastPath == null) || (lastPath.length <= 0) )
+	if( (lastPath == null) || (lastPath.length <= 0) ||
+	    (lastPath.length < currentPath.length) )
 	    return;
 
 	// xxx0
@@ -121,25 +145,13 @@ public class DetailsSection {
 	// xxx0/yyy1
 	// xxx1
 
-	String lTag = Stringx.before( lastPath[lastPath.length-1], "[" );	
-	String cTag = null;
-	if( currentPath.length > 0 )
-	    cTag = Stringx.before( currentPath[currentPath.length-1], "[" );
-	else
-	    cTag = "";
-	
-	if( lastPath.length >= currentPath.length ) {
+	for( int i = lastPath.length-1; i >= currentPath.length-1; i-- ) {
+	    String lTag = Stringx.before( lastPath[i], "[" );	
 	    log.debug( "Closing tag: "+lTag );
 	    stb.append( "</" );
 	    stb.append( lTag );
-	    stb.append( ">\n" );
+	    stb.append( ">\n" );	    
 	}
-	// else if( (cTag.length() > 0) ) {
-	//     log.debug( "Closing tag: "+cTag );
-	//     stb.append( "</" );
-	//     stb.append( cTag );
-	//     stb.append( ">\n" );
-	// }
     }
 
     private void closeAllTags( StringBuilder stb, String[] lastPath ) {

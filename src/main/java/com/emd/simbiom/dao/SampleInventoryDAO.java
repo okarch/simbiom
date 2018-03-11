@@ -197,6 +197,7 @@ public class SampleInventoryDAO {
 
     private static final String STMT_RESTRICT_BY_ID      = "biobank.restrict.findById";
     private static final String STMT_RESTRICT_BY_RULE    = "biobank.restrict.findByRule";
+    private static final String STMT_RESTRICT_BY_SAMPLE  = "biobank.restrictapply.findBySample";
     private static final String STMT_RESTRICT_BY_STUDY   = "biobank.restrictapply.findRestriction";
     private static final String STMT_RESTRICT_INSERT     = "biobank.restrict.insert";
     private static final String STMT_RESTRICT_UPDATE     = "biobank.restrict.update";
@@ -280,7 +281,8 @@ public class SampleInventoryDAO {
 	"Locations",
 	"Molecules",
 	"Sample types",
-	"Studies"
+	"Studies",
+	"Indications"
     };
 
     // private static final long   POLICY_INTERVAL  = 10L * 60L * 60L * 1000L; // every 10 minutes
@@ -2600,7 +2602,7 @@ public class SampleInventoryDAO {
 	    //
 	    // ResultSetMetaData meta = res.getMetaData();
 	    // for( int i = 1; i <= meta.getColumnCount(); i++ ) 
-	    // 	log.debug( meta.getColumnName( i ) );
+	    //  	log.debug( meta.getColumnName( i ) );
 	    
 	    Iterator it = TableUtils.toObjects( res, new SampleSummary() );
 	    String catPath = props.getProperty( "path" );
@@ -3863,6 +3865,43 @@ public class SampleInventoryDAO {
     }
 
     /**
+     * Returns all restrictions applicable to a sample.
+     *
+     * @param sample the sample.
+     *
+     * @return an array of <code>Restriction</code> objects which can be empty.
+     */
+    public Restriction[] findSampleRestriction( Sample sample ) 
+	throws SQLException {
+
+	PreparedStatement pstmt = getStatement( STMT_RESTRICT_BY_SAMPLE );
+	// long siteId = 0L;
+	// if( site != null ) 
+	//     siteId = site.getOrgid();
+	
+	// pstmt.setLong( 1, study.getStudyid() );
+	pstmt.setString( 1, sample.getSampleid() );
+
+     	ResultSet res = pstmt.executeQuery();
+
+     	List<Restriction> fl = new ArrayList<Restriction>();
+     	Iterator it = TableUtils.toObjects( res, new Restriction() );
+	while( it.hasNext() ) {
+	    Restriction restrict = (Restriction)it.next();
+	    restrict.setRestrictionRule( findRestrictionRuleById( restrict.getRestrictid() ) );
+	    restrict.setStudy( findStudyById( restrict.getStudyid() ) );
+	    if( restrict.getOrgid() != 0L )
+	 	restrict.setOrganization( findOrganizationById( restrict.getOrgid() ) );
+	    restrict.setProperty( findPropertyById( restrict.getPropertyid() ) );
+	    fl.add( restrict );
+	}
+	res.close();
+
+	Restriction[] restricts = new Restriction[ fl.size() ];
+	return (Restriction[])fl.toArray( restricts );
+    }
+
+    /**
      * Returns a country entry by name.
      *
      * @param countryName the name of country.
@@ -3929,6 +3968,10 @@ public class SampleInventoryDAO {
 	return sDetails;
     }
 
+    private String concatPath( String pref, int idx, int len ) {
+	return pref+"["+Stringx.zeroPad( idx, len )+"]";
+    }  
+
     /**
      * Creates a report of all attributes linked to a sample.
      *
@@ -3942,8 +3985,10 @@ public class SampleInventoryDAO {
 	SampleDetails sDetails = findSampleDetailsById( sample.getSampleid() );
 	PreparedStatement pstmt = null;
 	if( sDetails != null ) {
-	    if( !sDetails.isExpired() ) 
+	    if( !sDetails.isExpired() ) {
+		sDetails.setSample( sample );
 		return sDetails;
+	    }
 
 	    pstmt = getStatement( STMT_SAMPLEDETAIL_DELETE );
 	    pstmt.setString( 1, sample.getSampleid() );
@@ -3957,32 +4002,58 @@ public class SampleInventoryDAO {
 	sDetails.setSample( sample );
 	sDetails.setSampleid( sample.getSampleid() );
 
+	SampleType sType = findSampleTypeById( sample.getTypeid() );
+	if( sType != null )
+	    sDetails.setTypename( sType.toString() );
+
 	DetailsSection section = sDetails.createSection( "accessions" );
 	Accession[] accs = findSampleAccession( sample );
+	int maxlen = String.valueOf( accs.length ).length();
 	for( int i = 0; i < accs.length; i++ ) {
 	    Organization org = findOrganizationById( accs[i].getOrgid() );
-	    section.addProperties( "accession["+String.valueOf(i)+"]", accs[i] );
-	    section.addProperties( "accession["+String.valueOf(i)+"]/organization["+String.valueOf(i)+"]", org );
+	    String accPath = concatPath( "accession", i, maxlen );
+	    section.addProperties( accPath, accs[i] );
+	    section.addProperties( concatPath(accPath+"/organization", i, maxlen), org );
 	}
 	log.debug( "Prepared section accessions: "+accs.length+" accessions" );
 
 	Study[] studies = findStudySample( sample );
 	section = sDetails.createSection( "studies" );
+	maxlen = String.valueOf( studies.length ).length();
 	for( int i = 0; i < studies.length; i++ ) {
-	    section.addProperties( "study["+String.valueOf(i)+"]", studies[i] );
+	    String sPath = concatPath( "study", i, maxlen );
+	    section.addProperties( sPath, studies[i] );
 	    Subject subj = findSubjectBySample( studies[i], sample );
 	    if( subj != null ) {
-		section.addProperties( "study["+String.valueOf(i)+"]/subject["+String.valueOf(i)+"]", subj );
+		String subjPath = concatPath( sPath+"/subject", i, maxlen ); 
+		section.addProperties( subjPath, subj );
 		Property[] sProps = subj.getProperties();
+		int propslen = String.valueOf( sProps.length ).length();
 		for( int j = 0; j < sProps.length; j++ ) {
 		    Property prop = retrievePropertyValue( sProps[j] );
-		    section.addProperties( "study["+String.valueOf(i)+"]/subject["+
-					   String.valueOf(i)+"]/subject-attr["+
-					   String.valueOf(j)+"]", prop );
+		    section.addProperties( concatPath( subjPath+"/subject-attr", j, propslen), 
+					   prop );
 		}
 	    }
 	}
-	
+	log.debug( "Prepared section studies: "+studies.length+" studies" );
+
+	Restriction[] restrictions = findSampleRestriction( sample );
+	section = sDetails.createSection( "compliance" );
+	maxlen = String.valueOf( restrictions.length ).length();
+	for( int i = 0; i < restrictions.length; i++ ) {
+	    String sPath = concatPath( "studylevel", i, maxlen );
+	    section.addProperties( sPath, restrictions[i] );
+	    section.addProperties( concatPath( sPath+"/rule", i, maxlen ), restrictions[i].getRestrictionRule() );
+	}
+
+	section = sDetails.createSection( "processing" );
+	SampleProcess proc = findVisit( sample );
+	if( proc != null ) {
+	    String sPath = concatPath( "visit", 0, 1 );
+	    section.addProperties( sPath, proc );
+	}
+
 	pstmt = getStatement( STMT_SAMPLEDETAIL_INSERT );
 	pstmt.setString( 1, sDetails.getSampleid() );
 	pstmt.setTimestamp( 2, sDetails.getCreated() );

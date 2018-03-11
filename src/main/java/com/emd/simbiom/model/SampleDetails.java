@@ -20,10 +20,13 @@ public class SampleDetails {
     private Sample sample;
     private Timestamp created;
     private String details;
+    private String typename;
 
     private List<DetailsSection> sections;
 
-    private static final long EXPIRE_DAYS = 3L * 24L * 60L * 60L * 1000L; // 3 days 
+    // 3 days period for report to expire
+    private static final long EXPIRE_DAYS = 3L * 24L * 60L * 60L * 1000L;
+
 
     /**
      * Creates a new <code>SampleDetails</code> object.
@@ -31,6 +34,7 @@ public class SampleDetails {
     public SampleDetails() {
 	this.sample = null;
 	this.created = new Timestamp(System.currentTimeMillis());
+	this.typename = "";
 	this.sections = new ArrayList<DetailsSection>();
     }
 
@@ -86,6 +90,24 @@ public class SampleDetails {
      */
     public final void setSample(final Sample sample) {
 	this.sample = sample;
+    }
+
+    /**
+     * Get the <code>Typename</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getTypename() {
+	return typename;
+    }
+
+    /**
+     * Set the <code>Typename</code> value.
+     *
+     * @param typename The new Typename value.
+     */
+    public final void setTypename(final String typename) {
+	this.typename = typename;
     }
 
     /**
@@ -148,6 +170,9 @@ public class SampleDetails {
 	stb.append( "  <created>" );
 	stb.append( getCreated() );	   
 	stb.append( "</created>\n" );
+	stb.append( "  <sampletype>" );
+	stb.append( getTypename() );	   
+	stb.append( "</sampletype>\n" );
 
 	for( DetailsSection sect : sections ) {
 	    stb.append( sect.toXml() );
