@@ -27,7 +27,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.emd.simbiom.dao.SampleInventoryDAO;
+// import com.emd.simbiom.dao.SampleInventoryDAO;
+import com.emd.simbiom.dao.SampleInventory;
+import com.emd.simbiom.dao.InventoryFactory;
 
 import com.emd.simbiom.model.CostEstimate;
 import com.emd.simbiom.model.CostSample;
@@ -63,14 +65,16 @@ public class SampleInventoryController {
 
     @RequestMapping("/sample")
     public Sample getSamples(@RequestParam(value="type", defaultValue="blood") String type) {
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	SampleType sType = SampleType.getInstance( type );
         return Sample.getInstance( sType );
     }
 
     @RequestMapping("/sample/type")
     public SampleType[] getSampleTypes(@RequestParam(value="name", defaultValue="") String name) {
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	
 	try {
 	    SampleType[] tList = sInv.findSampleTypeByNameAll( name );
@@ -83,11 +87,28 @@ public class SampleInventoryController {
 	}
     }
 
+    @RequestMapping("/sample/type/map")
+    public SampleType[] mapSampleTypes(@RequestParam(value="name", defaultValue="") String name) {
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
+	
+	try {
+	    SampleType[] tList = sInv.mapSampleType( name );
+	    log.debug( "Mapping sample type name \""+name+"\": "+tList.length+" entries found" );
+	    return tList;
+	}
+	catch( SQLException sqe ) {
+	    log.error( sqe );
+	    throw new SampleInventoryException( sqe );
+	}
+    }
+
     @RequestMapping( value = "/sample/type/create", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE )
     public SampleType createSampleType(@RequestBody SampleType input) {
     // ResponseEntity<?> registerTemplate(@RequestBody InventoryUploadTemplate input) {
 
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	try {
 	    log.debug( "Creating sample type: "+input );
 	    SampleType newT = sInv.createSampleType( input.getTypename() );
@@ -114,7 +135,8 @@ public class SampleInventoryController {
 
     @RequestMapping("/inventory/template")
     public InventoryUploadTemplate[] getUploadTemplates(@RequestParam(value="name", defaultValue="") String name) {
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	
 	try {
 	    InventoryUploadTemplate[] tList = sInv.findTemplateByName( name );
@@ -131,7 +153,9 @@ public class SampleInventoryController {
     public InventoryUploadTemplate registerTemplate(@RequestBody InventoryUploadTemplate input) {
     // ResponseEntity<?> registerTemplate(@RequestBody InventoryUploadTemplate input) {
 
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
+
 	try {
 	    log.debug( "Creating inventory upload template: "+input );
 	    InventoryUploadTemplate newT = sInv.storeTemplate( input );
@@ -159,7 +183,8 @@ public class SampleInventoryController {
     @RequestMapping( value = "/inventory/template/update", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE )
     public InventoryUploadTemplate updateTemplate(@RequestBody InventoryUploadTemplate input) {
 
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	try {
 	    log.debug( "Updating inventory upload template: "+input );
 	    InventoryUploadTemplate newT = sInv.updateTemplateByName( input );
@@ -198,7 +223,8 @@ public class SampleInventoryController {
 
      	// find template
 
-     	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+     	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+     	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
      	InventoryUploadTemplate templ = null;
      	try {
      	    InventoryUploadTemplate[] tList = sInv.findTemplateByName( templatename );
@@ -277,7 +303,8 @@ public class SampleInventoryController {
 
     @RequestMapping("/cost/sample")
     public CostSample[] getSampleCosts(@RequestParam(value="type", defaultValue="") String type ) {
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	
 	try {
 	    CostSample[] tList = sInv.findCostBySampleType( type );
@@ -292,7 +319,8 @@ public class SampleInventoryController {
 
     @RequestMapping("/cost/estimate/create")
     public CostEstimate getCostEstimate(@RequestParam(value="project", defaultValue="") String project ) {
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	
 	try {
 	    CostEstimate estimate = sInv.createCostEstimate( project );
@@ -310,7 +338,8 @@ public class SampleInventoryController {
 				     @PathVariable long itemCount, 
 				     @RequestBody CostSample item ) {
 
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	try {
 	    CostEstimate estimate = sInv.addCostItem( estimateId, item, itemCount );
 	    log.debug( "Added costs to estimate. Update: "+estimate );
@@ -324,7 +353,8 @@ public class SampleInventoryController {
 
     @RequestMapping( value = "/cost/estimate/update", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE )
     public CostEstimate updateCostEstimate(@RequestBody CostEstimate input) {
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	try {
 	    CostEstimate estimate = sInv.updateCostEstimate( input );
 	    log.debug( "Estimate updated: "+estimate );
@@ -342,7 +372,8 @@ public class SampleInventoryController {
     }
 
     private User validateApiKey( String apiKey, long reqRole ) {
-     	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+     	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+     	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	User user = null;
      	try {
 	    user = sInv.findUserByApikey( apiKey );	    

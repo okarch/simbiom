@@ -34,6 +34,38 @@ create index i_sty_typ on t_sample_type (typename);
 insert into t_sample_type (typeid, typename) values ( 1, 'unknown' );
 
 --
+-- t_sample_lookup
+--   sample type lookup
+--
+drop table if exists t_sample_lookup;
+create table t_sample_lookup(
+  typekey   varchar(80) primary key,
+  typename  varchar(80)
+); 
+create index i_stl_typ on t_sample_lookup (typename);
+
+insert into t_sample_lookup values ( 'ffpe', 'tissue' );
+insert into t_sample_lookup values ( 'stained', 'tissue' );
+insert into t_sample_lookup values ( 'unstained', 'tissue' );
+insert into t_sample_lookup values ( 'slide', 'tissue' );
+insert into t_sample_lookup values ( 'slides', 'tissue' );
+insert into t_sample_lookup values ( 'block', 'tissue' );
+insert into t_sample_lookup values ( 'blocks', 'tissue' );
+insert into t_sample_lookup values ( 'biopsy', 'tissue' );
+insert into t_sample_lookup values ( 'biopsies', 'tissue' );
+insert into t_sample_lookup values ( 'blood', 'blood' );
+insert into t_sample_lookup values ( 'whole blood', 'blood' );
+insert into t_sample_lookup values ( 'wbc', 'white blood cells' );
+insert into t_sample_lookup values ( 'plasma', 'plasma' );
+insert into t_sample_lookup values ( 'tissue', 'tissue' );
+insert into t_sample_lookup values ( 'serum', 'serum' );
+insert into t_sample_lookup values ( 'urine', 'urine' );
+insert into t_sample_lookup values ( 'edta', 'plasma' );
+insert into t_sample_lookup values ( 'dna', 'dna' );
+insert into t_sample_lookup values ( 'rna', 'rna' );
+
+
+--
 -- t_sample_parent
 --   sample parent - child relationship
 --
@@ -430,19 +462,95 @@ create index i_rsv_vid on t_restrict_value (valueid);
 
 --
 -- t_storage_project
---   the project definition created by  the storage provider
+--   the project created by the storage provider
 -- 
 drop table if exists t_storage_project;
 create table t_storage_project(
-  projectid      varchar(20),
-  projectdef     binary
+  projectid      bigint primary key,
+  title          varchar(128),
+  created        timestamp
 );
+create index i_prj_title on t_storage_project (title);
+create index i_prj_created on t_storage_project (created);
 
-drop table if exists t_storage_registration;
-create table t_storage_registration(
-  projectid      varchar(20),
+--
+-- t_storage_projectdef
+--   the project definition created by the storage provider
+-- 
+drop table if exists t_storage_projectdef;
+create table t_storage_projectdef(
+  defid          bigint primary key,
+  projectid      bigint,
+  created        timestamp,
   projectdef     binary
 );
+create index i_prjdef_pid on t_storage_projectdef (projectid);
+
+--
+-- t_storage_group
+--   the sample group of a project as defined by the storage provider
+-- 
+drop table if exists t_storage_group;
+create table t_storage_group(
+  groupid        bigint primary key,
+  projectid      bigint,
+  groupname      varchar(128),
+  groupref       varchar(50)
+);
+create index i_sgrp_pid on t_storage_group (projectid);
+create index i_sgrp_name on t_storage_group (groupname);
+
+--
+-- t_storage_sample
+--   the sample group of a project as defined by the storage provider
+-- 
+drop table if exists t_storage_sample;
+create table t_storage_sample(
+  sampleid    varchar(36),
+  groupid     bigint
+);
+create index i_ssamp_sid on t_storage_sample (sampleid);
+create index i_ssamp_gid on t_storage_sample (groupid);
+
+--
+-- t_storage_billing
+--   the project's billing information
+-- 
+drop table if exists t_storage_billing;
+create table t_storage_billing(
+  billid         bigint primary key,
+  projectid      bigint,
+  purchase       varchar(30),
+  projectcode    varchar(50),
+  currency       varchar(3),
+  total          float
+);
+create index i_bill_pid on t_storage_billing (projectid);
+create index i_bill_po on t_storage_billing (purchase);
+
+--
+-- t_storage_invoice
+--   invoice tracking table
+-- 
+drop table if exists t_storage_invoice;
+create table t_storage_invoice(
+  invoiceid      bigint primary key,
+  projectid      bigint,
+  invoice        varchar(30),
+  started        timestamp,
+  ended          timestamp,
+  verified       timestamp,
+  approved       timestamp,
+  currency       varchar(3),
+  numsamples     float,
+  amount         float
+);
+create index i_inv_pid on t_storage_invoice (projectid);
+create index i_inv_inv on t_storage_invoice (invoice);
+create index i_inv_start on t_storage_invoice (started);
+create index i_inv_end on t_storage_invoice (ended);
+create index i_inv_num on t_storage_invoice (numsamples);
+create index i_inv_amt on t_storage_invoice (amount);
 
 drop table if exists t_storage_cost;
 create table t_storage_cost(
@@ -463,6 +571,7 @@ drop table if exists t_storage_costestimate;
 create table t_storage_costestimate(
   estimateid     bigint primary key,
   projectname    varchar(80),
+  region         varchar(10),
   created        timestamp,
   duration       int,
   total          float
@@ -485,11 +594,13 @@ drop table if exists t_storage_cost_preference;
 create table t_storage_cost_preference(
   preferenceid   bigint primary key,
   typename       varchar(80),
+  region         varchar(10),
   rank           int,
   costtype       varchar(20),
   costid         bigint
 );
 create index i_cop_typename on t_storage_cost_preference (typename);
+create index i_cop_region on t_storage_cost_preference (region);
 create index i_cop_rank on t_storage_cost_preference (rank);
 create index i_cop_ctype on t_storage_cost_preference (costtype);
 create index i_cop_costid on t_storage_cost_preference (costid);

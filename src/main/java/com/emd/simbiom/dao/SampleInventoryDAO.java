@@ -22,6 +22,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 
+import javax.sql.DataSource;
+
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,8 +39,19 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 
+import org.apache.commons.dbcp2.BasicDataSource;
+
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.dbcp2.ConnectionFactory;
+import org.apache.commons.dbcp2.PoolableConnection;
+import org.apache.commons.dbcp2.PoolingDataSource;
+import org.apache.commons.dbcp2.PoolableConnectionFactory;
+import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
+
 import org.apache.commons.dbutils.DbUtils;
 
+import org.apache.commons.lang.CharSetUtils;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 
@@ -90,10 +103,15 @@ public class SampleInventoryDAO {
     private String       schema;
     private String       test;
     private int          retryCount;
-    private boolean      initDatabaseFromTemplate;
     private long         lastActivity;
 
+    private boolean      initDatabaseFromTemplate;
+    private boolean pooled;
+
     private Connection   dbSource;
+    private Connection   lastConnection;
+
+    private DataSource   dataSource;
     
     private FullContentSearch contentSearch;
 
@@ -144,6 +162,7 @@ public class SampleInventoryDAO {
     private static final String STMT_DONOR_BY_SAMPLE     = "biobank.donor.findBySample";
     private static final String STMT_DONOR_DUPLICATE     = "biobank.donor.duplicate";
     private static final String STMT_DONOR_INSERT        = "biobank.donor.insert";
+    private static final String STMT_DONOR_TERMS         = "biobank.propertyvalue.findTerms";
 
     private static final String STMT_DONORPROP_INSERT    = "biobank.donorproperty.insert";
 
@@ -207,6 +226,7 @@ public class SampleInventoryDAO {
 
     private static final String STMT_SAMPLE_INSERT       = "biobank.sample.insert";
     private static final String STMT_SAMPLE_BY_ID        = "biobank.sample.findById";
+    private static final String STMT_SAMPLE_BY_DONORPROP = "biobank.sample.findByDonorProperty";
     private static final String STMT_SAMPLE_BY_STUDY     = "biobank.sample.findByStudy";
     private static final String STMT_SAMPLE_BY_TYPE      = "biobank.sample.findByType";
     private static final String STMT_SAMPLE_LAST_CREATED = "biobank.sample.findByLastCreated";
@@ -220,6 +240,7 @@ public class SampleInventoryDAO {
     private static final String STMT_STYPE_LIKE_NAME     = "biobank.sampleType.findLikeName";
     private static final String STMT_STYPE_CREATE        = "biobank.sampleType.insert";
     private static final String STMT_STYPE_TERMS         = "biobank.sampleType.findTerms";
+    private static final String STMT_STYPE_LOOKUP        = "biobank.sampleType.mapType";
 
     private static final String STMT_STUDY_BY_ID         = "biobank.study.findById";
     private static final String STMT_STUDY_BY_NAME       = "biobank.study.findByName";
@@ -284,6 +305,9 @@ public class SampleInventoryDAO {
 	"Studies",
 	"Indications"
     };
+    /**
+     * Describe pooled here.
+     */
 
     // private static final long   POLICY_INTERVAL  = 10L * 60L * 60L * 1000L; // every 10 minutes
 
@@ -481,48 +505,177 @@ public class SampleInventoryDAO {
 	this.contentSearch = contentSearch;
     }
 
+    /**
+     * Get the <code>Pooled</code> value.
+     *
+     * @return a <code>boolean</code> value
+     */
+    public final boolean isPooled() {
+	return pooled;
+    }
+
+    /**
+     * Set the <code>Pooled</code> value.
+     *
+     * @param pooled The new Pooled value.
+     */
+    public final void setPooled(final boolean pooled) {
+	this.pooled = pooled;
+    }
+
+    private DataSource createBasicDataSource() {
+	BasicDataSource ds = new BasicDataSource();
+	ds.setDriverClassName( getDriver() );
+        ds.setUrl( getUrl() );
+	ds.setUsername( getUsername() );
+	ds.setPassword( getPassword() );
+
+	ds.setMinIdle(5);
+	ds.setMaxIdle(10);
+	ds.setMaxWaitMillis( 5000L );
+	ds.setPoolPreparedStatements( true );
+	ds.setMaxOpenPreparedStatements( -1 );
+
+	return ds;
+    }
+
+    // private DataSource createPoolingDataSource() {
+    // 	// First, we'll create a ConnectionFactory that the
+    // 	// pool will use to create Connections.
+    // 	// We'll use the DriverManagerConnectionFactory,
+
+    // 	ConnectionFactory connectionFactory =
+    // 	    new DriverManagerConnectionFactory( getUrl(), getUsername(), getPassword() );
+ 
+    // 	// Next we'll create the PoolableConnectionFactory, which wraps
+    // 	// the "real" Connections created by the ConnectionFactory with
+    // 	// the classes that implement the pooling functionality.
+
+    // 	PoolableConnectionFactory poolableConnectionFactory =
+    // 	    new PoolableConnectionFactory(connectionFactory, null);
+	
+    // 	// Now we'll need a ObjectPool that serves as the
+    // 	// actual pool of connections.
+    // 	// We'll use a GenericObjectPool instance, although
+    // 	// any ObjectPool implementation will suffice.
+	
+    // 	ObjectPool<PoolableConnection> connectionPool =
+    // 	    new GenericObjectPool<>(poolableConnectionFactory);
+         
+    // 	// Set the factory's pool property to the owning pool
+
+    // 	poolableConnectionFactory.setPool(connectionPool);
+
+    // 	// Finally, we create the PoolingDriver itself,
+    // 	// passing in the object pool we created.
+
+    // 	PoolingDataSource<PoolableConnection> ds =
+    // 	    new PoolingDataSource<>(connectionPool);
+	
+    // 	return ds;
+    // }
+
     private Connection connect( boolean forceConnect ) throws SQLException {
-	if( dbSource == null ) {
-	    log.debug( "Creating sample inventory datasource" );
-	    String st = getDriver();
-	    if( !DbUtils.loadDriver( st ) )
-		throw new SQLException(  "Cannot load jdbc driver: "+st );
-	    log.debug( "Database driver loaded: "+st );
-	    dbSource = DriverManager.getConnection( getUrl(), getUsername(), getPassword() );
-	}
-	else if( dbSource.isClosed() || forceConnect ) {
 
-	    if( forceConnect ) {
-		try {
-		    dbSource.close();
-		}
-		catch( SQLException sqe ) {
-		    log.debug( "Cannot close: "+Stringx.getDefault( sqe.getMessage(), "" ) );
-		}
+	if( isPooled() ) {
+	    if( dataSource == null ) {
+		log.debug( "Creating pooled inventory datasource" );
+		dataSource = createBasicDataSource();
 	    }
+	    return dataSource.getConnection();
+
+ // 118     public static void printDataSourceStats(DataSource ds) {
+ // 119         BasicDataSource bds = (BasicDataSource) ds;
+ // 120         System.out.println("NumActive: " + bds.getNumActive());
+ // 121         System.out.println("NumIdle: " + bds.getNumIdle());
+ // 122     }
+
+	}
+	else {
+	    if( dbSource == null ) {
+		log.debug( "Creating sample inventory datasource" );
+		String st = getDriver();
+		if( !DbUtils.loadDriver( st ) )
+		    throw new SQLException(  "Cannot load jdbc driver: "+st );
+		log.debug( "Database driver loaded: "+st );
+		dbSource = DriverManager.getConnection( getUrl(), getUsername(), getPassword() );
+	    }
+	    else if( dbSource.isClosed() || forceConnect ) {
+
+		if( forceConnect ) {
+		    try {
+			dbSource.close();
+		    }
+		    catch( SQLException sqe ) {
+			log.debug( "Cannot close: "+Stringx.getDefault( sqe.getMessage(), "" ) );
+		    }
+		}
 		
-	    int retries = getRetryCount();
-	    do {
-		retries--;
-		try {
-		    dbSource = DriverManager.getConnection( getUrl(), getUsername(), getPassword() );
-		    return dbSource;
+		int retries = getRetryCount();
+		do {
+		    retries--;
+		    try {
+			dbSource = DriverManager.getConnection( getUrl(), getUsername(), getPassword() );
+			return dbSource;
+		    }
+		    catch( SQLException sqe ) {
+			log.warn( sqe );
+		    }
+		    try {
+			Thread.currentThread().sleep( 1000L );
+		    }
+		    catch( InterruptedException iex ) {
+			throw new SQLException( "Interrupted retry" );
+		    }
 		}
-		catch( SQLException sqe ) {
-		    log.warn( sqe );
-		}
-		try {
-		    Thread.currentThread().sleep( 1000L );
-		}
-		catch( InterruptedException iex ) {
-		    throw new SQLException( "Interrupted retry" );
-		}
+		while( retries > 0 );
 	    }
-	    while( retries > 0 );
 	}
-
 	return dbSource;
     }
+
+    // private Connection connect( boolean forceConnect ) throws SQLException {
+    // 	if( dbSource == null ) {
+    // 	    log.debug( "Creating sample inventory datasource" );
+    // 	    String st = getDriver();
+    // 	    if( !DbUtils.loadDriver( st ) )
+    // 		throw new SQLException(  "Cannot load jdbc driver: "+st );
+    // 	    log.debug( "Database driver loaded: "+st );
+    // 	    dbSource = DriverManager.getConnection( getUrl(), getUsername(), getPassword() );
+    // 	}
+    // 	else if( dbSource.isClosed() || forceConnect ) {
+
+    // 	    if( forceConnect ) {
+    // 		try {
+    // 		    dbSource.close();
+    // 		}
+    // 		catch( SQLException sqe ) {
+    // 		    log.debug( "Cannot close: "+Stringx.getDefault( sqe.getMessage(), "" ) );
+    // 		}
+    // 	    }
+		
+    // 	    int retries = getRetryCount();
+    // 	    do {
+    // 		retries--;
+    // 		try {
+    // 		    dbSource = DriverManager.getConnection( getUrl(), getUsername(), getPassword() );
+    // 		    return dbSource;
+    // 		}
+    // 		catch( SQLException sqe ) {
+    // 		    log.warn( sqe );
+    // 		}
+    // 		try {
+    // 		    Thread.currentThread().sleep( 1000L );
+    // 		}
+    // 		catch( InterruptedException iex ) {
+    // 		    throw new SQLException( "Interrupted retry" );
+    // 		}
+    // 	    }
+    // 	    while( retries > 0 );
+    // 	}
+
+    // 	return dbSource;
+    // }
 
     private PropertiesConfiguration readTemplate() throws SQLException {
 	URL url = this.getClass().getClassLoader().getResource( getTemplate() );
@@ -576,6 +729,7 @@ public class SampleInventoryDAO {
 		setRetryCount( templateConfig.getInt( "db.retryCount", DEFAULT_RETRY ) );
 		setSchema( templateConfig.getString( "db.schema", DEFAULT_SCHEMA ) );
 		setTest( templateConfig.getString( "db.test", DEFAULT_TEST ) );
+		setPooled( Stringx.toBoolean(templateConfig.getString( "db.pooled", "false" ),false) );
 
 		FullContentSearch fcs = FullContentSearch.getInstance( templateConfig.getString( "db.content.server", DEFAULT_CONT_SERVER ) );
 		setContentSearch( fcs );
@@ -619,7 +773,9 @@ public class SampleInventoryDAO {
 
 	    createTable( con, "sampledetail" ); 
 
-// 	    con.close();
+	    if( isPooled() )
+		con.close();
+
 	    log.debug( "Initialize sample inventory database done" );
 	}
     }
@@ -631,6 +787,7 @@ public class SampleInventoryDAO {
     private boolean testFailed( Connection con ) throws SQLException {
 	boolean failed = false;
 	if( connectionExpired() ) {
+	    log.debug( "Testing connection" );
 	    failed = true;
 	    Statement stmt = con.createStatement();
 	    ResultSet res = stmt.executeQuery( getTest() );
@@ -642,18 +799,86 @@ public class SampleInventoryDAO {
 	return failed;
     }	
 
+    private Connection reuseConnect( boolean forceConnect ) throws SQLException {
+	boolean invalidate = false;
+	Connection con = null;
+	if( lastConnection != null ) {
+	    try {
+		if( lastConnection.isClosed() || testFailed( lastConnection ) )
+		    invalidate = true;
+	    }
+	    catch( SQLException sqe ) {
+		log.warn( sqe );
+		invalidate = true;
+	    }
+	    if( invalidate ) {
+		log.debug( "Re-establishing db connection." );
+		con = connect( forceConnect );
+	    }
+	    else {
+		log.debug( "Re-using db connection." );
+		con = lastConnection;
+	    }
+	}
+	else {
+	    log.debug( "Creating db connection." );
+	    con = connect( forceConnect );
+	}
+	lastConnection = con;
+	return con;
+    }
+
     private PreparedStatement getStatement( String stmtName ) throws SQLException {
 	// initialize the database if not done yet
 
 	initTemplate();
 
-	PreparedStatement pstmt = statements.get( stmtName );
+	PreparedStatement pstmt = null;
+
+
+	boolean forceConnect = false;
+	boolean invalidate = false;
+
+	if( isPooled() ) {
+	    Connection con = reuseConnect( forceConnect );
+	    // if( lastConnection != null ) {
+	    // 	try {
+	    // 	    if( lastConnection.isClosed() || testFailed( lastConnection ) )
+	    // 		invalidate = true;
+	    // 	}
+	    // 	catch( SQLException sqe ) {
+	    // 	    log.warn( sqe );
+	    // 	    invalidate = true;
+	    // 	}
+	    // 	if( invalidate ) {
+	    // 	    log.debug( "Re-establishing db connection." );
+	    // 	    con = connect( forceConnect );
+	    // 	}
+	    // 	else {
+	    // 	    log.debug( "Re-using db connection." );
+	    // 	    con = lastConnection;
+	    // 	}
+	    // }
+	    // else {
+	    // 	log.debug( "Creating db connection." );
+	    // 	con = connect( forceConnect );
+	    // }
+	    String querySt = templateConfig.getString( stmtName );
+	    if( querySt == null )
+		throw new SQLException( "Cannot find named statement: "+stmtName );
+	    pstmt = con.prepareStatement( querySt );
+	    // lastConnection = con;
+	//     statements.put( stmtName, pstmt );
+	//     // con.close();
+	    lastActivity = System.currentTimeMillis();
+	    return pstmt;
+	}
+
+	pstmt = statements.get( stmtName );
 
 	// test prepared statement if it works properly
 
-	boolean forceConnect = false;
 	if( pstmt != null ) {
-	    boolean invalidate = false;
 	    try {
 		Connection con = pstmt.getConnection();
 		if( (con == null) || (con.isClosed()) || (testFailed(con)) ) 
@@ -679,15 +904,54 @@ public class SampleInventoryDAO {
 	    if( querySt == null )
 		throw new SQLException( "Cannot find named statement: "+stmtName );
 	    log.debug( "Preparing named statement \""+stmtName+"\": "+querySt );
-	    Connection con = connect( forceConnect );
+	    Connection con = reuseConnect( forceConnect );
+	    // if( lastConnection != null ) {
+	    // 	try {
+	    // 	    if( lastConnection.isClosed() || testFailed( lastConnection ) )
+	    // 		invalidate = true;
+	    // 	}
+	    // 	catch( SQLException sqe ) {
+	    // 	    log.warn( sqe );
+	    // 	    invalidate = true;
+	    // 	}
+	    // 	if( invalidate ) {
+	    // 	    log.debug( "Re-establishing db connection." );
+	    // 	    con = connect( forceConnect );
+	    // 	}
+	    // 	else {
+	    // 	    log.debug( "Re-using db connection." );
+	    // 	    con = lastConnection;
+	    // 	}
+	    // }
+	    // else {
+	    // 	log.debug( "Creating db connection." );
+	    // 	con = connect( forceConnect );
+	    // }
 	    pstmt = con.prepareStatement( templateConfig.getString( stmtName ) );
 	    statements.put( stmtName, pstmt );
+	    lastConnection = con;
 	    log.debug( "Named statement \""+stmtName+"\" registered" );
 	}
 
 	lastActivity = System.currentTimeMillis();
 
 	return pstmt;
+    }
+
+    private void popStatement( PreparedStatement pstmt ) {
+	if( pstmt == null )
+	    return;
+	if( isPooled() ) {
+	    try {
+		pstmt.close();
+	    }
+	    catch( SQLException sqe ) {
+		log.warn( sqe );
+	    }
+	    int nActive = ((BasicDataSource)dataSource).getNumActive();
+	    int nIdle = ((BasicDataSource)dataSource).getNumIdle();
+	    log.debug( "Active connections: "+nActive+" idle connections: "+nIdle );
+	}
     }
 
     /**
@@ -715,13 +979,49 @@ public class SampleInventoryDAO {
 	    fl.add( (SampleType)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	SampleType[] facs = new SampleType[ fl.size() ];
      	return (SampleType[])fl.toArray( facs );
     }
 
     /**
-     * Returns a sample type by name.
+     * Maps a sample type term to another sample type.
+     *
+     * @return the list of matching <code>SampleType</code> objects.
+     */
+    public SampleType[] mapSampleType( String sampleType ) throws SQLException {
+	String normName = Stringx.getDefault( sampleType, "" ).trim(). toLowerCase();
+	if( normName.length() <= 0 )
+	    return findSampleTypeByNameAll( "unknown" );
+	String[] tokens = CharSetUtils.squeeze(StringUtils.replaceChars( normName, "_:.=,/();-+?!#*%1234567890", "           " ), " " ).trim().split( " " );
+
+     	List<SampleType> sTypes = new ArrayList<SampleType>();
+
+	PreparedStatement pstmt = getStatement( STMT_STYPE_LOOKUP );
+	for( int i = 0; i < tokens.length; i++ ) {
+	    pstmt.setString( 1, tokens[i] );
+	    ResultSet res = pstmt.executeQuery();
+
+	    Iterator it = TableUtils.toObjects( res, new SampleType() );
+	    while( it.hasNext() ) {		
+		SampleType st = (SampleType)it.next();
+		if( !sTypes.contains( st ) )
+		    sTypes.add( st );
+	    }	       
+	    res.close();
+	}
+	popStatement( pstmt );
+
+	if( sTypes.size() <= 0 )
+	    return findSampleTypeByNameAll( "unknown" );	    
+	
+     	SampleType[] facs = new SampleType[ sTypes.size() ];
+     	return (SampleType[])sTypes.toArray( facs );
+    }
+
+    /**
+     * Returns a sample type by name. 
      *
      * @return the SampleType object.
      */
@@ -743,6 +1043,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    sType = (SampleType)TableUtils.toObject( res, new SampleType() );
      	res.close();
+	popStatement( pstmt );
      	return sType;
     }
 
@@ -763,6 +1064,7 @@ public class SampleInventoryDAO {
 	    fl.add( sType.getTypename() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
 	String[] terms = new String[fl.size()];
      	return (String[])fl.toArray( terms );
@@ -791,6 +1093,8 @@ public class SampleInventoryDAO {
 
 	    log.debug( "New sample type created: "+sType+" (id: "+sType.getTypeid()+")" );
 	}
+	popStatement( pstmt );
+
 	return sType;
     }
 
@@ -811,6 +1115,7 @@ public class SampleInventoryDAO {
 	pstmt.setString( 7, Stringx.getDefault( remark, "" ) );
 	pstmt.setString( 8, StringEscapeUtils.escapeSql(track.toContent()) );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
     }
 
     private void trackChange( Trackable before,
@@ -829,6 +1134,7 @@ public class SampleInventoryDAO {
 	    if( res.next() ) 
 		prevId = before.getTrackid();
 	    res.close();
+	    popStatement( pstmt );
 	    if( prevId == -1L ) {
 		String msg = "Previous track information could not be found";
 		log.warn( msg );
@@ -851,6 +1157,7 @@ public class SampleInventoryDAO {
 	    pstmt.setString( 4, Stringx.getDefault( remark, "" ) );
 	    pstmt.setLong( 5, prevId );
 	    pstmt.executeUpdate();
+	    popStatement( pstmt );
 	}
     }
 
@@ -911,6 +1218,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 5, samp.getTrackid() );
 	pstmt.setTimestamp( 6, samp.getCreated() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Sample created: "+samp.getSamplename()+" ("+
 		   samp.getSampleid()+") trackid: "+samp.getTrackid() );
@@ -934,6 +1242,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    sType = (Sample)TableUtils.toObject( res, new Sample() );
      	res.close();
+	popStatement( pstmt );
      	return sType;
     }
 
@@ -954,6 +1263,7 @@ public class SampleInventoryDAO {
 	    fl.add( (Sample)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	Sample[] facs = new Sample[ fl.size() ];
      	return (Sample[])fl.toArray( facs );
@@ -974,6 +1284,7 @@ public class SampleInventoryDAO {
 	    fl.add( (Sample)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	Sample[] facs = new Sample[ fl.size() ];
      	return (Sample[])fl.toArray( facs );
@@ -996,6 +1307,7 @@ public class SampleInventoryDAO {
 	    fl.add( (Sample)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	Sample[] facs = new Sample[ fl.size() ];
      	return (Sample[])fl.toArray( facs );
@@ -1018,6 +1330,32 @@ public class SampleInventoryDAO {
 	    fl.add( (Sample)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
+
+     	Sample[] facs = new Sample[ fl.size() ];
+     	return (Sample[])fl.toArray( facs );
+    }
+
+    /**
+     * Returns a list of samples where the donor property match the given value.
+     *
+     * @param propertyName The property name.
+     * @param propertyVal The property value.
+     * @return A list of samples.
+     */
+    public Sample[] findSampleByDonorProperty( String propertyName, String propertyVal ) throws SQLException {
+ 	PreparedStatement pstmt = getStatement( STMT_SAMPLE_BY_DONORPROP );
+	pstmt.setString( 1, propertyName );
+	pstmt.setString( 2, propertyVal );
+
+     	ResultSet res = pstmt.executeQuery();
+     	List<Sample> fl = new ArrayList<Sample>();
+     	Iterator it = TableUtils.toObjects( res, new Sample() );
+	while( it.hasNext() ) {
+	    fl.add( (Sample)it.next() );
+	}	       
+	res.close();
+	popStatement( pstmt );
 
      	Sample[] facs = new Sample[ fl.size() ];
      	return (Sample[])fl.toArray( facs );
@@ -1052,9 +1390,17 @@ public class SampleInventoryDAO {
 		lastTemplate.addUploadBatch( uBatch );
      	}
 	res.close();
+	popStatement( pstmt );
+
      	InventoryUploadTemplate[] facs = new InventoryUploadTemplate[ fl.size() ];
      	return (InventoryUploadTemplate[])fl.toArray( facs );
     }
+
+    //
+    // FIX ME: INSERT where appropriate:
+    //
+    //	popStatement( pstmt );
+    //
 
     /**
      * Returns a list of templates and associated upload batches.
@@ -1080,6 +1426,8 @@ public class SampleInventoryDAO {
 		lastTemplate.addUploadBatch( uBatch );
      	}
 	res.close();
+	popStatement( pstmt );
+
 	if( fl.size() > 0 )
 	    return fl.get( 0 );
 	return null;
@@ -1102,6 +1450,7 @@ public class SampleInventoryDAO {
 	    fl.add( (UploadBatch)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	UploadBatch[] facs = new UploadBatch[ fl.size() ];
      	return (UploadBatch[])fl.toArray( facs );
@@ -1128,6 +1477,7 @@ public class SampleInventoryDAO {
 		fl.add( log );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	UploadLog[] facs = new UploadLog[ fl.size() ];
      	return (UploadLog[])fl.toArray( facs );
@@ -1158,6 +1508,8 @@ public class SampleInventoryDAO {
 	    log.debug( "Content "+md5sum+" archived" );
 	}
 	res.close();
+	popStatement( insRaw );
+	popStatement( pstmt );
 
 	log.debug( "Move content of "+updLoads.size()+" upload batches" );
 	pstmt = getStatement( STMT_UPLOAD_MOVE );
@@ -1165,6 +1517,7 @@ public class SampleInventoryDAO {
 	    pstmt.setLong( 1, updId.longValue() );
 	    pstmt.executeUpdate();
 	}
+	popStatement( pstmt );
     }
 
     /**
@@ -1218,6 +1571,7 @@ public class SampleInventoryDAO {
 	else if( nBatches.length > 0 ) {
 	    nb.addAll( Arrays.asList( nBatches ) );
 	}
+	popStatement( pstmt );
 
 	pstmt = getStatement( STMT_UPLOAD_INSERT );
 	for( UploadBatch upd : nb ) {
@@ -1228,6 +1582,7 @@ public class SampleInventoryDAO {
 	    pstmt.setString( 5, upd.getMd5sum() ); 
 	    pstmt.setString( 6, upd.getUpload() ); 
 	    pstmt.executeUpdate();
+	    popStatement( pstmt );
 	}
 
 	archiveUploads( template.getTemplateid() );
@@ -1255,18 +1610,21 @@ public class SampleInventoryDAO {
      	PreparedStatement pstmt = getStatement( STMT_LOG_DELETE );
 	pstmt.setLong( 1, template.getTemplateid() );
      	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	// Remove upload batches
 
      	pstmt = getStatement( STMT_UPLOAD_DELETE );
 	pstmt.setLong( 1, templ.getTemplateid() );
      	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	// Remove the template itself
 
      	pstmt = getStatement( STMT_TEMPLATE_DELETE );
 	pstmt.setLong( 1, templ.getTemplateid() );
      	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Template \""+Stringx.getDefault(templ.getTemplatename(),String.valueOf(templ.getTemplateid()))+"\" has been removed" );
 
@@ -1315,6 +1673,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 5, updLog.getLine() );
 	pstmt.setString( 6, Stringx.strtrunc(updLog.getMessage(),252,"..") );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	return updLog;
     }
@@ -1346,6 +1705,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    user = (User)TableUtils.toObject( res, new User() );
      	res.close();
+	popStatement( pstmt );
      	return user;
     }
 
@@ -1363,6 +1723,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    user = (User)TableUtils.toObject( res, new User() );
      	res.close();
+	popStatement( pstmt );
      	return user;
     }
 
@@ -1380,6 +1741,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    user = (User)TableUtils.toObject( res, new User() );
      	res.close();
+	popStatement( pstmt );
      	return user;
     }
 
@@ -1396,6 +1758,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    sType = (Study)TableUtils.toObject( res, new Study() );
      	res.close();
+	popStatement( pstmt );
      	return sType;
     }
 
@@ -1416,6 +1779,7 @@ public class SampleInventoryDAO {
 	    fl.add( study.getStudyname() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
 	String[] terms = new String[fl.size()];
      	return (String[])fl.toArray( terms );
@@ -1435,6 +1799,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    sType = (Study)TableUtils.toObject( res, new Study() );
      	res.close();
+	popStatement( pstmt );
      	return sType;
     }
 
@@ -1455,6 +1820,7 @@ public class SampleInventoryDAO {
 	    fl.add( study );
 	}	       
 	res.close();
+	popStatement( pstmt );
 	Study[] terms = new Study[fl.size()];
      	return (Study[])fl.toArray( terms );
     }
@@ -1481,6 +1847,7 @@ public class SampleInventoryDAO {
 	pstmt.setTimestamp( 4, study.getExpire() );
 	pstmt.setString( 5, study.getStatus() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Study created: "+study.getStudyname()+" ("+
 		   study.getStudyid()+")" );
@@ -1501,6 +1868,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    sType = (Organization)TableUtils.toObject( res, new Organization() );
      	res.close();
+	popStatement( pstmt );
      	return sType;
     }
 
@@ -1517,6 +1885,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    sType = (Organization)TableUtils.toObject( res, new Organization() );
      	res.close();
+	popStatement( pstmt );
      	return sType;
     }
 
@@ -1543,6 +1912,7 @@ public class SampleInventoryDAO {
 	pstmt.setInt( 4, org.getCountryid() );
 	pstmt.setString( 5, org.getOrgtype() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Organization created: "+org.getOrgname()+" ("+
 		   org.getOrgid()+")" );
@@ -1568,6 +1938,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 5, org.getOrgid() );
 
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 	return org;
     }
 
@@ -1598,6 +1969,7 @@ public class SampleInventoryDAO {
 	 	subject.addProperty( prop );
 	}
 	res.close();
+	popStatement( pstmt );
 
      	return subject;
     }
@@ -1630,6 +2002,7 @@ public class SampleInventoryDAO {
 	 	subject.addProperty( prop );
 	}
 	res.close();
+	popStatement( pstmt );
 
      	return subject;
     }
@@ -1658,6 +2031,7 @@ public class SampleInventoryDAO {
 	 	subject.addProperty( prop );
 	}
 	res.close();
+	popStatement( pstmt );
 
      	// Subject sType = null;
      	// if( res.next() ) 
@@ -1699,6 +2073,7 @@ public class SampleInventoryDAO {
 	pstmt.setTimestamp( 11, subj.getEnrolled() );
 
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Subject created: "+subj.getSubjectid()+" ("+
 		   subj.getDonorid()+")" );
@@ -1741,6 +2116,7 @@ public class SampleInventoryDAO {
 	pstmt.setTimestamp( 10, subject.getEnrolled() );
 
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Subject updated: "+subject.getSubjectid()+" ("+
 		   subject.getDonorid()+")" );
@@ -1786,6 +2162,7 @@ public class SampleInventoryDAO {
 		    pstmt.setLong( 1, subject.getDonorid() );
 		    pstmt.setLong( 2, prop.getPropertyid() );
 		    pstmt.executeUpdate();
+		    popStatement( pstmt );
 
 		    subject.addProperty( prop );
 		}
@@ -1836,6 +2213,7 @@ public class SampleInventoryDAO {
 	    fl.add( (Accession)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	Accession[] facs = new Accession[ fl.size() ];
      	return (Accession[])fl.toArray( facs );
@@ -1871,6 +2249,7 @@ public class SampleInventoryDAO {
 	    fl.add( (Accession)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	Accession[] facs = new Accession[ fl.size() ];
      	return (Accession[])fl.toArray( facs );
@@ -1906,6 +2285,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 4, acc.getOrgid() );
 	pstmt.setLong( 5, acc.getTrackid() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Accession created: "+acc.getAccession()+" sample: "+
 		   acc.getSampleid()+") trackid: "+acc.getTrackid() );
@@ -1934,6 +2314,7 @@ public class SampleInventoryDAO {
 	if( res.next() )
 	    studySample = (StudySample)TableUtils.toObject( res, new StudySample() );
      	res.close();
+	popStatement( pstmt );
 	if( studySample != null ) {
 	    log.warn( "Ignored duplicate assignment of "+sample+" to "+study );
 	    return studySample;
@@ -1950,6 +2331,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 2, studySample.getStudyid() );
 	pstmt.setLong( 3, studySample.getTrackid() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Assigned sample "+sample+" to study "+study );
 	
@@ -1977,6 +2359,7 @@ public class SampleInventoryDAO {
 	    fl.add( (Donor)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	Donor[] facs = new Donor[ fl.size() ];
      	return (Donor[])fl.toArray( facs );
@@ -2018,12 +2401,38 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 2, donor.getDonorid() );
 	pstmt.setLong( 3, donor.getTrackid() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Assigned sample "+sample+" to subject "+subject );
 	
 	trackChange( null, donor, userId, "Sample assigned to donor", null );
 
 	return donor;
+    }
+
+    /**
+     * Returns grouped property values for the given property.
+     *
+     * @return the SampleType object.
+     */
+    public String[] findDonorPropertyTerms( String propertyName ) throws SQLException {
+ 	PreparedStatement pstmt = getStatement( STMT_DONOR_TERMS );
+	pstmt.setString( 1, propertyName );
+
+     	ResultSet res = pstmt.executeQuery();
+
+     	List<String> fl = new ArrayList<String>();
+     	Iterator it = TableUtils.toObjects( res, new Property() );
+	while( it.hasNext() ) {
+	    Property sType = (Property)it.next();
+	    if( sType.getCharvalue() != null )
+		fl.add( sType.getCharvalue() );
+	}	       
+	res.close();
+	popStatement( pstmt );
+
+	String[] terms = new String[fl.size()];
+     	return (String[])fl.toArray( terms );
     }
 
     /**
@@ -2046,6 +2455,7 @@ public class SampleInventoryDAO {
 	    fl.add( (SampleEvent)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	SampleEvent[] facs = new SampleEvent[ fl.size() ];
      	return (SampleEvent[])fl.toArray( facs );	
@@ -2065,6 +2475,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    sType = (SampleEvent)TableUtils.toObject( res, new SampleEvent() );
      	res.close();
+	popStatement( pstmt );
      	return sType;
     }
 
@@ -2096,6 +2507,7 @@ public class SampleInventoryDAO {
 	pstmt.setString( 9, se.getUnit() );
 
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	return se;
     }
@@ -2135,6 +2547,7 @@ public class SampleInventoryDAO {
 	pstmt.setString( 9, se.getUnit() );
 
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	return se;
     }
@@ -2182,6 +2595,7 @@ public class SampleInventoryDAO {
 	    fl.add( (SampleProcess)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	SampleProcess[] facs = new SampleProcess[ fl.size() ];
      	return (SampleProcess[])fl.toArray( facs );
@@ -2215,6 +2629,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    sType = (SampleProcess)TableUtils.toObject( res, new SampleProcess() );
      	res.close();
+	popStatement( pstmt );
 
 	return sType;
     }
@@ -2291,6 +2706,7 @@ public class SampleInventoryDAO {
      	nn++;
 
      	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	trackChange( prevEvent, collEvent, userId, "Sample collection event "+((prevEvent==null)?"assigned":"updated"), null );
 	return collEvent;
@@ -2331,6 +2747,7 @@ public class SampleInventoryDAO {
 	    fl.add( (Treatment)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	Treatment[] facs = new Treatment[ fl.size() ];
      	return (Treatment[])fl.toArray( facs );	
@@ -2355,6 +2772,7 @@ public class SampleInventoryDAO {
 	pstmt.setString( 3, treat.getTreatdesc() );
 
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	return treat;
     }
@@ -2374,6 +2792,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    sType = (Organization)TableUtils.toObject( res, new Organization() );
      	res.close();
+	popStatement( pstmt );
      	return sType;
     }
 
@@ -2437,6 +2856,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 6, mProc.getTrackid() );
 
      	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	trackChange( null, mProc, userId, "Sample medication event assigned", null );
 	return mProc;
@@ -2482,6 +2902,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 6, shipProc.getTrackid() );
 
      	pstmt.executeUpdate();
+	popStatement( pstmt );
 	// log.debug( "Creating new shipment event: "+shipProc+" sample: "+sample );
 
 	trackChange( null, shipProc, userId, "Sample shipment event assigned", null );
@@ -2528,6 +2949,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 6, shipProc.getTrackid() );
 
      	pstmt.executeUpdate();
+	popStatement( pstmt );
 	// log.debug( "Creating new shipment event: "+shipProc+" sample: "+sample );
 
 	trackChange( null, shipProc, userId, "Sample reception event assigned", null );
@@ -2613,6 +3035,7 @@ public class SampleInventoryDAO {
 		fl.add( (SampleSummary)it.next() );
 	    }	       
 	    res.close();
+	    popStatement( pstmt );
 	}
 	else
 	    log.warn( "Sample summary statement cannot be determined." );
@@ -2644,6 +3067,7 @@ public class SampleInventoryDAO {
 		fl.add( (Sample)it.next() );
 	    }	       
 	    res.close();
+	    popStatement( pstmt );
 	}
 	else
 	    log.warn( "Sample category statement cannot be determined." );
@@ -2656,16 +3080,18 @@ public class SampleInventoryDAO {
      * Returns a list of cost items per sample type.
      *
      * @param sampleType the name of the sample type.
+     * @param region storage region.
      *
      * @return an array of CostSample objects.
      */
-    public CostSample[] findCostBySampleType( String sampleType ) throws SQLException {
+    public CostSample[] findCostBySampleType( String sampleType, String region ) throws SQLException {
 	PreparedStatement pstmt = null;
 	if( Stringx.getDefault(sampleType,"").trim().length() <= 0 )
 	    pstmt = getStatement( STMT_COSTSAMPLE_ALL_TYPE );
 	else {
 	    pstmt = getStatement( STMT_COSTSAMPLE_BY_TYPE );
 	    pstmt.setString( 1, sampleType );
+	    pstmt.setString( 2, region );
 	}
 
      	ResultSet res = pstmt.executeQuery();
@@ -2675,9 +3101,22 @@ public class SampleInventoryDAO {
 	    fl.add( (CostSample)it.next() );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
      	CostSample[] facs = new CostSample[ fl.size() ];
      	return (CostSample[])fl.toArray( facs );
+    }
+
+    /**
+     * Returns a list of cost items per sample type.
+     *
+     * @param sampleType the name of the sample type.
+     * @param region storage region.
+     *
+     * @return an array of CostSample objects.
+     */
+    public CostSample[] findCostBySampleType( String sampleType ) throws SQLException {
+	return findCostBySampleType( sampleType, "" );
     }
 
     /**
@@ -2695,6 +3134,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    sType = (Cost)TableUtils.toObject( res, new Cost() );
      	res.close();
+	popStatement( pstmt );
      	return sType;
     }
 
@@ -2717,11 +3157,13 @@ public class SampleInventoryDAO {
 	PreparedStatement pstmt = getStatement( STMT_ESTIMATE_INSERT );
 	pstmt.setLong( 1, estimate.getEstimateid() );
 	pstmt.setString( 2, estimate.getProjectname() );
-	pstmt.setTimestamp( 3, estimate.getCreated() );
-	pstmt.setInt( 4, estimate.getDuration() );
-	pstmt.setFloat( 5, estimate.getTotal() );
+        pstmt.setString( 3, estimate.getRegion() );
+	pstmt.setTimestamp( 4, estimate.getCreated() );
+	pstmt.setInt( 5, estimate.getDuration() );
+	pstmt.setFloat( 6, estimate.getTotal() );
 
      	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Cost estimate created: "+estimate );
 
@@ -2735,6 +3177,7 @@ public class SampleInventoryDAO {
 	pstmt = getStatement( STMT_ESTIMATE_EXPIRED );
 	pstmt.setTimestamp( 1, expDate );
      	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	return estimate;
     }
@@ -2761,6 +3204,7 @@ public class SampleInventoryDAO {
 	    estimate.addCost( ci );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
 	return estimate;
     }
@@ -2814,7 +3258,7 @@ public class SampleInventoryDAO {
 
 	// check if project costs have been added.
 
-	CostSample[] extraCosts = findCostBySampleType( "project" );
+	CostSample[] extraCosts = findCostBySampleType( "project", estimate.getRegion() );
 	boolean costExists = false;
 	for( int j = 0; j < extraCosts.length; j++ ) {
 	    costExists = false;
@@ -2829,9 +3273,9 @@ public class SampleInventoryDAO {
 		estimate = addCostItem( estimate, extraCosts[j], 1L );
 	}
 
-	// check if registration costs exist
+ 	// check if registration costs exist
 
-	extraCosts = findCostBySampleType( SAMPLE_REGISTRATION );
+	extraCosts = findCostBySampleType( SAMPLE_REGISTRATION, estimate.getRegion() );
 	costExists = false;
 	for( int i= 0; i < items.length; i++ ) {
 	    if( items[i].getCostid() == extraCosts[0].getCostid() ) {
@@ -2845,6 +3289,7 @@ public class SampleInventoryDAO {
 	PreparedStatement pstmt = getStatement( STMT_COSTITEM_DELETE );
 	pstmt.setLong( 1, estimate.getEstimateid() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	estimate.setTotal( 0f );
 	long numSamples = 0L;
@@ -2902,16 +3347,19 @@ public class SampleInventoryDAO {
 		log.warn( "Cost id "+String.valueOf(ci.getCostid())+" is invalid" );
 	    
 	}
+	popStatement( pstmt );
 
 	pstmt = getStatement( STMT_ESTIMATE_UPDATE );
 	pstmt.setString( 1, estimate.getProjectname() );
-	pstmt.setTimestamp( 2, estimate.getCreated() );
-	pstmt.setInt( 3, estimate.getDuration() );
-	pstmt.setFloat( 4, estimate.getTotal() );
+	pstmt.setString( 2, estimate.getRegion() );
+	pstmt.setTimestamp( 3, estimate.getCreated() );
+	pstmt.setInt( 4, estimate.getDuration() );
+	pstmt.setFloat( 5, estimate.getTotal() );
 
-	pstmt.setLong( 5, estimate.getEstimateid() );
+	pstmt.setLong( 6, estimate.getEstimateid() );
 
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Cost estimate updated: "+estimate );
 
@@ -2932,6 +3380,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    prop = (PropertyType)TableUtils.toObject( res, new PropertyType() );
      	res.close();
+	popStatement( pstmt );
      	return prop;
     }
 
@@ -2949,6 +3398,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    prop = (PropertyType)TableUtils.toObject( res, new PropertyType() );
      	res.close();
+	popStatement( pstmt );
      	return prop;
     }
 
@@ -2973,6 +3423,7 @@ public class SampleInventoryDAO {
 	pstmt.setString( 2, pType.getTypename() );
 	pstmt.setString( 3, pType.getLabel() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Property type created: ("+pType.getTypeid()+") "+pType.getTypename() );
 
@@ -2993,6 +3444,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    prop = (Property)TableUtils.toObject( res, new Property() );
      	res.close();
+	popStatement( pstmt );
      	return prop;
     }
 
@@ -3022,6 +3474,7 @@ public class SampleInventoryDAO {
 	    fl.add( (Property)it.next() );
 	}
 	res.close();
+	popStatement( pstmt );
 
 	Property[] props = new Property[ fl.size() ];
 	return (Property[])fl.toArray( props );
@@ -3056,6 +3509,7 @@ public class SampleInventoryDAO {
 	PreparedStatement pstmt = getStatement( STMT_PROPERTY_DELETE );
 	pstmt.setLong( 1, propertyid );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Property deleted: "+prop );
 
@@ -3065,11 +3519,13 @@ public class SampleInventoryDAO {
 	pstmt = getStatement( STMT_COLSPEC_DELETE );
 	pstmt.setLong( 1, propertyid );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 	log.debug( "Column specification deleted: "+prop.getColumnid() );
 
 	pstmt = getStatement( STMT_PROPERTYVAL_DELETE );
 	pstmt.setLong( 1, propertyid );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Property value(s) removed: "+prop.getValueid() );
 
@@ -3090,6 +3546,7 @@ public class SampleInventoryDAO {
 	PreparedStatement pstmt = getStatement( STMT_PROPERTYVAL_DELETE );
 	pstmt.setLong( 1, prop.getPropertyid() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 	
 	long valId = prop.getValueid();
 	if( valId == 0L ) 
@@ -3123,6 +3580,7 @@ public class SampleInventoryDAO {
 	PreparedStatement pstmt = getStatement( STMT_PROPERTYVAL_DELETE );
 	pstmt.setLong( 1, prop.getPropertyid() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 	
 	long valId = prop.getValueid();
 	if( valId == 0L ) 
@@ -3135,6 +3593,7 @@ public class SampleInventoryDAO {
 	pstmt.setDouble( 4, 0d );
 	pstmt.setInt( 5, 0 );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	prop.setValueid( valId );
 	prop.setCharvalue( charVal );
@@ -3161,6 +3620,7 @@ public class SampleInventoryDAO {
 	    fl.add( (Property)it.next() );
 	}
 	res.close();
+	popStatement( pstmt );
 	if( fl.size() > 0 ) {
 	    Property pVal = fl.get(0);
 	    prop.setValueid( pVal.getValueid() );
@@ -3228,10 +3688,9 @@ public class SampleInventoryDAO {
      	nn++;
 
      	pstmt.executeUpdate();
+	popStatement( pstmt );
 
-	log.debug( "Property stored: "+prop.getPropertyid()+" "+prop.toString() );
-
-	    
+	log.debug( "Property stored: "+prop.getPropertyid()+" "+prop.toString() );	    
 
 	pstmt = getStatement( STMT_COLSPEC_DELETE );
 	pstmt.setLong( 1, prop.getPropertyid() );
@@ -3250,6 +3709,7 @@ public class SampleInventoryDAO {
 	    pstmt.setInt( 8, prop.getMaxoccurs() );
 	    pstmt.setString( 9, String.valueOf(prop.isMandatory()));
 	    pstmt.executeUpdate();
+	    popStatement( pstmt );
 	    log.debug( "Column specification updated: "+prop.getColumnid()+", property: "+prop.getPropertyid()+" "+prop.toString() );
 	}
 
@@ -3257,6 +3717,7 @@ public class SampleInventoryDAO {
 	    pstmt = getStatement( STMT_PROPERTYVAL_DELETE );
 	    pstmt.setLong( 1, prop.getPropertyid() );
 	    pstmt.executeUpdate();
+	    popStatement( pstmt );
 
 	    long valId = prop.getValueid();
 	    if( valId == 0L ) 
@@ -3269,6 +3730,7 @@ public class SampleInventoryDAO {
 	    pstmt.setDouble( 4, prop.getNumvalue() );
 	    pstmt.setInt( 5, 0 );
 	    pstmt.executeUpdate();
+	    popStatement( pstmt );
 
 	    prop.setValueid( valId );
 	}
@@ -3305,6 +3767,7 @@ public class SampleInventoryDAO {
 		propSet.addProperty( prop );
 	}
      	res.close();
+	popStatement( pstmt );
 
 	return ((fl.size() <= 0)?null:fl.get(0));
     }
@@ -3340,6 +3803,7 @@ public class SampleInventoryDAO {
 		propSet.addProperty( prop );
      	}	       
      	res.close();
+	popStatement( pstmt );
 
       	PropertySet[] facs = new PropertySet[ fl.size() ];
       	return (PropertySet[])fl.toArray( facs );	
@@ -3386,6 +3850,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 3, pSet.getTypeid() );
 
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Property set created: "+pSet.getListname()+" ("+
 		   pSet.getListid()+") typeid: "+pSet.getTypeid() );
@@ -3417,6 +3882,7 @@ public class SampleInventoryDAO {
 	pstmt = getStatement( STMT_PROPMEMBER_DELETE );
 	pstmt.setLong( 1, pSet.getListid() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	return pSet;
     }
@@ -3449,6 +3915,7 @@ public class SampleInventoryDAO {
 	PreparedStatement delStmt = getStatement( STMT_PROPMEMBER_DELETE );
 	delStmt.setLong( 1, pSet.getListid() );
 	delStmt.executeUpdate();
+	popStatement( delStmt );
 
 	log.debug( "Removed all members from property set: "+pSet );
 
@@ -3460,6 +3927,7 @@ public class SampleInventoryDAO {
 	    insStmt.setString( 4, String.valueOf(props[i].isDisplay()) );
 	    insStmt.executeUpdate();
 	}
+	popStatement( insStmt );
 
 	log.debug( props.length+" members re-confirmed, property set: "+pSet );
 	
@@ -3502,6 +3970,7 @@ public class SampleInventoryDAO {
 	    }
 	}	       
 	res.close();
+	popStatement( pstmt );
 
 	RestrictionRule[] rules = new RestrictionRule[ fl.size() ];
 	return (RestrictionRule[])fl.toArray( rules );
@@ -3523,6 +3992,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    rule = (RestrictionRule)TableUtils.toObject( res, new RestrictionRule() );
      	res.close();
+	popStatement( pstmt );
 	if( (rule != null) && (rule.getParentid() != 0L) ) {
 	    PropertySet pSet = findPropertySetById( rule.getParentid() );
 	    if( pSet != null )
@@ -3605,6 +4075,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 5, rule.getPropertyid() );
 
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "New rule created: "+String.valueOf(rule.getRestrictid())+" "+rule.toString() );
 
@@ -3708,6 +4179,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( 5, rule.getRestrictid() );
 
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Rule updated: "+String.valueOf(rule.getRestrictid())+" "+rule.toString() );
 
@@ -3739,6 +4211,7 @@ public class SampleInventoryDAO {
      	if( res.next() ) 
      	    restrict = (Restriction)TableUtils.toObject( res, new Restriction() );
      	res.close();
+	popStatement( pstmt );
 
 	if( restrict != null ) {
 	    restrict.setRestrictionRule( findRestrictionRuleById( restrict.getRestrictid() ) );
@@ -3843,6 +4316,7 @@ public class SampleInventoryDAO {
 	pstmt.setLong( nn, restrict.getPropertyid() );
 
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 	
 	return restrict;
     }
@@ -3896,6 +4370,7 @@ public class SampleInventoryDAO {
 	    fl.add( restrict );
 	}
 	res.close();
+	popStatement( pstmt );
 
 	Restriction[] restricts = new Restriction[ fl.size() ];
 	return (Restriction[])fl.toArray( restricts );
@@ -3926,6 +4401,7 @@ public class SampleInventoryDAO {
 	    fl.add( rr );
 	}	       
 	res.close();
+	popStatement( pstmt );
 
 	Country[] countries = new Country[ fl.size() ];
 	return (Country[])fl.toArray( countries );
@@ -3946,6 +4422,7 @@ public class SampleInventoryDAO {
 	if( res.next() ) 
 	    sType = (Country)TableUtils.toObject( res, new Country() ); 
      	res.close();
+	popStatement( pstmt );
 	return sType;
     }
 
@@ -3965,6 +4442,7 @@ public class SampleInventoryDAO {
 	    sDetails = (SampleDetails)TableUtils.toObject( res, new SampleDetails() ); 
 	}
 	res.close();
+	popStatement( pstmt );
 	return sDetails;
     }
 
@@ -3993,6 +4471,7 @@ public class SampleInventoryDAO {
 	    pstmt = getStatement( STMT_SAMPLEDETAIL_DELETE );
 	    pstmt.setString( 1, sample.getSampleid() );
 	    pstmt.executeUpdate();
+	    popStatement( pstmt );
 
 	    log.debug( "Sample details expired: "+sample.getSampleid() );
 	    sDetails = null;
@@ -4059,6 +4538,7 @@ public class SampleInventoryDAO {
 	pstmt.setTimestamp( 2, sDetails.getCreated() );
 	pstmt.setString( 3, sDetails.getDetails() );
 	pstmt.executeUpdate();
+	popStatement( pstmt );
 
 	log.debug( "Sample details created: "+sample.getSampleid() );
 	return sDetails;
@@ -4090,8 +4570,27 @@ public class SampleInventoryDAO {
 	    dbSource = null;
 	}
 	templateConfig = null;
+	if( dataSource != null ) {
+	    log.debug( "Clearing connection pool" );
+     	    if( dataSource instanceof BasicDataSource ) {
+		try {
+		    ((BasicDataSource)dataSource).close();
+		}
+		catch( SQLException sqe ) {
+		    // we don't care...
+		    log.warn( sqe );
+		}
+	    }
+	}
 	log.debug( "Data access object cleaned" );
     }
+
+    // public synchronized void close() {
+    // 	if( dataSource != null ) {
+    // 	    if( dataSource instanceof BasicDataSource )
+    // 		((BasicDataSource)dataSource).close();
+    // 	}
+    // }
 
 }
 

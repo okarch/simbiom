@@ -18,7 +18,9 @@ import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.emd.simbiom.dao.SampleInventoryDAO;
+// import com.emd.simbiom.dao.SampleInventoryDAO;
+import com.emd.simbiom.dao.SampleInventory;
+import com.emd.simbiom.dao.InventoryFactory;
 
 import com.emd.simbiom.model.Age;
 import com.emd.simbiom.model.Sample;
@@ -36,7 +38,8 @@ public class FeedController {
     private static Log log = LogFactory.getLog(FeedController.class);
 
     private Sample[] getLatestSamples( long age ) {
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	Sample[] samples = null;
 	try {
 	    samples = sInv.findSampleByAge( Age.created().newerThan(age) );
@@ -49,7 +52,8 @@ public class FeedController {
     }
 
     private List<FeedContent> groupSamples( Sample[] samples ) {
-	SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	// SampleInventoryDAO sInv = SampleInventoryDAO.getInstance();
+	SampleInventory sInv = InventoryFactory.getInstance().getSampleInventory();
 	TreeMap<String,FeedContent> studySamples = new TreeMap<String,FeedContent>();
 	Map<Long,String> sampleTypes = new HashMap<Long,String>();
 	Map<Long,String> studyNames = new HashMap<Long,String>();

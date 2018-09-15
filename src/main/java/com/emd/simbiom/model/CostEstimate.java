@@ -26,13 +26,16 @@ public class CostEstimate implements Copyable {
     private Timestamp created;
     private int duration;
     private float total;
+    private String region;
 
     private List<CostItem> costs;
 
+    public static final String DEFAULT_REGION = "EU";
 
     public CostEstimate() {
 	this.setEstimateid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
 	this.costs = new ArrayList<CostItem>();
+	this.region = DEFAULT_REGION;
 	this.setCreated( new Timestamp( (new Date()).getTime() ));
     }
 
@@ -42,6 +45,7 @@ public class CostEstimate implements Copyable {
 	this.costs.addAll( cs.costs );
 	this.setCreated( new Timestamp( (new Date()).getTime() ));
 	this.setProjectname( cs.getProjectname() );
+	this.setRegion( cs.getRegion() );
 	this.setDuration( cs.getDuration() );
 	this.setTotal( cs.getTotal() );
     }
@@ -80,6 +84,24 @@ public class CostEstimate implements Copyable {
      */
     public final void setProjectname(final String projectname) {
 	this.projectname = projectname;
+    }
+
+    /**
+     * Get the <code>Region</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getRegion() {
+	return region;
+    }
+
+    /**
+     * Set the <code>Region</code> value.
+     *
+     * @param region The new Region value.
+     */
+    public final void setRegion(final String region) {
+	this.region = region;
     }
 
     /**

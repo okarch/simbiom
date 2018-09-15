@@ -1,0 +1,56 @@
+## ########################
+## Loads storage groups
+## ########################
+#set( $dtFormat = "dd-MMM-yyyy" )
+#set( $delim = "[|]" )
+#if( !$upload )
+  #stop
+#end
+#set( $mandatoryCols = 2 )
+#set( $lines = $upload.readLines() )
+start processing upload $upload.getUploadid() $upload.getUploaded()
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "Upload ${template.getTemplatename()} initiated by ${user.username}." ) )
+${lines.size()} lines read
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "${lines.size()} lines read." ) )
+#foreach( $line in $lines )
+  #if( $velocityCount > 1 )
+    #set( $columns = $line.split( $delim ) )
+    #if( $columns.size() < $mandatoryCols )
+      #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Columns expected ${mandatoryCols}, read ${columns.size()}." ) )
+    #else
+## ########################
+## ensure mandatory content
+## ########################
+      #set( $projectName = ${columns.get(0)} )
+      #set( $projectName = $strings.trimToEmpty( $projectName ) )
+      #set( $groupName = ${columns.get(1)} )
+      #set( $groupName = $strings.trimToEmpty( $groupName ) )
+      #if( ${projectName.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Storage project is empty. Line ignored." ) )
+      #elseif( ${groupName.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Storage group is missing. Line ignored." ) )
+      #else
+## ########################
+## create storage project
+## ########################
+        #set( $project = $db.findStorageProject( "$projectName" ) )
+        #if( !$project )
+          #set( $project = $db.createStorageProject( "$projectName" ) )
+          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Storage project created: ${project.getProjectid()} ${project.getTitle()}." ) )
+        #end
+## ########################
+## create storage group
+## ########################
+        #if( $project )
+          #if( !$project.findStorageGroup( "$groupName" ) )
+            #set( $group = $project.addStorageGroup( "$groupName" ) )
+            #set( $project = $db.storeStorageProject( $project ) )
+            #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Created storage group $groupName." ) )
+          #else 
+            #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Existing storage group $groupName." ) )
+          #end
+        #end
+      #end
+    #end
+  #end
+#end

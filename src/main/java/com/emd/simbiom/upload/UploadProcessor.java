@@ -35,7 +35,9 @@ import org.apache.velocity.tools.ToolManager;
 import org.apache.velocity.tools.ToolContext;
 import org.apache.velocity.tools.config.XmlFactoryConfiguration;
 
-import com.emd.simbiom.dao.SampleInventoryDAO;
+// import com.emd.simbiom.dao.SampleInventoryDAO;
+import com.emd.simbiom.dao.InventoryFactory;
+import com.emd.simbiom.dao.SampleInventory;
 
 import com.emd.simbiom.model.SampleType;
 import com.emd.simbiom.model.Study;
@@ -114,7 +116,7 @@ public class UploadProcessor {
 	tc.put( "subjects", Subject.class );
 	tc.put( "studies", Study.class );
 
-	tc.put( "db", SampleInventoryDAO.getInstance() );
+	tc.put( "db", InventoryFactory.getInstance().getSampleInventory() );
 	tc.put( "upload", upd );
 	tc.put( "template", templ );
 
