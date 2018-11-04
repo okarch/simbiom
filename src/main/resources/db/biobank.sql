@@ -527,6 +527,7 @@ create table t_storage_billing(
 );
 create index i_bill_pid on t_storage_billing (projectid);
 create index i_bill_po on t_storage_billing (purchase);
+create index i_bill_pcode on t_storage_billing (projectcode);
 
 --
 -- t_storage_invoice
@@ -535,7 +536,7 @@ create index i_bill_po on t_storage_billing (purchase);
 drop table if exists t_storage_invoice;
 create table t_storage_invoice(
   invoiceid      bigint primary key,
-  projectid      bigint,
+  purchase       varchar(30),
   invoice        varchar(30),
   started        timestamp,
   ended          timestamp,
@@ -545,7 +546,7 @@ create table t_storage_invoice(
   numsamples     float,
   amount         float
 );
-create index i_inv_pid on t_storage_invoice (projectid);
+create index i_inv_pid on t_storage_invoice (purchase);
 create index i_inv_inv on t_storage_invoice (invoice);
 create index i_inv_start on t_storage_invoice (started);
 create index i_inv_end on t_storage_invoice (ended);

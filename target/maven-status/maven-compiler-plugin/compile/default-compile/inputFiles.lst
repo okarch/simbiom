@@ -28,6 +28,7 @@
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/Accessions.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Organization.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/SampleProcess.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Invoice.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/SampleSummary.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/CostEstimate.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/rest/SampleInventoryREST.java
@@ -40,6 +41,7 @@
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Sample.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/RestrictionManagement.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Restriction.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Billing.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/feeds/RSSFeedView.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/PropertySet.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/feeds/FeedRestConfiguration.java
@@ -64,8 +66,10 @@
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/TreatmentsDAO.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/SampleType.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/Studies.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/util/PeriodParseException.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/DataAccessObjectProvider.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/StudySample.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/util/Period.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/PropertySetsDAO.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Property.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/BasicDAO.java

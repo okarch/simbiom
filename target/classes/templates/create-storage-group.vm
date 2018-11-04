@@ -33,8 +33,8 @@ ${lines.size()} lines read
 ## ########################
 ## create storage project
 ## ########################
-        #set( $project = $db.findStorageProject( "$projectName" ) )
-        #if( !$project )
+        #set( $projects = $db.findStorageProject( "$projectName" ) )
+        #if( ${projects.size()} <= 0 )
           #set( $project = $db.createStorageProject( "$projectName" ) )
           #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Storage project created: ${project.getProjectid()} ${project.getTitle()}." ) )
         #end

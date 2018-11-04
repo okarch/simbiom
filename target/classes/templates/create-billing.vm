@@ -1,0 +1,85 @@
+## ########################
+## Loads billing information
+## ########################
+#set( $dtFormat = "dd-MMM-yyyy" )
+#set( $delim = "[|]" )
+#if( !$upload )
+  #stop
+#end
+#set( $mandatoryCols = 6 )
+#set( $lines = $upload.readLines() )
+start processing upload $upload.getUploadid() $upload.getUploaded()
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "Upload ${template.getTemplatename()} initiated by ${user.username}." ) )
+${lines.size()} lines read
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "${lines.size()} lines read." ) )
+#foreach( $line in $lines )
+  #if( $velocityCount > 1 )
+    #set( $columns = ${strings.splitPreserveAllTokens( $line, $delim )} )
+    #if( $columns.size() < $mandatoryCols )
+      #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Columns expected ${mandatoryCols}, read ${columns.size()}." ) )
+    #else
+## ########################
+## ensure mandatory content
+## ########################
+      #set( $projectName = ${columns.get(1)} )
+      #set( $projectName = $strings.trimToEmpty( $projectName ) )
+      #set( $projectCode = ${columns.get(2)} )
+      #set( $projectCode = $strings.trimToEmpty( $projectCode ) )
+      #set( $poNum = ${columns.get(3)} )
+      #set( $poNum = $strings.trimToEmpty( $poNum ) )
+      #set( $poVal = ${columns.get(5)} )
+      #set( $poVal = $strings.trimToEmpty( $poVal ) )
+      #set( $poNumVal = $convert.parseNumber( $poVal ) )
+      #if( ${projectName.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Storage project is empty. Line ignored." ) )
+      #elseif( ${poNum.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Storage PO number is missing. Line ignored." ) )
+      #else
+## ########################
+## create/find storage project
+## ########################
+        #set( $projects = $db.findStorageProject( "$projectName" ) )
+        #if( ${projects.size()} <= 0 )
+          #set( $project = $db.createStorageProject( "$projectName" ) )
+          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Storage project created: ${project.getProjectid()} ${project.getTitle()}." ) )
+        #else
+          #set( $project = $projects[0] )  
+        #end
+## ########################
+## create/find billing info
+## ########################
+        #if( $project )
+          #set( $bills = $db.findBilling( $project.projectid, "$poNum" ) )
+          #if( ${bills.size()} <= 0 )
+            #set( $billing = $db.createBilling( $project, "$poNum" ) )
+            #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Storage project billing created: ${project.getProjectid()} ${billing}." ) )
+          #else
+## ########################
+## check if project-code is existing
+## ########################
+            #set( $createBill = true )
+            #foreach( $bill in $bills )
+              #set( $pCode = $strings.trimToEmpty( ${bill.getProjectcode()} ) )
+              #if( $createBill && ${projectCode.equals( $pCode )} )
+                #set( $billing = $bill )
+                #set( $createBill = false )
+              #end
+            #end
+            #if( $createBill )
+              #set( $billing = $db.createBilling( $project, "$poNum" ) )
+              #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Storage project billing created: ${project.getProjectid()} ${billing}." ) )
+            #end
+          #end
+          #if( ${projectCode.length()} > 0 )
+            $!billing.setProjectcode( "$projectCode" )
+          #end
+          #if( $poNumVal && $poNumVal > 0 )
+            $!billing.setTotal( ${poNumVal.floatValue()} )
+          #end
+          #set( $billing = $db.storeBilling( $billing ) )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Storage billing updated: ${project.getProjectid()} ${billing}." ) )
+        #end 
+      #end
+    #end
+  #end
+#end

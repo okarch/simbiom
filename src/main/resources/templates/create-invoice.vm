@@ -1,0 +1,119 @@
+## ########################
+## Loads invoices
+## ########################
+#set( $dtFormat = "dd-MMM-yyyy" )
+#set( $delim = "[|]" )
+#if( !$upload )
+  #stop
+#end
+## ########################
+## Header structure:
+##
+## Invoice Number|PO Number|Period|Invoice Amount|VAT|Total Amount|Currency|number samples|okay|approved|Project name|Comments
+## ########################
+#set( $mandatoryCols = 12 )
+#set( $lines = $upload.readLines() )
+start processing upload $upload.getUploadid() $upload.getUploaded()
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "Upload ${template.getTemplatename()} initiated by ${user.username}." ) )
+${lines.size()} lines read
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "${lines.size()} lines read." ) )
+#foreach( $line in $lines )
+  #if( $velocityCount > 1 )
+    #set( $columns = ${strings.splitPreserveAllTokens( $line, $delim )} )
+    #if( $columns.size() < $mandatoryCols )
+      #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Columns expected ${mandatoryCols}, read ${columns.size()}." ) )
+    #else
+## ########################
+## ensure mandatory content
+## ########################
+      #set( $invoiceRef = ${columns.get(0)} )
+      #set( $invoiceRef = $strings.trimToEmpty( $invoiceRef ) )
+      #if( ${invoiceRef.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Invoice reference is empty. Line ignored." ) )
+      #else
+## ########################
+## create/find invoice
+## ########################
+        #set( $invoice = $db.findInvoice( "$invoiceRef" ) )
+        #if( !$invoice )
+          #set( $invoice = $db.createInvoice( "$invoiceRef" ) )
+          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Invoice created: ${invoice.getInvoiceid()} ${invoice}." ) )
+        #end
+        #if( $invoice )
+## ########################
+## add purchase order
+## ########################
+          #set( $poNum = ${columns.get(1)} )
+          #set( $poNum = $strings.trimToEmpty( $poNum ) )
+          #if( ${poNum.length()} > 0 )
+            $!invoice.setPurchase( "$poNum" )
+          #else
+            #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Purchase order is missing for invoice ${invoice}." ) )
+          #end
+## ########################
+## set invoice period
+## ########################
+          #set( $period = ${columns.get(2)} )
+          #set( $period = $strings.trimToEmpty( $period ) )
+          #if( ${period.length()} > 0 )
+            #set( $periodDates = $invoice.parsePeriod( "$period" ) )
+            #if( ${periodDates.size()} >= 2 )
+              $!invoice.setStarted( $periodDates[0] )
+              $!invoice.setEnded( $periodDates[1] )
+  	    #else
+              #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Invoice period cannot be identified for invoice ${invoice}." ) )
+            #end
+          #else
+            #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Invoice period cannot be identified for invoice ${invoice}." ) )
+          #end
+## ########################
+## set invoice amount
+## ########################
+          #set( $amount = ${columns.get(3)} )
+          #set( $amount = $strings.trimToEmpty( $amount ) )
+          #set( $numAmount = $convert.parseNumber( $amount ) )
+          #if( $numAmount )
+            $!invoice.setAmount( ${numAmount.floatValue()} )
+          #end
+## ########################
+## set invoice currency
+## ########################
+          #set( $curr = ${columns.get(6)} )
+          #set( $curr = $strings.trimToEmpty( $curr ) )
+          #if( ${curr.length()} > 0 )
+            $!invoice.setCurrency( "$curr" )
+          #end
+## ########################
+## set num of samples
+## ########################
+          #set( $amount = ${columns.get(7)} )
+          #set( $amount = $strings.trimToEmpty( $amount ) )
+          #set( $numAmount = $convert.parseNumber( $amount ) )
+          #if( $numAmount )
+            $!invoice.setNumsamples( ${numAmount.floatValue()} )
+          #end
+## ########################
+## set verified / approved
+## ########################
+          #set( $pFlag = ${columns.get(8)} )
+          #set( $pFlag = $strings.trimToEmpty( $pFlag ) )
+          #set( $pNumFlag = $convert.parseNumber( $pFlag ) )
+          #if( $pNumFlag && ( $pNumFlag > 0 ) && ( ${periodDates.size()} >= 2 ) )
+            $!invoice.setVerified( $periodDates[1] )
+          #end
+          #set( $pFlag = ${columns.get(9)} )
+          #set( $pFlag = $strings.trimToEmpty( $pFlag ) )
+          #set( $pNumFlag = $convert.parseNumber( $pFlag ) )
+          #if( $pNumFlag && ( $pNumFlag > 0 ) && ( ${periodDates.size()}>= 2 ) )
+            $!invoice.setApproved( $periodDates[1] )
+          #end
+## ########################
+## store invoice
+## ########################
+          #set( $invoice = $db.storeInvoice( $invoice ) )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Invoice updated: ${invoice.getInvoiceid()} ${invoice}." ) )
+        #end 
+      #end
+    #end
+  #end
+#end

@@ -1,0 +1,71 @@
+## ########################
+## Annotate a study drug
+## ########################
+#set( $dtFormat = "dd-MMM-yyyy" )
+#set( $delim = "[|]" )
+#if( !$upload )
+  #stop
+#end
+#set( $mandatoryCols = 2 )
+#set( $lines = $upload.readLines() )
+start processing upload $upload.getUploadid() $upload.getUploaded()
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "Upload ${template.getTemplatename()} initiated by ${user.username}." ) )
+${lines.size()} lines read
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "${lines.size()} lines read." ) )
+#foreach( $line in $lines )
+  #if( $velocityCount > 1 )
+    #set( $columns = $line.split( $delim ) )
+    #if( $columns.size() < $mandatoryCols )
+      #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Columns expected ${mandatoryCols}, read ${columns.size()}." ) )
+    #else
+## ########################
+## ensure mandatory content
+## ########################
+      #set( $studyName = ${columns.get(0)} )
+      #set( $studyName = $strings.trimToEmpty( $studyName ) )
+      #set( $treatmentName = ${columns.get(1)} )
+      #set( $treatmentName = $strings.trimToEmpty( $treatmentName ) )
+      #if( ${studyName.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Study name is empty. Line ignored." ) )
+      #elseif( ${treatmentName.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Treatment is missing. Line ignored." ) )
+      #else
+## ########################
+## create study if not existing
+## ########################
+        #set( $study = $db.findStudyByName( "$studyName" ) )
+        #if( !$study )
+          #set( $study = $db.createStudy( "$studyName" ) )
+          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Study created: $study ${study.getStudyid()}" ) )
+        #end
+## ########################
+## create treatment if needed
+## ########################
+        #if( $study )
+          #set( $treats = $db.findTreatment( "$treatmentName" ) )
+          #if( $treats.size() <= 0  )
+            #set( $treatment = $db.createTreatment( "Study drug", "$treatmentName" ) )
+            #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Treatment created: ${treatment.getTreatdesc()}." ) )
+          #else
+            #set( $treatment = $treats[0] ) )
+          #end
+## ########################
+## assign treatment to samples
+## ########################
+          #set( $lnCount = $velocityCount )
+          #set( $samples = $db.findSampleByStudy( "$studyName" ) )
+          #foreach( $smp in $samples )
+            #set( $treatEvent = $db.assignTreatment( ${user.getUserid()}, $smp, $treatment ) )
+            #if( !$treatEvent )
+              #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $lnCount, "Cannot assign sample $smp.sampleid to treatment ${treatment.getTreatdesc()}." ) )
+            #else
+              #set( $dummy = $db.addUploadMessage( $upload, "INFO", $lnCount, "Sample: $smp.sampleid assigned treatment ${treatment.getTreatdesc()}." ) )
+            #end
+          #end
+        #else
+          #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Study $studyName cannot be created" ) )
+        #end
+      #end
+    #end
+  #end
+#end

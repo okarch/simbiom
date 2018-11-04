@@ -43,6 +43,8 @@ import com.emd.simbiom.model.SampleType;
 import com.emd.simbiom.model.Study;
 import com.emd.simbiom.model.Subject;
 
+import com.emd.simbiom.util.Period;
+
 /**
  * <code>UploadProcessor</code> assembles the templates in a given directory 
  * and produces an aggregate document.
@@ -115,6 +117,7 @@ public class UploadProcessor {
 	tc.put( "samples", SampleType.class );
 	tc.put( "subjects", Subject.class );
 	tc.put( "studies", Study.class );
+	tc.put( "periods", Period.class );
 
 	tc.put( "db", InventoryFactory.getInstance().getSampleInventory() );
 	tc.put( "upload", upd );

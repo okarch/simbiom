@@ -1,6 +1,7 @@
 com/emd/simbiom/dao/StorageBudgetDAO.class
 com/emd/simbiom/dao/PropertySetsDAO.class
 com/emd/simbiom/model/CostItem.class
+com/emd/simbiom/util/PeriodParseException.class
 com/emd/simbiom/dao/TableUtils$1.class
 com/emd/simbiom/dao/BasicDAO.class
 com/emd/simbiom/model/SampleEvent.class
@@ -24,6 +25,7 @@ com/emd/simbiom/model/Accession.class
 com/emd/simbiom/dao/FullContentSearch.class
 com/emd/simbiom/dao/AccessionsDAO.class
 com/emd/simbiom/model/SampleType.class
+com/emd/simbiom/util/Period.class
 com/emd/simbiom/feeds/FeedRestConfiguration.class
 com/emd/simbiom/dao/PropertySets.class
 com/emd/simbiom/model/CostSample.class
@@ -31,6 +33,7 @@ com/emd/simbiom/rest/SampleInventoryREST.class
 com/emd/simbiom/dao/RestrictionManagementDAO.class
 com/emd/simbiom/model/Restriction.class
 com/emd/simbiom/dao/SampleReportsDAO.class
+com/emd/simbiom/model/Billing.class
 com/emd/simbiom/model/StorageProject.class
 com/emd/simbiom/upload/InventoryUploadTemplate.class
 com/emd/simbiom/dao/DataAccessObject.class
@@ -51,6 +54,7 @@ com/emd/simbiom/dao/TableUtils.class
 com/emd/simbiom/dao/Treatments.class
 com/emd/simbiom/dao/SamplesDAO.class
 com/emd/simbiom/model/Organization.class
+com/emd/simbiom/model/Invoice.class
 com/emd/simbiom/feeds/FeedContent.class
 com/emd/simbiom/dao/SampleProcesses.class
 com/emd/simbiom/model/Country.class

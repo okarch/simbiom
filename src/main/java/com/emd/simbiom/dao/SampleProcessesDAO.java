@@ -38,7 +38,7 @@ public class SampleProcessesDAO extends BasicDAO implements SampleProcesses {
     private static final String STMT_EVENT_BY_ID         = "biobank.event.findById";
     private static final String STMT_EVENT_INSERT        = "biobank.event.insert";
 
-    private static final String STMT_PROCESS_BY_EVENT    = "biobank.project.findByEvent";
+    private static final String STMT_PROCESS_BY_EVENT    = "biobank.process.findByEvent";
     private static final String STMT_PROCESS_BY_VISIT    = "biobank.process.findByVisit";
     private static final String STMT_PROCESS_INSERT      = "biobank.process.insert";
     private static final String STMT_PROCESS_UPDATE      = "biobank.process.update";
@@ -447,6 +447,7 @@ public class SampleProcessesDAO extends BasicDAO implements SampleProcesses {
 	Organization org = getDAO().findCollectionSite( sample.getSampleid() );
 	if( org == null )
 	    org = getDAO().findOrganizationById( -2L );  // generic Merck Serono sponsor
+	log.debug( "Collection site: "+org );
 
 	// check if medication event exists
 
@@ -463,8 +464,10 @@ public class SampleProcessesDAO extends BasicDAO implements SampleProcesses {
 	// Test if the treatment has been assigned already
 
 	SampleProcess[] mProcs = findSampleProcess( medicEvent, sample, treatment.getTreatid() );
-	if( mProcs.length > 0 ) 
+	if( mProcs.length > 0 ) {
+	    log.debug( "Study medication already assigned: "+mProcs[0] );
 	    return mProcs[0];
+	}
 
 	// create sample processing
 
