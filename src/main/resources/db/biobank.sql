@@ -544,7 +544,10 @@ create table t_storage_invoice(
   approved       timestamp,
   currency       varchar(3),
   numsamples     float,
-  amount         float
+  amount         float,
+  rejected       timestamp,
+  reason         varchar(250),
+  created        timestamp
 );
 create index i_inv_pid on t_storage_invoice (purchase);
 create index i_inv_inv on t_storage_invoice (invoice);

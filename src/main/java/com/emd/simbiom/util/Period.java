@@ -74,8 +74,8 @@ public class Period {
      */
     public static Period fromMonth( int month ) {
 	Calendar cal = Calendar.getInstance();
-	cal.add( Calendar.MONTH, month );
 	cal.set( Calendar.DAY_OF_MONTH, 1 );
+	cal.add( Calendar.MONTH, month );
 	Date dtStart = new Date();
 	dtStart.setTime( cal.getTimeInMillis() );
 	int dd = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
@@ -115,12 +115,13 @@ public class Period {
      */
     public static Period fromYear( int years ) {
 	Calendar cal = Calendar.getInstance();
-	cal.add( Calendar.YEAR, years );
 	cal.set( Calendar.DAY_OF_MONTH, 1 );
+	cal.set( Calendar.MONTH, 1 );
+	cal.add( Calendar.YEAR, years );
 	Date dtStart = new Date();
 	dtStart.setTime( cal.getTimeInMillis() );
-	int dd = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
-	cal.set( Calendar.DAY_OF_MONTH, dd );
+	cal.set( Calendar.DAY_OF_MONTH, 31 );
+	cal.set( Calendar.MONTH, 12 );
 	Date dtEnd = new Date();
 	dtEnd.setTime( cal.getTimeInMillis() );
 	return new Period( dtStart, dtEnd );

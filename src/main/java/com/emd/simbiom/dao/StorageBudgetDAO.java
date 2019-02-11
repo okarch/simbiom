@@ -510,7 +510,6 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	if( inv != null )
 	    throw new SQLException( "Invoice "+invRef+" exists already." );
 
-
 	inv = new Invoice();
 	inv.setInvoice( invRef );
 
@@ -525,6 +524,44 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	pstmt.setString( 8, inv.getCurrency() );
 	pstmt.setFloat( 9, inv.getNumsamples() );
 	pstmt.setFloat( 10, inv.getAmount() );
+
+     	pstmt.executeUpdate();
+	popStatement( pstmt );
+
+	log.debug( "Invoice created: "+inv );
+
+	return inv;
+    }
+
+    /**
+     * Creates a new invoice.
+     *
+     * @param invoice the invoice reference.
+     *
+     * @return a newly created <code>Invoice</code>
+     */
+    public Invoice createInvoice( Invoice inv ) 
+	throws SQLException {
+
+	String invRef = Stringx.getDefault(inv.getInvoice(),"").trim();
+	Invoice sInv = findInvoice( invRef );
+	if( sInv != null )
+	    throw new SQLException( "Invoice "+invRef+" exists already." );
+
+	PreparedStatement pstmt = getStatement( STMT_INVOICE_INSERT );
+	pstmt.setLong( 1, inv.getInvoiceid() );
+	pstmt.setString( 2, inv.getPurchase() );
+	pstmt.setString( 3, inv.getInvoice() );
+	pstmt.setTimestamp( 4, inv.getStarted() );
+	pstmt.setTimestamp( 5, inv.getEnded() );
+	pstmt.setTimestamp( 6, inv.getVerified() );
+	pstmt.setTimestamp( 7, inv.getApproved() );
+	pstmt.setString( 8, inv.getCurrency() );
+	pstmt.setFloat( 9, inv.getNumsamples() );
+	pstmt.setFloat( 10, inv.getAmount() );
+	pstmt.setTimestamp( 11, inv.getRejected() );
+	pstmt.setString( 12, inv.getReason() );
+	pstmt.setTimestamp( 13, inv.getCreated() );
 
      	pstmt.executeUpdate();
 	popStatement( pstmt );
@@ -562,8 +599,11 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	pstmt.setString( 7, invoice.getCurrency() );
 	pstmt.setFloat( 8, invoice.getNumsamples() );
 	pstmt.setFloat( 9, invoice.getAmount() );
+	pstmt.setTimestamp( 10, inv.getRejected() );
+	pstmt.setString( 11, inv.getReason() );
+	pstmt.setTimestamp( 12, inv.getCreated() );
 
-	pstmt.setLong( 10, inv.getInvoiceid() );
+	pstmt.setLong( 13, inv.getInvoiceid() );
 
      	pstmt.executeUpdate();
 	popStatement( pstmt );

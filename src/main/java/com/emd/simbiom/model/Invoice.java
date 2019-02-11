@@ -36,11 +36,14 @@ public class Invoice implements Copyable {
     private String invoice;
     private String currency;
     private String title;
+    private String reason;
 
     private Timestamp started;
     private Timestamp ended;
     private Timestamp verified;
     private Timestamp approved;
+    private Timestamp rejected;
+    private Timestamp created;
 
     private float numsamples;
     private float amount;
@@ -64,6 +67,9 @@ public class Invoice implements Copyable {
 	this.setVerified( new Timestamp( 1000L ) );
 	this.setCurrency( "EUR" );
 	this.projects = new ArrayList<String>();
+	this.setCreated( new Timestamp( System.currentTimeMillis() ) );
+	this.setRejected( new Timestamp( 1000L ) );
+	this.setReason( "" );
     }
 
     /**
@@ -312,6 +318,60 @@ public class Invoice implements Copyable {
      */
     public final void setAmount(final float amount) {
 	this.amount = amount;
+    }
+
+    /**
+     * Get the <code>Rejected</code> value.
+     *
+     * @return a <code>Timestamp</code> value
+     */
+    public final Timestamp getRejected() {
+	return rejected;
+    }
+
+    /**
+     * Set the <code>Rejected</code> value.
+     *
+     * @param rejected The new Rejected value.
+     */
+    public final void setRejected(final Timestamp rejected) {
+	this.rejected = rejected;
+    }
+
+    /**
+     * Get the <code>Reason</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getReason() {
+	return reason;
+    }
+
+    /**
+     * Set the <code>Reason</code> value.
+     *
+     * @param reason The new Reason value.
+     */
+    public final void setReason(final String reason) {
+	this.reason = reason;
+    }
+
+    /**
+     * Get the <code>Created</code> value.
+     *
+     * @return a <code>Timestamp</code> value
+     */
+    public final Timestamp getCreated() {
+	return created;
+    }
+
+    /**
+     * Set the <code>Created</code> value.
+     *
+     * @param created The new Created value.
+     */
+    public final void setCreated(final Timestamp created) {
+	this.created = created;
     }
 
     /**

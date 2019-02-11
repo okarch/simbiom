@@ -155,6 +155,15 @@ public interface StorageBudget {
     public Invoice createInvoice( String invoice ) throws SQLException;
 
     /**
+     * Creates a new invoice.
+     *
+     * @param invoice the invoice reference.
+     *
+     * @return a newly created <code>Invoice</code>
+     */
+    public Invoice createInvoice( Invoice inv ) throws SQLException;
+
+    /**
      * Stores / updates the invoice.
      *
      * @param invoice the invoice.
