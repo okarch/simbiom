@@ -93,7 +93,8 @@ public class Period {
      */
     public static Period fromQuarter( int quarters ) {
 	Calendar cal = Calendar.getInstance();
-	int mm = (int)(Math.floor( ((double)cal.get( Calendar.MONTH ) / 4d) )) + 1;
+	// int mm = (int)(Math.floor( (((double)cal.get( Calendar.MONTH )+1) / 4d) )) + 1;
+	int mm = (int)(Math.floor( (((double)cal.get( Calendar.MONTH )+1) / 4d) ));
 	cal.set( Calendar.MONTH, mm );
 	cal.add( Calendar.MONTH, quarters*3 );
 	cal.set( Calendar.DAY_OF_MONTH, 1 );
@@ -116,12 +117,13 @@ public class Period {
     public static Period fromYear( int years ) {
 	Calendar cal = Calendar.getInstance();
 	cal.set( Calendar.DAY_OF_MONTH, 1 );
-	cal.set( Calendar.MONTH, 1 );
-	cal.add( Calendar.YEAR, years );
+	cal.set( Calendar.MONTH, Calendar.JANUARY );
+	// cal.getTime();
+	cal.roll( Calendar.YEAR, years );
 	Date dtStart = new Date();
 	dtStart.setTime( cal.getTimeInMillis() );
 	cal.set( Calendar.DAY_OF_MONTH, 31 );
-	cal.set( Calendar.MONTH, 12 );
+	cal.set( Calendar.MONTH, Calendar.DECEMBER );
 	Date dtEnd = new Date();
 	dtEnd.setTime( cal.getTimeInMillis() );
 	return new Period( dtStart, dtEnd );
@@ -250,11 +252,11 @@ public class Period {
 	Date dtStart = new Date();
 	Date dtEnd = new Date();
 	if( patternIndex == 0 ) {
-	    cal.set( Calendar.MONTH, 1 );
+	    cal.set( Calendar.MONTH, Calendar.JANUARY );
 
 	    dtStart.setTime( cal.getTimeInMillis() );
 
-	    cal.set( Calendar.MONTH, 12 );
+	    cal.set( Calendar.MONTH, Calendar.DECEMBER );
 	    cal.set( Calendar.DAY_OF_MONTH, 31 );
 	    cal.set( Calendar.HOUR_OF_DAY, 23 );
 	    cal.set( Calendar.MINUTE, 59 );
@@ -282,6 +284,8 @@ public class Period {
 
 	    dtEnd.setTime( cal.getTimeInMillis() );
 	}
+
+	log.debug( "Start date: "+dtStart+" end date: "+dtEnd );
 
 	return new Period( dtStart, dtEnd );
     }

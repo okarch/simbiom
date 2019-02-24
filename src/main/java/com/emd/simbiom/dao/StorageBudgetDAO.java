@@ -43,6 +43,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
     private static final String STMT_BILL_UPDATE             = "biobank.billing.update";
 
     private static final String STMT_INVOICE_BY_ID           = "biobank.invoice.findById";
+    private static final String STMT_INVOICE_BY_IDRAW        = "biobank.invoice.findByIdBasic";
     private static final String STMT_INVOICE_BY_REF          = "biobank.invoice.findByInvoice";
     private static final String STMT_INVOICE_BY_PERIOD_ASC   = "biobank.invoice.findByPeriodAsc";
     private static final String STMT_INVOICE_BY_PERIOD_DESC  = "biobank.invoice.findByPeriodDesc";
@@ -356,6 +357,8 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	PreparedStatement pstmt = getStatement( STMT_INVOICE_BY_ID );
      	pstmt.setLong( 1, invId );
 
+	// log.debug( "Find invoice by id "+invId );
+
      	ResultSet res = pstmt.executeQuery();
      	List<Invoice> fl = new ArrayList<Invoice>();
      	Iterator it = TableUtils.toObjects( res, new Invoice() );
@@ -371,9 +374,21 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
      	res.close();
 	popStatement( pstmt );
 
-	if( fl.size() <= 0 )
-	    return null;
-	return fl.get( 0 );
+	// log.debug( "Find invoice by id "+invId+" matches "+fl.size()+" entries" );
+
+	if( fl.size() > 0 )
+	    return fl.get( 0 );
+
+	pstmt = getStatement( STMT_INVOICE_BY_IDRAW );
+     	pstmt.setLong( 1, invId );
+     	res = pstmt.executeQuery();
+     	Invoice inv = null;
+     	if( res.next() ) 
+     	    inv = (Invoice)TableUtils.toObject( res, new Invoice() );
+     	res.close();
+	popStatement( pstmt );
+	
+	return inv;
     }
 
     /**
@@ -524,6 +539,9 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	pstmt.setString( 8, inv.getCurrency() );
 	pstmt.setFloat( 9, inv.getNumsamples() );
 	pstmt.setFloat( 10, inv.getAmount() );
+	pstmt.setTimestamp( 11, inv.getRejected() );
+	pstmt.setString( 12, inv.getReason() );
+	pstmt.setTimestamp( 13, inv.getCreated() );
 
      	pstmt.executeUpdate();
 	popStatement( pstmt );
@@ -578,16 +596,21 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
      * @return the stored invoice.
      */
     public Invoice storeInvoice( Invoice invoice ) throws SQLException {
+	// log.debug( "Storing invoice: "+invoice );
 
 	Invoice inv = findInvoiceById( invoice.getInvoiceid() );
 	if( inv == null )
 	    throw new SQLException( "Invoice "+invoice+" not found." );
 
+	// log.debug( "Invoice retrieved: "+inv );
+
 	if( !invoice.getInvoice().equals(inv.getInvoice()) ) {
-	    Invoice invRef = findInvoice( inv.getInvoice().trim() );
+	    log.debug( "Invoice reference changed from "+inv+" to "+invoice );
+	    Invoice invRef = findInvoice( invoice.getInvoice().trim() );
 	    if( invRef != null )
 		throw new SQLException( "Invoice "+invRef+" exists already." );
 	}
+	// log.debug( "Invoice reference is valid: "+inv );
 
 	PreparedStatement pstmt = getStatement( STMT_INVOICE_UPDATE );
 	pstmt.setString( 1, invoice.getPurchase() );
@@ -599,11 +622,10 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	pstmt.setString( 7, invoice.getCurrency() );
 	pstmt.setFloat( 8, invoice.getNumsamples() );
 	pstmt.setFloat( 9, invoice.getAmount() );
-	pstmt.setTimestamp( 10, inv.getRejected() );
-	pstmt.setString( 11, inv.getReason() );
-	pstmt.setTimestamp( 12, inv.getCreated() );
-
-	pstmt.setLong( 13, inv.getInvoiceid() );
+	pstmt.setTimestamp( 10, invoice.getRejected() );
+	pstmt.setString( 11, invoice.getReason() );
+	pstmt.setTimestamp( 12, invoice.getCreated() );
+	pstmt.setLong( 13, invoice.getInvoiceid() );
 
      	pstmt.executeUpdate();
 	popStatement( pstmt );
