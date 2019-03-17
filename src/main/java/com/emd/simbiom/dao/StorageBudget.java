@@ -124,6 +124,14 @@ public interface StorageBudget {
     public Invoice findInvoice( String invRef ) throws SQLException;
 
     /**
+     * Returns the invoice including the given term.
+     *
+     * @param invTerm the term to be searched in an invoice.
+     * @return an (potentially empty) array of matching invoices.
+     */
+    public Invoice[] findInvoiceByTerm( String invTerm ) throws SQLException;
+
+    /**
      * Returns the invoice within a given period. Valid period specifications include:
      * Q1/2018, 02/2017, 07.03.2018-22.04.2018 (as according to locale), -3M, -2Y
      *

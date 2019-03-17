@@ -25,6 +25,7 @@ public class StorageProject implements Copyable {
     private long projectid;
     private Timestamp created;
     private String title;
+
     private List<StorageGroup> groups;
 
     public StorageProject() {
@@ -111,6 +112,19 @@ public class StorageProject implements Copyable {
 	sg.setProjectid( getProjectid() );
 	this.groups.add( sg );
 	return sg;
+    }
+
+    /**
+     * Set the <code>StorageGroups</code> value.
+     *
+     * @param storageGroups The new StorageGroups value.
+     */
+    public void setStorageGroups( StorageGroup[] storageGroups) {
+	groups.clear();
+	for( int i = 0; i < storageGroups.length; i++ ) {
+	    storageGroups[i].setProjectid( getProjectid() );
+	    this.groups.add( storageGroups[i] );
+	}
     }
 
     /**

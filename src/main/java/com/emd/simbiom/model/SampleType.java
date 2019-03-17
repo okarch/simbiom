@@ -45,7 +45,8 @@ public class SampleType implements Copyable {
      */
     public static SampleType getInstance( String sType ) {
 	SampleType st = new SampleType();
-	String stName = Stringx.getDefault(sType,"").trim().toLowerCase();
+	// String stName = Stringx.getDefault(sType,"").trim().toLowerCase();
+	String stName = Stringx.getDefault(sType,"").trim();
 	st.setTypeid( DataHasher.hash( stName.getBytes() ) );
 	st.setTypename( stName );
 	return st;

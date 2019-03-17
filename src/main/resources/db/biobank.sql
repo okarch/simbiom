@@ -44,25 +44,30 @@ create table t_sample_lookup(
 ); 
 create index i_stl_typ on t_sample_lookup (typename);
 
-insert into t_sample_lookup values ( 'ffpe', 'tissue' );
-insert into t_sample_lookup values ( 'stained', 'tissue' );
-insert into t_sample_lookup values ( 'unstained', 'tissue' );
-insert into t_sample_lookup values ( 'slide', 'tissue' );
-insert into t_sample_lookup values ( 'slides', 'tissue' );
-insert into t_sample_lookup values ( 'block', 'tissue' );
-insert into t_sample_lookup values ( 'blocks', 'tissue' );
-insert into t_sample_lookup values ( 'biopsy', 'tissue' );
-insert into t_sample_lookup values ( 'biopsies', 'tissue' );
-insert into t_sample_lookup values ( 'blood', 'blood' );
-insert into t_sample_lookup values ( 'whole blood', 'blood' );
 insert into t_sample_lookup values ( 'wbc', 'white blood cells' );
-insert into t_sample_lookup values ( 'plasma', 'plasma' );
-insert into t_sample_lookup values ( 'tissue', 'tissue' );
-insert into t_sample_lookup values ( 'serum', 'serum' );
-insert into t_sample_lookup values ( 'urine', 'urine' );
 insert into t_sample_lookup values ( 'edta', 'plasma' );
-insert into t_sample_lookup values ( 'dna', 'dna' );
+
+insert into t_sample_lookup values ( 'dna', 'DNA' );
+insert into t_sample_lookup values ( 'btdna', 'DNA' );
 insert into t_sample_lookup values ( 'rna', 'rna' );
+insert into t_sample_lookup values ( 'slide', 'FFPE Tissue Slide' );
+insert into t_sample_lookup values ( 'slides', 'FFPE Tissue Slide' );
+insert into t_sample_lookup values ( 'stained', 'FFPE Tissue Slide' );
+insert into t_sample_lookup values ( 'unstained', 'FFPE Tissue Slide' );
+insert into t_sample_lookup values ( 'block', 'FFPE Tissue Block' );
+insert into t_sample_lookup values ( 'blocks', 'FFPE Tissue Block' );
+insert into t_sample_lookup values ( 'biopsy', 'Biopsy' );
+insert into t_sample_lookup values ( 'biopsies', 'Biopsy' );
+insert into t_sample_lookup values ( 'whole blood', 'Whole Blood' );
+insert into t_sample_lookup values ( 'blood', 'Whole Blood' );
+insert into t_sample_lookup values ( 'plasma', 'Plasma' );
+insert into t_sample_lookup values ( 'serum', 'Serum' );
+insert into t_sample_lookup values ( 'urine', 'Urine' );
+insert into t_sample_lookup values ( 'cell', 'Cells' );
+insert into t_sample_lookup values ( 'circulating markers backup', 'Plasma' );
+insert into t_sample_lookup values ( 'molecular markers', 'Plasma' );
+insert into t_sample_lookup values ( 'molecular markers backup', 'Plasma' );
+insert into t_sample_lookup values ( 'pk samples', 'Serum' );
 
 
 --

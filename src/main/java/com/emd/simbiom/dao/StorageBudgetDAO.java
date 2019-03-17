@@ -6,8 +6,10 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -57,6 +59,13 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 
     private static final String STMT_GROUP_DELETE        = "biobank.group.deleteAll";
     private static final String STMT_GROUP_INSERT        = "biobank.group.insert";
+
+    private static final String[] STMT_INVOICE_BY_TERM = new String[] { 
+	"biobank.invoice.findByTerm1",
+	"biobank.invoice.findByTerm2",
+	"biobank.invoice.findByTerm3",
+	"biobank.invoice.findByTerm4"
+    };
 
     public static final String[] entityNames = new String[] {
         "billing",
@@ -419,6 +428,42 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	if( fl.size() <= 0 )
 	    return null;
 	return fl.get( 0 );
+    }
+
+    /**
+     * Returns the invoice including the given term.
+     *
+     * @param invTerm the term to be searched in an invoice.
+     * @return an (potentially empty) array of matching invoices.
+     */
+    public Invoice[] findInvoiceByTerm( String invTerm ) throws SQLException {
+	String sTerm = Stringx.getDefault( invTerm, "" ).trim().toLowerCase()+"%";
+	if( sTerm.length() > 1 )
+	    sTerm = "%"+sTerm;
+
+     	Set<Invoice> fl = new HashSet<Invoice>();
+	for( int i = 0; i < STMT_INVOICE_BY_TERM.length; i++ ) {
+	    PreparedStatement pstmt = getStatement( STMT_INVOICE_BY_TERM[i] );
+	    pstmt.setString( 1, sTerm );
+
+	    ResultSet res = pstmt.executeQuery();
+	    Iterator it = TableUtils.toObjects( res, new Invoice() );
+	    Invoice lastInv = null;
+	    while( it.hasNext() ) {
+		Invoice inv = (Invoice)it.next();
+		if( (lastInv == null) || (lastInv.getInvoiceid() != inv.getInvoiceid()) ) {
+		    lastInv = inv;
+		    if( !fl.contains( inv ) )
+			fl.add( inv );
+		}
+		lastInv.addProject( inv.getTitle() );
+	    }
+	    res.close();
+	    popStatement( pstmt );
+	}
+
+     	Invoice[] facs = new Invoice[ fl.size() ];
+     	return (Invoice[])fl.toArray( facs );
     }
 
     /**

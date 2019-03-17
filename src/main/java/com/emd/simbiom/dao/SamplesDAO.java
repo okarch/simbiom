@@ -5,6 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -100,16 +101,40 @@ public class SamplesDAO extends BasicDAO implements Samples {
 	String normName = Stringx.getDefault( sampleType, "" ).trim(). toLowerCase();
 	if( normName.length() <= 0 )
 	    return findSampleTypeByNameAll( "unknown" );
-	String[] tokens = CharSetUtils.squeeze(StringUtils.replaceChars( normName, "_:.=,/();-+?!#*%1234567890", "           " ), " " ).trim().split( " " );
+
+	String cleaned = CharSetUtils.squeeze(StringUtils.replaceChars( normName, "_:.=,/();-+?!#*%1234567890", "           " ), " " ).trim();
+	if( cleaned.length() <= 0 )
+	    return findSampleTypeByNameAll( "unknown" );
 
      	List<SampleType> sTypes = new ArrayList<SampleType>();
+	SampleType[] directMatches = findSampleTypeByNameAll( cleaned );
+	if( directMatches.length > 0 ) {
+	    log.debug( "Matching \""+cleaned+"\" directly: "+directMatches.length+" matches" );
+	    sTypes.addAll( Arrays.asList(directMatches) );
+	}
+
+	String[] tokens = cleaned.split( " " );
 
 	PreparedStatement pstmt = getStatement( STMT_STYPE_LOOKUP );
-	for( int i = 0; i < tokens.length; i++ ) {
-	    pstmt.setString( 1, tokens[i] );
-	    ResultSet res = pstmt.executeQuery();
 
-	    Iterator it = TableUtils.toObjects( res, new SampleType() );
+	log.debug( "Matching \""+cleaned+"\" token: "+cleaned );
+	pstmt.setString( 1, cleaned );
+	ResultSet res = pstmt.executeQuery();
+
+	Iterator it = TableUtils.toObjects( res, new SampleType() );
+	while( it.hasNext() ) {		
+	    SampleType st = (SampleType)it.next();
+	    if( !sTypes.contains( st ) )
+		sTypes.add( st );
+	}	       
+	res.close();
+
+	for( int i = 0; i < tokens.length; i++ ) {
+	    log.debug( "Matching \""+cleaned+"\" token: "+tokens[i] );
+	    pstmt.setString( 1, tokens[i] );
+	    res = pstmt.executeQuery();
+
+	    it = TableUtils.toObjects( res, new SampleType() );
 	    while( it.hasNext() ) {		
 		SampleType st = (SampleType)it.next();
 		if( !sTypes.contains( st ) )
