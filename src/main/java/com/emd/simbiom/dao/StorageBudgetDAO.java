@@ -383,7 +383,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
      	res.close();
 	popStatement( pstmt );
 
-	// log.debug( "Find invoice by id "+invId+" matches "+fl.size()+" entries" );
+	log.debug( "Find invoice by id "+invId+" matches "+fl.size()+" entries" );
 
 	if( fl.size() > 0 )
 	    return fl.get( 0 );
@@ -396,6 +396,8 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
      	    inv = (Invoice)TableUtils.toObject( res, new Invoice() );
      	res.close();
 	popStatement( pstmt );
+
+	log.debug( "Find invoice by raw id "+invId+": "+((inv!=null)?"match found":"no match") );
 	
 	return inv;
     }
