@@ -1,5 +1,12 @@
 package com.emd.simbiom.util;
 
+import java.math.BigInteger;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+import com.emd.util.Stringx;
+
 /**
  * <code>DataHasher</code> used to produce 64 bit hash codes.
  *
@@ -43,5 +50,25 @@ public class DataHasher {
 	}
 	return h;
     }
+
+    /**
+     * Calculates a formatted string representing an md5sum checksum.
+     *
+     * @param cont the content for which checksum should be calculated.
+     *
+     * @return a formatted md5sum (or empty string in case of error).
+     */
+    public static String calculateMd5sum( String cont ) {
+	try {
+	    MessageDigest md = MessageDigest.getInstance("MD5");
+	    byte[] md5sum = md.digest(Stringx.getDefault(cont,"").trim().getBytes());
+	    return String.format("%032X", new BigInteger(1, md5sum));
+	}
+	catch( NoSuchAlgorithmException nae ) {
+	    // do nothing
+	}
+	return "";
+    }
+
 }
 

@@ -479,17 +479,23 @@ create index i_prj_title on t_storage_project (title);
 create index i_prj_created on t_storage_project (created);
 
 --
--- t_storage_projectdef
---   the project definition created by the storage provider
+-- t_storage_document
+--   the project documentation related to the storage project
 -- 
-drop table if exists t_storage_projectdef;
-create table t_storage_projectdef(
-  defid          bigint primary key,
+drop table if exists t_storage_document;
+create table t_storage_document(
+  documentid     bigint primary key,
   projectid      bigint,
+  uploaded       timestamp,
   created        timestamp,
-  projectdef     binary
+  documentsize   bigint,
+  mime           varchar(128),
+  docname        varchar(255),
+  md5sum         varchar(32)
 );
-create index i_prjdef_pid on t_storage_projectdef (projectid);
+create index i_sdoc_pid on t_storage_document (projectid);
+create index i_sdoc_upd on t_storage_document (uploaded);
+create index i_sdoc_md5 on t_storage_document (md5sum);
 
 --
 -- t_storage_group
