@@ -2,10 +2,23 @@ package com.emd.simbiom.util;
 
 import java.math.BigInteger;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
+import java.util.zip.DataFormatException;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.Inflater;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import com.emd.util.HexOutputStream;
 import com.emd.util.Stringx;
+
 
 /**
  * <code>DataHasher</code> used to produce 64 bit hash codes.
@@ -69,6 +82,88 @@ public class DataHasher {
 	}
 	return "";
     }
+
+
+    public static String encode( byte[] buf ) {
+ 	Deflater compressor = new Deflater( 9, true );
+	compressor.setInput( buf );
+	compressor.finish();
+
+	byte[] output = new byte[buf.length];
+	int len = compressor.deflate( output );
+	
+	StringBuffer sb = new StringBuffer();
+	for( int i=0; i < len; i++ ) {
+	    int b = output[i];
+	    if( b < 0 ) 
+		b += 256;
+	    String s = Integer.toHexString(b);
+	    if( s.length() == 1 ) 
+		sb.append("0");
+			//System.out.println(s);
+	    sb.append(s);
+	}
+	return sb.toString();
+    }
+
+    /**
+     * Encodes a binary content into hexadecimal text content.
+     *
+     * @param ins input stream.
+     * @param outs output stream.
+     * @return total number of bytes read from the input stream.
+     */
+    public static long encodeTo( InputStream ins, OutputStream outs ) 
+	throws IOException {
+
+ 	Deflater compressor = new Deflater( 9, true );
+
+	DeflaterOutputStream defOut = new DeflaterOutputStream
+	    ( new HexOutputStream(outs), compressor );
+
+	byte[] output = new byte[ 16384 ];
+	int bRead = 0;
+	long nRead = 0L;
+	do {
+	    bRead = ins.read( output );
+	    if( bRead > 0 ) {
+		defOut.write( output, 0, bRead );
+		nRead+=bRead;
+	    }
+	}
+	while( bRead > 0 );
+	defOut.finish();
+	defOut.flush();
+	return nRead;
+    }
+
+    public static byte[] decode( String bs ) throws DataFormatException {
+	byte[] out = new byte[(bs.length()/2)+1];
+	for( int i=0; i < bs.length()/2; i++ ) {
+	    String n = bs.substring(i*2, (i*2)+2);
+	    int ii = Integer.parseInt(n, 16);
+	    byte b = new Integer(ii).byteValue();
+	    out[i] = b;
+	}
+
+	Inflater decompressor = new Inflater( true );
+	decompressor.setInput( out );
+	byte[] result = new byte[512];
+	ByteArrayOutputStream bos = new ByteArrayOutputStream();
+	int len = 0;
+	do {
+	    len = decompressor.inflate( result );
+	    if( len > 0 )
+		bos.write( result, 0, len );
+// 	    System.out.println( "......need input: "+decompressor.needsInput()+
+// 				" -- "+decompressor.getRemaining()+" -- "+
+// 				len );
+	}
+	while( (decompressor.getRemaining() > 0) && (len > 0) );
+	decompressor.end();
+	return bos.toByteArray();
+    }
+
 
 }
 

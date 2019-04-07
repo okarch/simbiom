@@ -1,9 +1,12 @@
 package com.emd.simbiom.dao;
 
+import java.io.File;
+
 import java.sql.SQLException;
 
 import com.emd.simbiom.model.Billing;
 import com.emd.simbiom.model.Invoice;
+import com.emd.simbiom.model.StorageDocument;
 import com.emd.simbiom.model.StorageProject;
 
 import com.emd.simbiom.util.Period;
@@ -178,5 +181,34 @@ public interface StorageBudget {
      * @return the stored invoice.
      */
     public Invoice storeInvoice( Invoice invoice ) throws SQLException;
+
+    /**
+     * Returns the storage document associated with a given project.
+     *
+     * @param projectId a string specifying the invoice period.
+     * @param md5 true if invoices should be ordered by descending dates. 
+     * @return the invoice or null (if not existing).
+     */
+    public StorageDocument[] findDocuments( long projectId, String md5 ) 
+	throws SQLException;
+
+    /**
+     * Returns the document with the given id.
+     *
+     * @param documentId the document id.
+     * @return the document or null (if not existing).
+     */
+    public StorageDocument findDocumentId( long documentId )
+	throws SQLException;
+
+    /**
+     * Stores a document in the database. An existing document will be replaced.
+     *
+     * @param md5 the md5sum.
+     * @param file the file location.
+     * @return a <code>StorageDocument</code> object.
+     */
+    public StorageDocument storeDocument( StorageDocument document, File file )
+	throws SQLException;
 
 }

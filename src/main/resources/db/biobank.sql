@@ -486,15 +486,16 @@ drop table if exists t_storage_document;
 create table t_storage_document(
   documentid     bigint primary key,
   projectid      bigint,
-  uploaded       timestamp,
   created        timestamp,
+  filedate       timestamp,
   documentsize   bigint,
   mime           varchar(128),
-  docname        varchar(255),
+  title          varchar(255),
   md5sum         varchar(32)
 );
 create index i_sdoc_pid on t_storage_document (projectid);
-create index i_sdoc_upd on t_storage_document (uploaded);
+create index i_sdoc_upd on t_storage_document (created);
+create index i_sdoc_tit on t_storage_document (title);
 create index i_sdoc_md5 on t_storage_document (md5sum);
 
 --

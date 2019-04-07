@@ -5,6 +5,7 @@ com/emd/simbiom/util/PeriodParseException.class
 com/emd/simbiom/dao/TableUtils$1.class
 com/emd/simbiom/dao/BasicDAO.class
 com/emd/simbiom/model/SampleEvent.class
+com/emd/simbiom/model/StorageDocument.class
 com/emd/simbiom/dao/UploadManagement.class
 com/emd/simbiom/upload/UploadBatch.class
 com/emd/simbiom/model/StudySample.class
@@ -40,6 +41,7 @@ com/emd/simbiom/dao/DataAccessObject.class
 com/emd/simbiom/dao/TreatmentsDAO.class
 com/emd/simbiom/rest/SampleInventoryController.class
 com/emd/simbiom/model/Property.class
+com/emd/simbiom/model/DocumentContent.class
 com/emd/simbiom/dao/Organizations.class
 com/emd/simbiom/dao/Samples.class
 com/emd/simbiom/model/SampleLookup.class
@@ -72,6 +74,7 @@ com/emd/simbiom/model/PropertySet.class
 com/emd/simbiom/dao/TableUtils$2.class
 com/emd/simbiom/model/Treatment.class
 com/emd/simbiom/model/DetailsSection.class
+com/emd/simbiom/dao/DocumentLoader.class
 com/emd/simbiom/dao/DataAccessCleanerDAO.class
 com/emd/simbiom/dao/CountryLookup.class
 com/emd/simbiom/upload/UploadException.class

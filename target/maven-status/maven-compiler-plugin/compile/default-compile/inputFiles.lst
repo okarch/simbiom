@@ -1,3 +1,4 @@
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/StorageDocument.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/StorageBudgetDAO.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/SampleLookup.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/StorageCost.java
@@ -7,6 +8,7 @@
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/UserLookup.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Trackable.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/SampleDetails.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/DocumentContent.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/feeds/AtomFeedView.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/UploadManagementDAO.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/upload/InventoryUploadTemplate.java
@@ -26,6 +28,7 @@
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/feeds/FeedController.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/OrganizationsDAO.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/Accessions.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/DocumentLoader.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Organization.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/SampleProcess.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Invoice.java

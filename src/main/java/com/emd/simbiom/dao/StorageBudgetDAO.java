@@ -1,5 +1,9 @@
 package com.emd.simbiom.dao;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -11,14 +15,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import java.util.zip.DataFormatException;
+
+import org.apache.commons.io.FileUtils;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.emd.simbiom.model.Billing;
+import com.emd.simbiom.model.DocumentContent;
 import com.emd.simbiom.model.Invoice;
+import com.emd.simbiom.model.StorageDocument;
 import com.emd.simbiom.model.StorageGroup;
 import com.emd.simbiom.model.StorageProject;
 
+import com.emd.simbiom.util.DataHasher;
 import com.emd.simbiom.util.Period;
 import com.emd.simbiom.util.PeriodParseException;
 
@@ -32,7 +43,7 @@ import com.emd.util.Stringx;
  * @author <a href="mailto:okarch@linux">Oliver</a>
  * @version 1.0
  */
-public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
+public class StorageBudgetDAO extends BasicDAO implements StorageBudget, DocumentLoader {
 
     private static Log log = LogFactory.getLog(StorageBudgetDAO.class);
 
@@ -43,6 +54,18 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
     private static final String STMT_BILL_BY_PURCHASEPROJECT = "biobank.billing.findByPurchaseProject";
     private static final String STMT_BILL_INSERT             = "biobank.billing.insert";
     private static final String STMT_BILL_UPDATE             = "biobank.billing.update";
+
+    private static final String STMT_CONTENT_BY_MD5          = "biobank.uploadraw.findMd5";
+    private static final String STMT_CONTENT_DELETE          = "biobank.uploadraw.delete";
+    private static final String STMT_CONTENT_INSERT          = "biobank.uploadraw.insert";
+
+    private static final String STMT_DOCUMENT_BY_DID         = "biobank.document.findId";
+    private static final String STMT_DOCUMENT_BY_MD5         = "biobank.document.findMd5";
+    private static final String STMT_DOCUMENT_BY_PRJMD5      = "biobank.document.findProjectMd5";
+    private static final String STMT_DOCUMENT_BY_PROJECT     = "biobank.document.findProject";
+    private static final String STMT_DOCUMENT_DELETE         = "biobank.document.delete";
+    private static final String STMT_DOCUMENT_INSERT         = "biobank.document.insert";
+    private static final String STMT_DOCUMENT_UPDATE         = "biobank.document.update";
 
     private static final String STMT_INVOICE_BY_ID           = "biobank.invoice.findById";
     private static final String STMT_INVOICE_BY_IDRAW        = "biobank.invoice.findByIdBasic";
@@ -637,10 +660,10 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
     }
 
     /**
-     * Stores / updates the invoice.
+     * Stores / updates documents with the projects.
      *
-     * @param invoice the invoice.
-     * @return the stored invoice.
+     * @param iproj the storage project.
+     * @return the store invoice.
      */
     public Invoice storeInvoice( Invoice invoice ) throws SQLException {
 	// log.debug( "Storing invoice: "+invoice );
@@ -680,5 +703,260 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	log.debug( "Invoice updated: "+invoice );
 	return invoice;
     }    
+
+    /**
+     * Returns the storage document associated with a given project.
+     *
+     * @param projectId a string specifying the invoice period.
+     * @param md5 true if invoices should be ordered by descending dates. 
+     * @return the invoice or null (if not existing).
+     */
+    public StorageDocument[] findDocuments( long projectId, String md5 ) 
+	throws SQLException {
+	
+	log.debug( "Search document: md5="+((md5==null)?"":md5)+" project: "+projectId ); 
+
+	PreparedStatement pstmt = null;
+	if( (projectId != 0L) && (md5 != null) ) {
+	    pstmt = getStatement( STMT_DOCUMENT_BY_PRJMD5 );
+	    pstmt.setLong( 1, projectId );
+	    pstmt.setString( 2, md5 );
+	}
+	else if( projectId != 0L ) {
+	    pstmt = getStatement( STMT_DOCUMENT_BY_PROJECT );
+	    pstmt.setLong( 1, projectId );
+	}
+	else if( md5 != null ) {
+	    pstmt = getStatement( STMT_DOCUMENT_BY_MD5 );
+	    pstmt.setString( 1, md5 );
+	}
+
+     	ResultSet res = pstmt.executeQuery();
+     	List<StorageDocument> fl = new ArrayList<StorageDocument>();
+     	Iterator it = TableUtils.toObjects( res, new StorageDocument() );
+	while( it.hasNext() ) {
+	    StorageDocument doc = (StorageDocument)it.next();
+	    doc.setDocumentLoader( this );
+	    fl.add( doc );
+	}
+	res.close();
+	popStatement( pstmt );
+
+     	StorageDocument[] facs = new StorageDocument[ fl.size() ];
+     	return (StorageDocument[])fl.toArray( facs );	
+    }
+
+    /**
+     * Returns the document with the given id.
+     *
+     * @param documentId the document id.
+     * @return the document or null (if not existing).
+     */
+    public StorageDocument findDocumentId( long documentId )
+	throws SQLException {
+
+	PreparedStatement pstmt = getStatement( STMT_DOCUMENT_BY_DID );
+     	pstmt.setLong( 1, documentId );
+
+     	ResultSet res = pstmt.executeQuery();
+     	StorageDocument doc = null;
+     	if( res.next() ) {
+     	    doc = (StorageDocument)TableUtils.toObject( res, new StorageDocument() );
+	    doc.setDocumentLoader( this );
+	}
+     	res.close();
+	popStatement( pstmt );
+
+	log.debug( "Find document by id "+documentId+": "+((doc!=null)?"match found":"no match") );
+	
+	return doc;
+    }
+
+    /**
+     * Stores a document in the database. An existing document will be replaced.
+     *
+     * @param md5 the md5sum.
+     * @param file the file location.
+     * @return a <code>StorageDocument</code> object.
+     */
+    public StorageDocument storeDocument( StorageDocument document, File file )
+	throws SQLException {
+	
+	StorageDocument[] sDocs = findDocuments( document.getProjectid(), document.getMd5sum() );
+	StorageDocument sDoc = null;
+	if( sDocs.length > 0 ) 
+	    sDoc = sDocs[0];
+	else
+	    sDoc = findDocumentId( document.getDocumentid() );
+
+	PreparedStatement pstmt = null;
+    
+	int nn = 1;
+	if( sDoc != null ) {
+	    document.setDocumentid( sDoc.getDocumentid() );
+	    pstmt = getStatement( STMT_DOCUMENT_UPDATE );
+	    pstmt.setLong( 8, document.getDocumentid() );
+	}
+	else {
+	    pstmt = getStatement( STMT_DOCUMENT_INSERT );
+	    pstmt.setLong( 1, document.getDocumentid() );
+	    nn++;
+	}
+	pstmt.setLong( nn, document.getProjectid() );
+	nn++;
+	pstmt.setTimestamp( nn, document.getCreated() );
+	nn++;
+	pstmt.setTimestamp( nn, document.getFiledate() );
+	nn++;
+	pstmt.setLong( nn, document.getDocumentsize() );
+	nn++;
+	pstmt.setString( nn, document.getMime() );
+	nn++;
+	pstmt.setString( nn, document.getTitle() );
+	nn++;
+	pstmt.setString( nn, document.getMd5sum() );
+	nn++;
+
+     	pstmt.executeUpdate();
+	popStatement( pstmt );
+
+	document.setDocumentLoader( this );
+
+	log.debug( "Storage document saved: "+document );
+
+	// read content fully to memory
+
+	String updContent = null;
+	try {
+	    updContent = FileUtils.readFileToString( file );
+	}
+	catch( IOException ioe ) {
+	    throw new SQLException( ioe );
+	}
+
+	log.debug( "Storage document content "+updContent.length()+" bytes read" );
+	
+	// delete the content (if any)
+
+	pstmt = getStatement( STMT_CONTENT_DELETE );
+	try {
+	    pstmt.setString( 1, document.getMd5sum() );
+	    pstmt.executeUpdate();
+	}
+	catch( SQLException sqe ) {
+	    // ignore
+	}
+	popStatement( pstmt );
+
+	log.debug( "Storage document content deleted: "+document );
+
+	// upload new content
+
+	pstmt = getStatement( STMT_CONTENT_INSERT );
+	pstmt.setString( 1, document.getMd5sum() );
+	pstmt.setString( 2, updContent );
+	pstmt.executeUpdate();
+	popStatement( pstmt );
+
+	log.debug( "Storage document content stored: "+document.getMd5sum() );
+	
+	return document;
+    }
+
+    /**
+     * Writes document content to the given <code>OutputStream</code>.
+     *
+     * @param md5sum the content identifier.
+     * @param mime the mime type (can be null if provided could be used to apply some output encoding)
+     * @param outs the output stream to write content to.
+     *
+     * @return true if content was written, false otherwise.
+     *
+     * @exception IOException is thrown when an error occurs.
+     */
+    public boolean writeContent( String md5sum, String mime, OutputStream outs )
+	throws IOException {
+
+	DocumentContent cont = null;
+	try {
+	    PreparedStatement pstmt = getStatement( STMT_CONTENT_BY_MD5 );
+	    pstmt.setString( 1, md5sum );
+	    ResultSet res = pstmt.executeQuery();
+	    cont = null;
+	    if( res.next() ) 
+		cont = (DocumentContent)TableUtils.toObject( res, new DocumentContent() );
+	    res.close();
+	}
+	catch( SQLException sqe ) {
+	    log.error( sqe );
+	    throw new IOException( sqe );
+	}
+
+	if( cont == null ) {
+	    log.warn( "Content not available: "+md5sum );
+	    return false;
+	}
+	    
+	byte[] buf = null;
+	try {
+	    buf = DataHasher.decode( Stringx.getDefault(cont.getUpload(),"") );
+	}
+	catch( DataFormatException de ) {
+	    log.error( de );
+	    throw new IOException( de );
+	}
+	outs.write( buf );
+	outs.close();
+	buf = null;
+	return true;
+    }
+
+    /**
+     * Reads from the given <code>InputStream</code> and stores the content.
+     *
+     * @param md5sum the content identifier (if null it will be calculated based on the content).
+     * @param mime the mime type (can be null if provided could be used to apply some input encoding)
+     * @param ins the input stream to read from.
+     *
+     * @return the md5sum calculated from the content.
+     *
+     */
+    // public String storeContent( String md5sum, String mime, InputStream ins )
+    // 	throws IOException {
+
+    // 	// String updCont = null;
+    // 	StringWriter sw = new StringWriter();
+    // 	WriterOutputStream outs = new WriterOutputStream( sw );
+    // 	ZipCoder.encodeTo( ins, outs );
+    // 	outs.flush();
+    // 	String updCont = sw.toString();
+    // 	ins.close();
+    // 	outs.close();
+    // 	String md5 = UploadContent.calculateMd5sum( updCont );
+    // 	log.debug( "Coded content length "+String.valueOf(updCont.length())+" md5sum: "+md5 );
+
+    // 	PreparedStatement pstmt = null;
+    // 	try {
+    // 	    pstmt = getStatement( STMT_RAW_DELETE );
+    // 	    pstmt.setString( 1, md5 );
+    // 	    pstmt.executeUpdate();
+    // 	}
+    // 	catch( SQLException sqe ) {
+    // 	    log.warn( "Deleting "+md5+": "+Stringx.getDefault(sqe.getMessage(),"") );
+    // 	}
+
+    // 	try {
+    // 	    pstmt = getStatement( STMT_RAW_INSERT );
+    // 	    pstmt.setString( 1, md5 );
+    // 	    pstmt.setString( 2, updCont );
+    // 	    pstmt.executeUpdate();
+    // 	}
+    // 	catch( SQLException sqe ) {
+    // 	    log.error( sqe );
+    // 	    throw new IOException( sqe );
+    // 	}
+
+    // 	return md5;
+    // }
 
 }
