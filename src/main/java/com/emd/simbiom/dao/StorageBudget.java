@@ -5,6 +5,7 @@ import java.io.File;
 import java.sql.SQLException;
 
 import com.emd.simbiom.model.Billing;
+import com.emd.simbiom.model.DocumentContent;
 import com.emd.simbiom.model.Invoice;
 import com.emd.simbiom.model.StorageDocument;
 import com.emd.simbiom.model.StorageProject;
@@ -199,6 +200,15 @@ public interface StorageBudget {
      * @return the document or null (if not existing).
      */
     public StorageDocument findDocumentId( long documentId )
+	throws SQLException;
+
+    /**
+     * Returns the string content identified by md5sum.
+     * The raw format is zipped binary data which is represented as hex number characters.
+     *
+     * @return the content read from the database.
+     */
+    public DocumentContent findDocumentContent( String md5 )
 	throws SQLException;
 
     /**

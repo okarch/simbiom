@@ -1,0 +1,21 @@
+#!/bin/sh
+
+GZIP=`which gzip`
+MYSQLDUMP=/usr/bin/mysqldump
+MYSQLDUMP_OPT="--opt -ubiobank -pbiobank biobank"
+#DUMPDIR=/scratch/m01061/biobank
+DUMPDIR=.
+
+if [ "$1" != "" ]; then
+    DUMPDIR=$1
+fi
+if [ ! -e $DUMPDIR ]; then
+    mkdir -p $DUMPDIR
+fi
+dtstamp=`date +%Y-%m-%d_%H-%M`
+outsql=$DUMPDIR/biobank_$dtstamp.sql
+$MYSQLDUMP $MYSQLDUMP_OPT >$outsql
+if [ -e $outsql ]; then
+    $GZIP $outsql
+    ls -lhd $outsql.gz
+fi

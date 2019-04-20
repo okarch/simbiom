@@ -864,6 +864,26 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
     }
 
     /**
+     * Returns the string content identified by md5sum.
+     * The raw format is zipped binary data which is represented as hex number characters.
+     *
+     * @return the content read from the database.
+     */
+    public DocumentContent findDocumentContent( String md5 )
+	throws SQLException {
+
+	PreparedStatement pstmt = getStatement( STMT_CONTENT_BY_MD5 );
+	pstmt.setString( 1, md5 );
+	ResultSet res = pstmt.executeQuery();
+	DocumentContent cont = null;
+	if( res.next() ) 
+	    cont = (DocumentContent)TableUtils.toObject( res, new DocumentContent() );
+	res.close();
+	popStatement( pstmt );
+	return cont;
+    }
+
+    /**
      * Writes document content to the given <code>OutputStream</code>.
      *
      * @param md5sum the content identifier.
@@ -886,6 +906,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 	    if( res.next() ) 
 		cont = (DocumentContent)TableUtils.toObject( res, new DocumentContent() );
 	    res.close();
+	    popStatement( pstmt );
 	}
 	catch( SQLException sqe ) {
 	    log.error( sqe );
@@ -906,7 +927,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 	    throw new IOException( de );
 	}
 	outs.write( buf );
-	outs.close();
+	outs.flush();
 	buf = null;
 	return true;
     }
