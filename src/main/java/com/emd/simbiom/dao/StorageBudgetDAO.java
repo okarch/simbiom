@@ -97,6 +97,20 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 	"invoice"
     };
 
+                  // <comboitem label="All" value="All" />
+                  // <comboitem label="Not reviewed" value="Not reviewed" />
+                  // <comboitem label="Checked" value="Checked" />
+                  // <comboitem label="Approved" value="Approved" />
+                  // <comboitem label="Rejected" value="Rejected" />
+
+    private static final String[] STMT_INVOICE_BY_STATUS = new String[] { 
+	"biobank.invoice.findStatus0",
+	"biobank.invoice.findStatus1",
+	"biobank.invoice.findStatus2",
+	"biobank.invoice.findStatus3",
+	"biobank.invoice.findStatus4"
+    };
+
     public StorageBudgetDAO( DatabaseDAO db ) {
 	super( db );
     }
@@ -486,6 +500,36 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 	    res.close();
 	    popStatement( pstmt );
 	}
+
+     	Invoice[] facs = new Invoice[ fl.size() ];
+     	return (Invoice[])fl.toArray( facs );
+    }
+
+    /**
+     * Returns the invoices carrying a certain status.
+     *
+     * @param status the invoice status.
+     * @return an (potentially empty) array of matching invoices.
+     */
+    public Invoice[] findInvoiceByStatus( int status ) throws SQLException {
+	if( status < 0 || status > STMT_INVOICE_BY_STATUS.length  )
+	    throw new SQLException( "Invalid invoice status: "+status );
+
+	PreparedStatement pstmt = getStatement( STMT_INVOICE_BY_STATUS[status] );
+	ResultSet res = pstmt.executeQuery();
+	Iterator it = TableUtils.toObjects( res, new Invoice() );
+     	List<Invoice> fl = new ArrayList<Invoice>();
+	Invoice lastInv = null;
+	while( it.hasNext() ) {
+	    Invoice inv = (Invoice)it.next();
+	    if( (lastInv == null) || (lastInv.getInvoiceid() != inv.getInvoiceid()) ) {
+		lastInv = inv;
+		fl.add( inv );
+	    }
+	    lastInv.addProject( inv.getTitle() );
+	}
+     	res.close();
+	popStatement( pstmt );
 
      	Invoice[] facs = new Invoice[ fl.size() ];
      	return (Invoice[])fl.toArray( facs );

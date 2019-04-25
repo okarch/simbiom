@@ -133,7 +133,17 @@ public interface StorageBudget {
      * @param invTerm the term to be searched in an invoice.
      * @return an (potentially empty) array of matching invoices.
      */
-    public Invoice[] findInvoiceByTerm( String invTerm ) throws SQLException;
+    public Invoice[] findInvoiceByTerm( String invTerm ) 
+	throws SQLException;
+
+    /**
+     * Returns the invoices carrying a certain status.
+     *
+     * @param status the invoice status.
+     * @return an (potentially empty) array of matching invoices.
+     */
+    public Invoice[] findInvoiceByStatus( int status ) 
+	throws SQLException;
 
     /**
      * Returns the invoice within a given period. Valid period specifications include:
