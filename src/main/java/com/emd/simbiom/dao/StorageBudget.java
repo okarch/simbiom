@@ -8,6 +8,7 @@ import com.emd.simbiom.model.Billing;
 import com.emd.simbiom.model.DocumentContent;
 import com.emd.simbiom.model.Invoice;
 import com.emd.simbiom.model.StorageDocument;
+import com.emd.simbiom.model.StorageGroup;
 import com.emd.simbiom.model.StorageProject;
 
 import com.emd.simbiom.util.Period;
@@ -58,6 +59,14 @@ public interface StorageBudget {
      */
     public StorageProject storeStorageProject( StorageProject project ) 
 	throws SQLException;
+
+    /**
+     * Returns the storage group with the given id.
+     *
+     * @param groupId the storage group id.
+     * @return the storage group or null (if not existing).
+     */
+    public StorageGroup findStorageGroupById( long groupId ) throws SQLException;
 
     /**
      * Returns the billing information of a given storage project and / or  purchase order.

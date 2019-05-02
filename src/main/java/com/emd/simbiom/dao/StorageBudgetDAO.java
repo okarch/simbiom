@@ -67,6 +67,10 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
     private static final String STMT_DOCUMENT_INSERT         = "biobank.document.insert";
     private static final String STMT_DOCUMENT_UPDATE         = "biobank.document.update";
 
+    private static final String STMT_GROUP_BY_ID             = "biobank.group.findById";
+    private static final String STMT_GROUP_DELETE            = "biobank.group.deleteAll";
+    private static final String STMT_GROUP_INSERT            = "biobank.group.insert";
+
     private static final String STMT_INVOICE_BY_ID           = "biobank.invoice.findById";
     private static final String STMT_INVOICE_BY_IDRAW        = "biobank.invoice.findByIdBasic";
     private static final String STMT_INVOICE_BY_REF          = "biobank.invoice.findByInvoice";
@@ -80,8 +84,6 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
     private static final String STMT_PROJECT_INSERT      = "biobank.project.insert";
     private static final String STMT_PROJECT_UPDATE      = "biobank.project.update";
 
-    private static final String STMT_GROUP_DELETE        = "biobank.group.deleteAll";
-    private static final String STMT_GROUP_INSERT        = "biobank.group.insert";
 
     private static final String[] STMT_INVOICE_BY_TERM = new String[] { 
 	"biobank.invoice.findByTerm1",
@@ -97,18 +99,12 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 	"invoice"
     };
 
-                  // <comboitem label="All" value="All" />
-                  // <comboitem label="Not reviewed" value="Not reviewed" />
-                  // <comboitem label="Checked" value="Checked" />
-                  // <comboitem label="Approved" value="Approved" />
-                  // <comboitem label="Rejected" value="Rejected" />
-
     private static final String[] STMT_INVOICE_BY_STATUS = new String[] { 
-	"biobank.invoice.findStatus0",
-	"biobank.invoice.findStatus1",
-	"biobank.invoice.findStatus2",
-	"biobank.invoice.findStatus3",
-	"biobank.invoice.findStatus4"
+	"biobank.invoice.findStatus0",    // All
+	"biobank.invoice.findStatus1",    // Not reviewed
+	"biobank.invoice.findStatus2",    // Checked
+	"biobank.invoice.findStatus3",    // Approved
+	"biobank.invoice.findStatus4"     // Rejected
     };
 
     public StorageBudgetDAO( DatabaseDAO db ) {
@@ -251,6 +247,29 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 	log.debug( "Storage project updated: "+project );
 
 	return project;
+    }
+
+    /**
+     * Returns the storage group with the given id.
+     *
+     * @param groupId the storage group id.
+     * @return the storage group or null (if not existing).
+     */
+    public StorageGroup findStorageGroupById( long groupId ) throws SQLException {
+	PreparedStatement pstmt = getStatement( STMT_GROUP_BY_ID );
+     	pstmt.setLong( 1, groupId );
+
+     	ResultSet res = pstmt.executeQuery();
+
+     	// List<CostItem> fl = new ArrayList<CostItem>();
+	StorageGroup sGrp = null;
+	if( res.next() ) 
+	    sGrp = (StorageGroup)TableUtils.toObject( res, new StorageGroup() );
+
+	res.close();
+	popStatement( pstmt );
+
+	return sGrp;
     }
 
     /**
