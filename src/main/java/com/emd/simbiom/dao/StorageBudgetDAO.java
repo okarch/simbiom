@@ -162,7 +162,8 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 	    if( project == null )
 		project = (StorageProject)TableUtils.toObject( res, new StorageProject() );
 	    StorageGroup sGrp = (StorageGroup)TableUtils.toObject( res, new StorageGroup() );
-	    project.addStorageGroup( sGrp );
+	    if( sGrp.getGroupname() != null )
+		project.addStorageGroup( sGrp );
 	}	       
 	res.close();
 	popStatement( pstmt );
@@ -195,7 +196,8 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 	    }
 	    StorageGroup sGrp = (StorageGroup)TableUtils.toObject( res, new StorageGroup() );
 	    // log.debug( "Adding storage group: "+sGrp );
-	    lastProject.addStorageGroup( sGrp );
+	    if( sGrp.getGroupname() != null )
+		lastProject.addStorageGroup( sGrp );
 	}	       
 	res.close();
 	popStatement( pstmt );

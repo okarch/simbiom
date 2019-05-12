@@ -115,6 +115,17 @@ public class StorageProject implements Copyable {
     }
 
     /**
+     * Removes a storage group.
+     *
+     * @param the storage group.
+     * @return the removed group.
+     */
+    public StorageGroup removeStorageGroup( StorageGroup sg ) {
+	this.groups.remove( sg );
+	return sg;
+    }
+
+    /**
      * Set the <code>StorageGroups</code> value.
      *
      * @param storageGroups The new StorageGroups value.
