@@ -49,6 +49,7 @@ public class Invoice implements Copyable {
     private float amount;
 
     private List<String> projects;
+    private List<String> projectCodes;
 
     private static Log log = LogFactory.getLog(Invoice.class);
 
@@ -56,6 +57,10 @@ public class Invoice implements Copyable {
         "yyyy/MM",
 	"MM/yyyy"
     };
+    /**
+     * Describe projectcode here.
+     */
+    private String projectcode;
 
     public Invoice() {
 	this.setInvoiceid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
@@ -67,6 +72,7 @@ public class Invoice implements Copyable {
 	this.setVerified( new Timestamp( 1000L ) );
 	this.setCurrency( "EUR" );
 	this.projects = new ArrayList<String>();
+	this.projectCodes = new ArrayList<String>();
 	this.setCreated( new Timestamp( System.currentTimeMillis() ) );
 	this.setRejected( new Timestamp( 1000L ) );
 	this.setReason( "" );
@@ -398,7 +404,7 @@ public class Invoice implements Copyable {
      * @param title The new Title value.
      */
     public final void addProject(final String title) {
-	if( title != null )
+	if( (title != null) && (!this.projects.contains(title)) )
 	    this.projects.add( title );
     }
 
@@ -410,6 +416,44 @@ public class Invoice implements Copyable {
     public String[] getProjects() {
 	String[] pTitles = new String[ projects.size() ];
 	return (String[])this.projects.toArray( pTitles );
+    }
+
+    /**
+     * Get the <code>Projectcode</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getProjectcode() {
+	return projectcode;
+    }
+
+    /**
+     * Set the <code>Projectcode</code> value.
+     *
+     * @param projectcode The new Projectcode value.
+     */
+    public final void setProjectcode(final String projectcode) {
+	this.projectcode = projectcode;
+    }
+
+    /**
+     * Adds a project code to the list.
+     *
+     * @param title The new Title value.
+     */
+    public final void addProjectcode(final String title) {
+	if( (title != null) && (!projectCodes.contains(title)) )
+	    this.projectCodes.add( title );
+    }
+
+    /**
+     * Returns the list of project titles.
+     *
+     * @return a (potentially empty) array of project titles.
+     */
+    public String[] getProjectcodes() {
+	String[] pTitles = new String[ projectCodes.size() ];
+	return (String[])this.projectCodes.toArray( pTitles );
     }
 
     /**

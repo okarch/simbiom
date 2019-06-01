@@ -437,6 +437,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 		fl.add( inv );
 	    }
 	    lastInv.addProject( inv.getTitle() );
+	    lastInv.addProjectcode( inv.getProjectcode() );
 	}
      	res.close();
 	popStatement( pstmt );
@@ -481,6 +482,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 		fl.add( inv );
 	    }
 	    lastInv.addProject( inv.getTitle() );
+	    lastInv.addProjectcode( inv.getProjectcode() );
 	}
      	res.close();
 	popStatement( pstmt );
@@ -517,6 +519,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 			fl.add( inv );
 		}
 		lastInv.addProject( inv.getTitle() );
+		lastInv.addProjectcode( inv.getProjectcode() );
 	    }
 	    res.close();
 	    popStatement( pstmt );
@@ -548,6 +551,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 		fl.add( inv );
 	    }
 	    lastInv.addProject( inv.getTitle() );
+	    lastInv.addProjectcode( inv.getProjectcode() );
 	}
      	res.close();
 	popStatement( pstmt );
@@ -596,6 +600,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 		fl.add( inv );
 	    }
 	    lastInv.addProject( inv.getTitle() );
+	    lastInv.addProjectcode( inv.getProjectcode() );
 	}
 	res.close();
 	popStatement( pstmt );
@@ -637,6 +642,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
 		fl.add( inv );
 	    }
 	    lastInv.addProject( inv.getTitle() );
+	    lastInv.addProjectcode( inv.getProjectcode() );
 	}
 	res.close();
 	popStatement( pstmt );
