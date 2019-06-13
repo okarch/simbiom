@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 
 import java.util.ArrayList;
+import java.util.Date;
 // import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -289,6 +290,82 @@ public class SampleProcessesDAO extends BasicDAO implements SampleProcesses {
 		log.error( cne );
 	    }
 	    collEvent.initProcessed( dtFormat, collDate );
+	}
+
+	collEvent.updateTrackid();
+
+	if( (prevEvent != null) && (prevEvent.equals( collEvent )) ) {
+	    log.warn( "Nothing to be updated. Collection event exists already" );
+	    return collEvent;
+	}
+
+     	PreparedStatement pstmt = null;
+     	int nn = 4;
+     	if( prevEvent == null ) {
+     	    pstmt = getStatement( STMT_PROCESS_INSERT );
+     	    pstmt.setString( 1, collEvent.getSampleid() );
+     	    pstmt.setLong( 2, collEvent.getTreatid() );
+     	    pstmt.setLong( 3, collEvent.getTimeid() );
+	    log.debug( "Creating new collection event: "+collEvent+" sample: "+sample );
+     	}
+     	else {
+     	    pstmt = getStatement( STMT_PROCESS_UPDATE );
+     	    pstmt.setString( 4, collEvent.getSampleid() );
+     	    pstmt.setLong( 5, collEvent.getTreatid() );
+     	    pstmt.setLong( 6, collEvent.getTimeid() );
+     	    nn = 1;
+	    log.debug( "Updating existing collection event: "+collEvent+" sample: "+sample );
+     	}
+	
+     	pstmt.setInt( nn, collEvent.getStep() );
+     	nn++;
+
+     	pstmt.setTimestamp( nn, collEvent.getProcessed() );
+     	nn++;
+
+	pstmt.setLong( nn, collEvent.getTrackid() );
+     	nn++;
+
+     	pstmt.executeUpdate();
+	popStatement( pstmt );
+
+	trackChange( prevEvent, collEvent, userId, "Sample collection event "+((prevEvent==null)?"assigned":"updated"), null );
+	return collEvent;
+    }
+
+    /**
+     * Assign a sample to a colletion event.
+     *
+     * @param userId the user id.
+     * @param event the sample event.
+     * @param sample the sample.
+     * @param collDate the collection date.
+     *
+     * @return the <code>SampleEvent</code> object.
+     */
+    public SampleProcess assignCollectionEvent( long userId, 
+						SampleEvent event, 
+						Sample sample,
+						Date collDate )
+	throws SQLException {
+
+	SampleProcess collEvent = findCollectionProcess( event, sample );
+	SampleProcess prevEvent = null;
+
+	if( collEvent == null ) {
+	    log.debug( "Creating collection event on "+collDate );
+	    collEvent = SampleProcess.fromCollectionDate( collDate );
+	    collEvent.setSampleid( sample.getSampleid() );
+	    collEvent.setTimeid( event.getTimeid() );
+	}
+	else {
+	    try {
+		prevEvent = (SampleProcess)collEvent.copy();
+	    }
+	    catch( CloneNotSupportedException cne ) {
+		log.error( cne );
+	    }
+	    collEvent.setProcessed( new Timestamp( collDate.getTime() ) );
 	}
 
 	collEvent.updateTrackid();

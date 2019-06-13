@@ -10,14 +10,18 @@ import java.security.NoSuchAlgorithmException;
 
 import java.sql.Timestamp;
 
-import java.util.Collections;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+
+import java.text.ParseException;
 
 import org.apache.commons.io.IOUtils;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.DateUtils;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -51,6 +55,18 @@ public class UploadBatch implements Copyable {
     private List<String> uploadHeader;
 
     private static Log log = LogFactory.getLog(UploadBatch.class);
+
+    private static final String[] DATE_PATTERNS = new String[] {
+	"ddMMMyyyy",
+	"yyyyMMMdd",
+	"dd-MMM-yyyy",
+	"yyyy-MMM-dd",
+	"dd-MM-yyyy",
+	"yyyy-MM-dd",
+        "dd.MM.yyyy",
+        "MM/dd/yyyy",
+        "MMM dd,yyyy"
+    };
 
     public UploadBatch() {
 	this.uploadid = DataHasher.hash( UUID.randomUUID().toString().getBytes() );
@@ -350,6 +366,28 @@ public class UploadBatch implements Copyable {
     }
 
     /**
+     * Formats the site id.
+     *
+     * @param site the site id.
+     * @return a site id
+     */
+    public String formatSiteName( String site ) {
+	if( site == null )
+	    return "999";
+	String sName = site.trim();
+	if( sName.length() <= 0 )
+	    return "999";
+	if( sName.length() < 3 ) {
+	    String sNum = Stringx.trimZero( sName );
+	    int num = Stringx.toInt( sNum, -1 );
+	    if( num < 0 )
+		return sName;
+	    sName = StringUtils.leftPad( sName, 3, "0" );
+	}
+	return sName;
+    }
+
+    /**
      * Extracts the site id.
      *
      * @param subject the subject id.
@@ -357,10 +395,10 @@ public class UploadBatch implements Copyable {
      */
     public String formatSite( String subject ) {
 	if( subject == null )
-	    return "000";
+	    return "999";
 	String sName = subject.trim().replace(" ","").replace( "-", "" );
 	if( sName.length() <= 3 )
-	    return "000";
+	    return "999";
 	sName = StringUtils.leftPad( sName, 7, "0" );
 	return sName.substring( 0, 3 );
     }
@@ -377,5 +415,66 @@ public class UploadBatch implements Copyable {
 	String sName = subject.trim().replace(" ","").replace( "-", "" );
 	return StringUtils.leftPad( sName, 7, "0" );
     }
+
+    /**
+     * Formats the subject id. 
+     *
+     * @param site the site.
+     * @param subject the subject id (potentially incl. site).
+     * @return a subject id w/o site.
+     */
+    public String formatSubjectName( String site, String subject ) {
+	String subj = Stringx.getDefault( subject, "" ).trim();
+	String sit = Stringx.getDefault( site, "" ).trim();
+	if( subj.length() <= 0 )
+	    return "9999";
+
+	if( subj.length() <= sit.length() ) {
+	    String sNum = Stringx.trimZero( subj );
+	    int num = Stringx.toInt( sNum, -1 );
+	    if( num > 0 )
+		return StringUtils.leftPad( subj, 4, "0" );
+	}
+
+	String[] toks = StringUtils.split( subj, " -.:+#/,;" );
+	if( toks.length > 1 ) {
+	    if( sit.endsWith( toks[0] ) ) {
+		subj = StringUtils.substringAfter( subj, toks[0] );
+		if( subj.length() > 1 )
+		    subj = subj.substring(1);
+	    }
+	}
+	else if( ((subj.length() - sit.length()) >= 4) && (subj.startsWith( sit )) ) {
+	    subj = StringUtils.substringAfter( subj, sit );
+	}
+	    
+	String sNum = Stringx.trimZero( subj );
+	int num = Stringx.toInt( sNum, -1 );
+	if( num < 0 )
+	    return subj;
+
+	return StringUtils.leftPad( subj, 4, "0" );
+    }
+
+    /**
+     * Parses the date.Formats the subject id. 
+     *
+     * @param site the site.
+     * @param subject the subject id (potentially incl. site).
+     * @return a subject id w/o site.
+     */
+    public Date parseDate( String dtString ) {
+	Date date = null;
+	try {
+	    date = DateUtils.parseDate( dtString, DATE_PATTERNS );
+	}
+	catch( ParseException pex ) {
+	    date = null;
+	}
+	if( date == null )
+	    date = new Date( 1L );
+	return date;
+    }
+
 
 }

@@ -1,5 +1,7 @@
 package com.emd.simbiom.dao;
 
+import java.util.Date;
+
 import java.sql.SQLException;
 
 import com.emd.simbiom.model.Organization;
@@ -117,6 +119,22 @@ public interface SampleProcesses {
 						Sample sample,
 						String collDate,
 						String dtFormat ) 
+	throws SQLException;
+
+    /**
+     * Assign a sample to a colletion event.
+     *
+     * @param userId the user id.
+     * @param event the sample event.
+     * @param sample the sample.
+     * @param collDate the collection date.
+     *
+     * @return the <code>SampleEvent</code> object.
+     */
+    public SampleProcess assignCollectionEvent( long userId, 
+						SampleEvent event, 
+						Sample sample,
+						Date collDate )
 	throws SQLException;
 
     /**

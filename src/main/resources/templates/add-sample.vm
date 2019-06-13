@@ -1,0 +1,209 @@
+## #################################################
+## Template to add samples stored at Biostorage EU
+## #################################################
+#set( $delim = "[|]" )
+#if( !$upload )
+  #stop
+#end
+## #################################################
+## Header structure:
+##
+## Sample Identifier|Shipper requisition nr|Unique Vial ID|Site nr|Subject nr|Collection date|Time of sampling|Visit|Sample Category|Sample type|Shipper Comments|Sample expiry date|Query nr|Registration comment|Comments|Parent sample OID|Aliqout nr|Sample volume|Sample Volume Unit|Nucleic Acid concentration|A 260/280|A 260/230|Yield|RIN|Lab comments|Molecule|Additive (Tube type)|Study protocol|Date Sample Processed|Volume of Parent sample|Volume Unit of Parent sample|Patient Group|Second subject ID / Double Code|Sample Condition (BIMS) /Storage Condition (Search Tool)|Patient Choice on Sample Use|Total cell number after separation (x106)|Viable cell number after separation (x106)|% of viability after separation|Number of PBMC/vial (x106)|Protein conc.|Tumor content|Area of tumor tissue |Amount of necrotic tissue|Collection method|Tumor type|Site/Organ of collection|Tumor location|Staining type|Fixation time |Type of fixative|Slide thickness|Cold ischemia time|Warm ischemia time|Tumor grade|Shipping lab
+## #################################################
+#set( $mandatoryCols = 12 )
+#set( $lines = $upload.readLines() )
+start processing upload $upload.getUploadid() $upload.getUploaded()
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "User $user.username initiated upload. ${lines.size()} lines read." ) )
+${lines.size()} lines read
+## #################################################
+## Determine some column indices
+## #################################################
+#set( $idxLab = $upload.getColumnIndex( "Shipping lab" ) )
+#if( $idxLab <= 0 )
+  #set( $dummy = $db.addUploadMessage( $upload, "WARN", 1, "Cannot determine column index of Shipping lab." ) )
+#end
+## #################################################
+## Get a reference to Biostorage EU organization
+## #################################################
+#set( $storageLab = $db.findOrganizationByName( "Biostorage EU" ) )
+#if( !$storageLab )
+  #set( $storageLab = $db.createOrganization( "Biostorage EU", "central laboratory" ) )
+  #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "An organization has been created: ${storageLab.getOrgname()}." ) )
+#end
+## #################################################
+## Iterate through lines
+## #################################################
+#foreach( $line in $lines )
+  #set( $columns = $line.split( $delim ) )
+## #################################################
+## check if sample oid is populated
+## #################################################
+  #set( $storageId = "" )
+  #if( $columns.size() > 0 )
+    #set( $storageId = ${columns.get(0)} )
+    #set( $storageId = $strings.trimToEmpty( $storageId ) )
+  #end
+## #################################################
+## Skip if too few columns
+## #################################################
+  #if( $columns.size() < $mandatoryCols )
+    #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Columns expected ${mandatoryCols}, read ${columns.size()}." ) )
+## #################################################
+## Skip if sample id is not populated
+## #################################################
+  #elseif( $storageId.length() <= 0 ) 
+    #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Cannot determine sample identifier." ) )
+  #else
+## #################################################
+## check if sample type exists
+## #################################################
+    #set( $sampleType = ${columns.get(9)} )
+    #set( $sampleType = $strings.trimToEmpty( $sampleType ) )
+    #set( $sType = $db.findSampleTypeByName( "$sampleType" ) )
+    #if( !$sType )
+      #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Sample type is unknown. Line ignored." ) )
+    #else
+## #################################################
+## create study if needed
+## #################################################
+      #if( $columns.size() < 28 )
+        #set( $studyName = "" )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Too few columns (${columns.size()}) to read study name." ) )
+      #else
+        #set( $studyName = ${columns.get(27)} )
+        #set( $studyName = $strings.trimToEmpty( $studyName ) )
+      #end
+      #if( $studyName.length() <= 0 )
+        #set( $studyName = "Unknown" )
+      #end
+      #set( $study = $db.findStudyByName( "$studyName" ) )
+      #if( !$study )
+        #set( $study = $db.createStudy( "$studyName" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Study created: ${study.getStudyname()}." ) )
+      #end
+## #################################################
+## create laboratory entry if needed
+## #################################################
+      #if( $idxLab >= 0 )
+        #set( $labName = ${columns.get($idxLab)} )
+        #set( $labName = $strings.trimToEmpty( $labName ) )
+      #else
+        #set( $labName = "" )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Shipping lab is unknown." ) )
+      #end
+      #if( $labName.length() <= 0 )
+        #set( $studyName = "Unknown origin" )
+      #end
+      #set( $lab = $db.findOrganizationByName( "$labName" ) )
+      #if( !$lab )
+        #set( $lab = $db.createOrganization( "$labName", "central laboratory" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "An organization has been created: ${lab.getOrgname()}." ) )
+      #end
+## #################################################
+## create normalized site entry if needed
+## #################################################
+      #set( $siteName = ${columns.get(3)} )
+      #set( $siteName = $strings.trimToEmpty( $siteName ) )
+      #set( $siteName = $upload.formatSiteName( $siteName ) )
+      #set( $site = $db.findOrganizationByName( "${study.getStudyname()} study site $siteName" ) )
+      #if( !$site )
+        #set( $site = $db.createOrganization( "${study.getStudyname()} study site $siteName", "clinical site" ) )
+        $!site.setSiteid( "$siteName" )
+        #set( $site = $db.storeOrganization( $site ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "An organization has been created: ${site.getOrgname()}." ) )
+      #end
+## #################################################
+## create normalized subject if required
+## #################################################
+      #set( $subjectName = ${columns.get(4)} )
+      #set( $subjectName = $strings.trimToEmpty( $ubjectName ) )
+      #set( $subjectName = $upload.formatSubjectName( ${site.getSiteid()}, $ubjectName ) )
+      #set( $subjectId = "${site.getSiteid()}-$ubjectName" ) )
+      #set( $subject = $db.findSubjectByName( $study, "$subjectId" ) )
+      #if( !$subject )
+        #set( $subject = $db.createSubject( $study, "$subjectId" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Subject has been created: ${subject.getSubjectid()}." ) )
+      #end
+## #################################################
+## check if Biostorage accession exists and
+## create a sample if not existing, yet
+## #################################################
+      #set( $accession = $db.findAccession( $study, $storageLab, "$storageId" ) )
+      #if( $accession.size() <= 0 )
+        #set( $sample = $db.createSample( ${user.getUserid()},  "$sampleType" ) )
+        #set( $newAcc = $db.createAccession( ${user.getUserid()}, $storageLab, $sample, "$storageId", "primary" ) )
+## #################################################
+## assign sample to study
+## #################################################
+        #set( $studySample = $db.assignStudySample( ${user.getUserid()}, $study, $sample ) )\\n
+        #set( $sampleName = "$storageId $sample" )
+        $!sample.setSamplename( "$sampleName" )
+sample created: $sample
+        #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample created: $sample." ) )
+      #elseif( $accession.size() <= 1 )
+        #set( $sample = $db.findSampleById( "${accession.get(0).getSampleid()}" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Existing sample: $sample." ) )
+      #else
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Multiple accessions found: $accession.size(). Cannot create sample record." ) )
+      #end
+## #################################################
+## assign donor
+## #################################################
+      #set( $donors = $db.findSampleDonor( $sample ) )
+      #if( $donors.size() <= 0 )
+        #set( $donor = $db.assignDonor( ${user.getUserid()}, $subject, $sample ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample assigned to subject $subject." ) )
+      #end
+## #################################################
+## create visit information
+## #################################################
+      #set( $sampleVisit = ${columns.get(7)} )
+      #set( $sampleVisit = $strings.trimToEmpty( $sampleVisit ) )
+      #if( $sampleVisit.length() <= 0 )
+        #set( $sampleVisit = "Unscheduled" )
+      #end	
+      #set( $events = $db.findSiteEvent( $site, "$sampleVisit" ) )
+      #set( $event = $db.findEventById( 0 ) )
+      #if( $events.size() <= 0 )
+        #set( $event = $db.createSiteEvent( $site, "$sampleVisit" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Created sample event $event at site $site." ) )
+      #else
+        #set( $event = ${events.get(0)} )
+      #end
+      #if( $events.size() > 1 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Ambiguous sample event $sampleVisit." ) )
+      #else
+## #################################################
+## assign sample to site event
+## #################################################
+        #set( $collect = $db.findCollectionProcess( $event, $sample ) )
+        #set( $collExist = "" )
+        #set( $logLevel = "INFO" )
+        #if( $collect )
+          #set( $logLevel = "WARN" )
+          #set( $collExist = "already" )
+        #end
+## #################################################
+## assign collection event
+## #################################################
+        #set( $collDate = $upload.parseDate( ${columns.get(7)} ) )
+        #set( $collect = $db.assignCollectionEvent( ${user.getUserid()}, $event, $sample, $collDate ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Collection $collect assigned." ) )
+      #end
+## #################################################
+## add additional accessions
+## #################################################
+      #set( $reqAcc = ${columns.get(1)} )
+      #set( $reqAcc = $strings.trimToEmpty( $reqAcc ) )
+      #if( $reqAcc.length() > 0 )
+        #set( $accession = $db.findAccession( $study, $lab, "$reqAcc" ) )
+        #if( $accession.size() <= 0 )
+          #set( $accType = "secondary" )
+          #set( $newAcc = $db.createAccession( ${user.getUserid()}, $lab, $sample, "$reqAcc", "secondary" ) )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Accession ${newAcc} assigned to ${sample.getSampleid()}." ) )
+        #end
+      #end
+    #end
+  #end
+#end
+

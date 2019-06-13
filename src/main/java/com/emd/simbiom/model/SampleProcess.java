@@ -137,6 +137,27 @@ public class SampleProcess extends AbstractTrackable implements Copyable {
     }
 
     /**
+     * Creates a sample collection process event.
+     *
+     * @param dt the date.
+     *
+     * @return an initialized process object.
+     */
+    public static SampleProcess fromCollectionDate( Date dt ) {
+	// SampleProcess sp = new SampleProcess();
+	// SimpleDateFormat formatter = new SimpleDateFormat( dtFormat, Locale.US );
+	// ParsePosition pp = new ParsePosition( 0 );
+	// Date date = formatter.parse( dtString, pp );
+	// if( pp.getErrorIndex() < 0 )
+	//     sp.setProcessed( new Timestamp(date.getTime()) );
+	SampleProcess sp = new SampleProcess();
+	sp.setTreatid( TREATID_COLLECTION );
+	if( dt != null )
+	    sp.setProcessed( new Timestamp(dt.getTime()) );
+	return sp;
+    }
+
+    /**
      * Creates a sample shipment process event.
      *
      * @param dtFormat the date format.
