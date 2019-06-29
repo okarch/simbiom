@@ -130,9 +130,9 @@ public class Sample extends AbstractTrackable implements Comparable, Copyable {
      *
      * @return a <code>long</code> value
      */
-    public final long getTrackid() {
-	return super.getTrackid()+stamp;
-    }
+    // public final long getTrackid() {
+    // 	return super.getTrackid()+stamp;
+    // }
 
     /**
      * Get the Created value.
@@ -166,6 +166,35 @@ public class Sample extends AbstractTrackable implements Comparable, Copyable {
      */
     public final void setStudyid(final long studyid) {
 	this.studyid = studyid;
+    }
+
+    /**
+     * Updates the trackid to reflect the current content.
+     *
+     * @return the updated trackid
+     */
+    public long updateTrackid() {
+	long contId = contentId();
+	setTrackid( contId );
+	long stmp = getStamp();
+	stmp++;
+	setStamp( stmp );
+	return contId;
+    }
+
+    protected long contentId() {
+	StringBuilder stb = new StringBuilder();
+	stb.append( Stringx.getDefault( getSampleid(), "" ) );
+	stb.append( Stringx.getDefault(getSamplename(), "" ) );
+	stb.append( String.valueOf( getTypeid() ) );
+	stb.append( String.valueOf( getStamp() ) );
+	stb.append( String.valueOf( getCreated().getTime() ) );
+
+	// calculate hash from properties
+
+	stb.append( String.valueOf(getPropertyContentId() ) );
+
+	return DataHasher.hash( stb.toString().getBytes() );
     }
 
     /**

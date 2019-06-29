@@ -3,6 +3,7 @@ package com.emd.simbiom.dao;
 import java.sql.SQLException;
 
 import com.emd.simbiom.model.Property;
+import com.emd.simbiom.model.PropertyHolder;
 import com.emd.simbiom.model.PropertySet;
 import com.emd.simbiom.model.PropertyType;
 
@@ -170,5 +171,21 @@ public interface PropertySets {
      * @return the <code>PropertyType</code> object.
      */
     public PropertyType createType( String typeName ) throws SQLException;
+
+    /**
+     * Store a <code>PropertyHolder</code> object.
+     *
+     * @param userId the user id.
+     * @param pHolderId the property holder object id.
+     * @param pHolder the property holder.
+     * @param insertHolder the insert statement for new properties.
+     *
+     * @return the updated property set.
+     */
+    public PropertyHolder storePropertyHolder( long userId, 
+					       String pHolderId, 
+					       PropertyHolder pHolder, 
+					       String insertHolder ) 
+	throws SQLException;
 
 }

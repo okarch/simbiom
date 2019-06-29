@@ -15,7 +15,7 @@ import com.emd.util.ClassUtils;
  * @author <a href="mailto:okarch@cuba.site">Oliver Karch</a>
  * @version 1.0 
  */
-public class AbstractTrackable implements Trackable {
+public class AbstractTrackable extends AbstractPropertyHolder implements Trackable {
     private long trackid;
     private String item;
 
@@ -25,6 +25,7 @@ public class AbstractTrackable implements Trackable {
     private static final String ROW_END       = "</row>";
 
     protected AbstractTrackable( String iType ) {
+	super();
 	this.item = iType;
     }
 

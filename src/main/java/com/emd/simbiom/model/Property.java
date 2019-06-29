@@ -50,7 +50,8 @@ public class Property extends AbstractTrackable implements Comparable, Copyable 
   
     public Property() {
 	super( ITEM_TYPE );
-	this.propertyid = DataHasher.hash( UUID.randomUUID().toString().getBytes() );
+	// this.propertyid = DataHasher.hash( UUID.randomUUID().toString().getBytes() );
+	this.setPropertyid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
 	this.setTrackid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
 	this.display = true;
 	this.valuePresent = false;
@@ -61,18 +62,18 @@ public class Property extends AbstractTrackable implements Comparable, Copyable 
      *
      * @return a <code>long</code> value
      */
-    public final long getPropertyid() {
-	return propertyid;
-    }
+    // public final long getPropertyid() {
+    // 	return propertyid;
+    // }
 
     /**
      * Set the <code>Propertyid</code> value.
      *
      * @param propertyid The new Propertyid value.
      */
-    public final void setPropertyid(final long propertyid) {
-	this.propertyid = propertyid;
-    }
+    // public final void setPropertyid(final long propertyid) {
+    // 	this.propertyid = propertyid;
+    // }
 
     /**
      * Get the <code>Propertyname</code> value.

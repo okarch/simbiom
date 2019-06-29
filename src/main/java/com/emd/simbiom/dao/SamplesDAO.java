@@ -17,6 +17,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.emd.simbiom.model.Age;
+import com.emd.simbiom.model.Property;
 import com.emd.simbiom.model.Sample;
 import com.emd.simbiom.model.SampleType;
 
@@ -40,6 +41,10 @@ public class SamplesDAO extends BasicDAO implements Samples {
     private static final String STMT_SAMPLE_BY_STUDY     = "biobank.sample.findByStudy";
     private static final String STMT_SAMPLE_BY_TYPE      = "biobank.sample.findByType";
     private static final String STMT_SAMPLE_LAST_CREATED = "biobank.sample.findByLastCreated";
+    private static final String STMT_SAMPLE_UPDATE       = "biobank.sample.update";
+
+    private static final String STMT_SAMPLEPROP_INSERT   = "biobank.sampleproperty.insert";
+    private static final String STMT_SAMPLEPROP_LOAD     = "biobank.sample.loadProperties";
 
     private static final String STMT_STYPE_BY_ID         = "biobank.sampleType.findById";
     private static final String STMT_STYPE_BY_NAME       = "biobank.sampleType.findByName";
@@ -391,5 +396,94 @@ public class SamplesDAO extends BasicDAO implements Samples {
      	Sample[] facs = new Sample[ fl.size() ];
      	return (Sample[])fl.toArray( facs );
     }
+
+    /**
+     * Loads the sample related properties.
+     *
+     * @param sample the sample.
+     * @param merge merges the existing properties into the loaded properties if set to true.
+     *
+     * @return the annotated sample.
+     */
+    public Sample loadSampleProperties( Sample sample, boolean merge )
+	throws SQLException {
+
+ 	PreparedStatement pstmt = getStatement( STMT_SAMPLEPROP_LOAD );
+	pstmt.setString( 1, sample.getSampleid() );
+
+     	ResultSet res = pstmt.executeQuery();
+
+	Iterator it = TableUtils.toObjects( res, new Sample() );
+	Sample pSample = null;
+	while( it.hasNext() ) {
+	    Sample samp = (Sample)it.next();
+	    if( pSample == null )
+		pSample = samp;
+	    Property prop = getDAO().findPropertyById( samp.getPropertyid() );
+	    if( prop != null )
+	 	pSample.addProperty( prop );
+	}
+	res.close();
+	popStatement( pstmt );
+
+	Property[] props = pSample.getProperties();
+	for( int i = 0; i < props.length; i++ ) {
+	    boolean doAdd = true;
+	    if( merge ) 
+		doAdd = (sample.getProperty( props[i].toString() ) == null);
+	    if( doAdd )
+		sample.addProperty( props[i] );
+	}
+	
+	return sample;
+    }
+
+    /**
+     * Updates a sample.
+     *
+     * @param userId the user id.
+     * @param sample the subject.
+     *
+     * @return the updated sample.
+     */
+    public Sample storeSample( long userId, Sample sample ) throws SQLException {
+	if( sample == null )
+	    throw new SQLException( "Sample is invalid" );
+	    
+	Sample prevSample = findSampleById( sample.getSampleid() );
+	if( prevSample == null )
+	    throw new SQLException( "Cannot find sample id: "+sample.getSampleid() );
+
+	// load existing properties and merge
+
+	loadSampleProperties( sample, true );
+
+	log.debug( "Update sample id "+sample.getSampleid()+": "+sample );
+
+	PreparedStatement pstmt = getStatement( STMT_SAMPLE_UPDATE );
+
+	pstmt.setString( 6, sample.getSampleid() );
+
+	pstmt.setString( 1, sample.getSamplename() );
+	pstmt.setLong( 2, sample.getTypeid() );
+
+	sample.updateTrackid();
+
+	pstmt.setLong( 3, sample.getStamp() );
+	pstmt.setLong( 4, sample.getTrackid() );
+	pstmt.setTimestamp( 5, sample.getCreated() );
+
+	pstmt.executeUpdate();
+	popStatement( pstmt );
+
+	log.debug( "Sample updated: "+sample+" ("+sample.getSampleid()+")" );
+
+	sample = (Sample)getDAO().storePropertyHolder( userId, sample.getSampleid(), sample, STMT_SAMPLEPROP_INSERT );
+
+	trackChange( prevSample, sample, userId, "Sample "+((prevSample==null)?"created":"updated"), null );
+	
+	return sample;
+    }
+
 
 }

@@ -34,12 +34,12 @@ import com.emd.util.Stringx;
  * @author <a href="mailto:okarch@cuba.site">Oliver Karch</a>
  * @version 1.0
  */
-public class Subject implements Copyable {
+public class Subject extends AbstractPropertyHolder implements Copyable {
     private long donorid;
     private long studyid;
     private long taxon;
     private long orgid;
-    private long propertyid;
+    // private long propertyid;
 
     private int age;
 
@@ -51,8 +51,8 @@ public class Subject implements Copyable {
 
     private Timestamp enrolled;
 
-    private List<Property> properties;
-    private Map<String,Object> attributes;
+    // private List<Property> properties;
+    // private Map<String,Object> attributes;
 
     private static Log log = LogFactory.getLog(Subject.class);
 
@@ -69,13 +69,14 @@ public class Subject implements Copyable {
      * Creates a new <code>Subject</code> instance.
      */
     public Subject() {
+	super();
 	this.donorid = DataHasher.hash( UUID.randomUUID().toString().getBytes() );
 	this.subjectid = "";
 	this.species = "human";
 	this.taxon = 9606L;
 	this.enrolled = new Timestamp( 1000L );
-	this.properties = new ArrayList<Property>();
-	this.attributes = new HashMap<String,Object>();
+	// this.properties = new ArrayList<Property>();
+	// this.attributes = new HashMap<String,Object>();
     }
 
     /**
@@ -385,18 +386,18 @@ public class Subject implements Copyable {
      *
      * @return a <code>long</code> value
      */
-    public final long getPropertyid() {
-	return propertyid;
-    }
+    // public final long getPropertyid() {
+    // 	return propertyid;
+    // }
 
     /**
      * Set the <code>Propertyid</code> value.
      *
      * @param propertyid The new Propertyid value.
      */
-    public final void setPropertyid(final long propertyid) {
-	this.propertyid = propertyid;
-    }
+    // public final void setPropertyid(final long propertyid) {
+    // 	this.propertyid = propertyid;
+    // }
 
     /**
      * Adds a property to the property set.
@@ -404,27 +405,27 @@ public class Subject implements Copyable {
      * @param idx the index of the property to be set.
      * @param prop the <code>Property</code> object to be set.
      */
-    public void setAttribute( String attrName, Object value ) {
-	this.attributes.put( attrName, value );
-    }
+    // public void setAttribute( String attrName, Object value ) {
+    // 	this.attributes.put( attrName, value );
+    // }
 
     /**
      * Returns the set of attributes.
      *
      * @return a Set of <code>Map.Entry</code> objects.
      */
-    public Set<Map.Entry<String,Object>> getAttributes() {
-	return this.attributes.entrySet();
-    }
+    // public Set<Map.Entry<String,Object>> getAttributes() {
+    // 	return this.attributes.entrySet();
+    // }
 
     /**
      * Adds a property to the property set.
      *
      * @param prop the <code>Property</code> object to be added.
      */
-    public void addProperty( Property prop ) {
-	this.properties.add( prop );
-    }
+    // public void addProperty( Property prop ) {
+    // 	this.properties.add( prop );
+    // }
 
     /**
      * Adds a property to the property set.
@@ -432,32 +433,32 @@ public class Subject implements Copyable {
      * @param idx the index of the property to be set.
      * @param prop the <code>Property</code> object to be set.
      */
-    public void setProperty( int idx, Property prop ) {
-	this.properties.set( idx, prop );
-    }
+    // public void setProperty( int idx, Property prop ) {
+    // 	this.properties.set( idx, prop );
+    // }
 
     /**
      * Returns a property by name.
      *
      * @return the <code>Property</code> found (or null otherwise).
      */
-    public Property getProperty( String name ) {
-	for( Property p : this.properties ) {
-	    if( p.toString().equals( name ) )
-		return p;
-	}
-	return null;
-    }
+    // public Property getProperty( String name ) {
+    // 	for( Property p : this.properties ) {
+    // 	    if( p.toString().equals( name ) )
+    // 		return p;
+    // 	}
+    // 	return null;
+    // }
 
     /**
      * Returns an array of properties which are members of this <code>PropertySet</code> object.
      *
      * @return an (potentially empty) array of <code>Property</code> objects
      */
-    public Property[] getProperties() {
-	Property[] cols = new Property[properties.size()];
-	return (Property[])properties.toArray( cols );
-    }
+    // public Property[] getProperties() {
+    // 	Property[] cols = new Property[properties.size()];
+    // 	return (Property[])properties.toArray( cols );
+    // }
 
     /**
      * Returns the list of properties matching the given name (label and / or name).
@@ -466,24 +467,24 @@ public class Subject implements Copyable {
      * 
      * @return an (potentially empty) array of <code>Property</code> objects representing the item.
      */
-    public Property[] getProperties( final String item ) {
-	Property[] props = getProperties();
-	List<Property> pnList = new ArrayList<Property>();
-	for( int i = 0; i < props.length; i++ ) {
-	    if( props[i].toString().equals( item ) ) 
-		pnList.add( props[i] );
-	}
-	Property[] cols = new Property[pnList.size()];
-	return (Property[])pnList.toArray( cols );
-    }	
+    // public Property[] getProperties( final String item ) {
+    // 	Property[] props = getProperties();
+    // 	List<Property> pnList = new ArrayList<Property>();
+    // 	for( int i = 0; i < props.length; i++ ) {
+    // 	    if( props[i].toString().equals( item ) ) 
+    // 		pnList.add( props[i] );
+    // 	}
+    // 	Property[] cols = new Property[pnList.size()];
+    // 	return (Property[])pnList.toArray( cols );
+    // }	
 
     /**
      * Empties the list of properties.
      *
      */
-    public void clearProperties() {
-	properties.clear();
-    }
+    // public void clearProperties() {
+    // 	properties.clear();
+    // }
 
     /**
      * Creates and returns a copy of this object. 

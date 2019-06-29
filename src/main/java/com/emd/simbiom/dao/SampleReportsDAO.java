@@ -291,6 +291,17 @@ public class SampleReportsDAO extends BasicDAO implements SampleReports {
 	}
 	log.debug( "Prepared section studies: "+studies.length+" studies" );
 
+	getDAO().loadSampleProperties( sample, true );
+	section = sDetails.createSection( "sample-properties" );
+	Property[] sampProps = sample.getProperties();
+	maxlen = String.valueOf( sampProps.length ).length();
+	for( int i = 0; i < sampProps.length; i++ ) {
+	    String attrPath = concatPath( "sample-attr", i, maxlen );
+	    Property prop = getDAO().retrievePropertyValue( sampProps[i] );
+	    section.addProperties( attrPath, prop );
+	}
+	log.debug( "Prepared section sample attributes: "+sampProps.length+" sample attributes" );
+
 	Restriction[] restrictions = getDAO().findSampleRestriction( sample );
 	section = sDetails.createSection( "compliance" );
 	maxlen = String.valueOf( restrictions.length ).length();

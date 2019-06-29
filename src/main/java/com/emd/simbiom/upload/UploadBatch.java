@@ -284,10 +284,18 @@ public class UploadBatch implements Copyable {
 	uploadHeader.add( colName );
     }
 
-    private void parseHeader( String hLine ) {
-	String[] headerLines = hLine.split( "[|,]" );
+    private void parseHeader( String hLine, String delim ) {
+	String[] headerLines = null;
+	if( delim != null )
+	    headerLines = hLine.split( delim );
+	else
+	    headerLines = hLine.split( "[|,]" );
 	for( int i = 0; i < headerLines.length; i++ ) 
 	    addUploadColumn( headerLines[i] );
+    }
+
+    private void parseHeader( String hLine ) {
+	parseHeader( hLine, null );
     }
 
     /**
@@ -332,14 +340,14 @@ public class UploadBatch implements Copyable {
      *
      * @return a list of lines.
      */
-    public List<String> readLines() {
+    public List<String> readLines( String delim ) {
 	String cont = Stringx.getDefault(getUpload(),"");
 	StringReader sr = new StringReader( cont );
 	uploadHeader.clear();
 	try {
 	    List<String> lines = IOUtils.readLines( sr );
 	    if( lines.size() > 0 )
-		parseHeader( lines.get(0) );
+		parseHeader( lines.get(0), delim );
 	    return lines;
 	}
 	catch( IOException ioe ) {
@@ -347,6 +355,15 @@ public class UploadBatch implements Copyable {
 	}
 	List<String> el = Collections.emptyList();
 	return el;
+    }
+
+    /**
+     * Reads through the lines of the upload content and returns a list of lines.
+     *
+     * @return a list of lines.
+     */
+    public List<String> readLines() {
+	return readLines( null );
     }
 
     /**
@@ -472,7 +489,7 @@ public class UploadBatch implements Copyable {
 	    date = null;
 	}
 	if( date == null )
-	    date = new Date( 1L );
+	    date = new Date( 1000L );
 	return date;
     }
 

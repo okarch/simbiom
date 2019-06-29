@@ -118,4 +118,25 @@ public interface Samples {
      */
     public Sample[] findSampleByDonorProperty( String propertyName, String propertyVal ) throws SQLException;
 
+    /**
+     * Loads the sample related properties.
+     *
+     * @param sample the sample.
+     * @param merge merges the existing properties into the loaded properties if set to true.
+     *
+     * @return the annotated sample.
+     */
+    public Sample loadSampleProperties( Sample sample, boolean merge )
+	throws SQLException;
+
+    /**
+     * Updates a sample.
+     *
+     * @param userId the user id.
+     * @param sample the subject.
+     *
+     * @return the updated sample.
+     */
+    public Sample storeSample( long userId, Sample sample ) throws SQLException;
+
 }

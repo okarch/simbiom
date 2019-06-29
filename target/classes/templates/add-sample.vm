@@ -11,7 +11,7 @@
 ## Sample Identifier|Shipper requisition nr|Unique Vial ID|Site nr|Subject nr|Collection date|Time of sampling|Visit|Sample Category|Sample type|Shipper Comments|Sample expiry date|Query nr|Registration comment|Comments|Parent sample OID|Aliqout nr|Sample volume|Sample Volume Unit|Nucleic Acid concentration|A 260/280|A 260/230|Yield|RIN|Lab comments|Molecule|Additive (Tube type)|Study protocol|Date Sample Processed|Volume of Parent sample|Volume Unit of Parent sample|Patient Group|Second subject ID / Double Code|Sample Condition (BIMS) /Storage Condition (Search Tool)|Patient Choice on Sample Use|Total cell number after separation (x106)|Viable cell number after separation (x106)|% of viability after separation|Number of PBMC/vial (x106)|Protein conc.|Tumor content|Area of tumor tissue |Amount of necrotic tissue|Collection method|Tumor type|Site/Organ of collection|Tumor location|Staining type|Fixation time |Type of fixative|Slide thickness|Cold ischemia time|Warm ischemia time|Tumor grade|Shipping lab
 ## #################################################
 #set( $mandatoryCols = 12 )
-#set( $lines = $upload.readLines() )
+#set( $lines = $upload.readLines( $delim ) )
 start processing upload $upload.getUploadid() $upload.getUploaded()
 #set( $dummy = $db.addUploadMessage( $upload, "INFO", "User $user.username initiated upload. ${lines.size()} lines read." ) )
 ${lines.size()} lines read
@@ -21,6 +21,8 @@ ${lines.size()} lines read
 #set( $idxLab = $upload.getColumnIndex( "Shipping lab" ) )
 #if( $idxLab <= 0 )
   #set( $dummy = $db.addUploadMessage( $upload, "WARN", 1, "Cannot determine column index of Shipping lab." ) )
+#else
+  #set( $dummy = $db.addUploadMessage( $upload, "INFO", 1, "Shipping lab column has been detected: $idxLab" ) )
 #end
 ## #################################################
 ## Get a reference to Biostorage EU organization
@@ -28,7 +30,7 @@ ${lines.size()} lines read
 #set( $storageLab = $db.findOrganizationByName( "Biostorage EU" ) )
 #if( !$storageLab )
   #set( $storageLab = $db.createOrganization( "Biostorage EU", "central laboratory" ) )
-  #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "An organization has been created: ${storageLab.getOrgname()}." ) )
+  #set( $dummy = $db.addUploadMessage( $upload, "WARN", 1, "An organization has been created: ${storageLab.getOrgname()}." ) )
 #end
 ## #################################################
 ## Iterate through lines
@@ -49,160 +51,518 @@ ${lines.size()} lines read
   #if( $columns.size() < $mandatoryCols )
     #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Columns expected ${mandatoryCols}, read ${columns.size()}." ) )
 ## #################################################
-## Skip if sample id is not populated
+## Skip header line or sample id is not populated
 ## #################################################
+  #elseif( $velocityCount <= 1 ) 
+    #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Header line skipped." ) )
   #elseif( $storageId.length() <= 0 ) 
     #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Cannot determine sample identifier." ) )
   #else
 ## #################################################
 ## check if sample type exists
 ## #################################################
-      #set( $sampleType = ${columns.get(9)} )
-      #set( $sampleType = $strings.trimToEmpty( $sampleType ) )
-      #set( $sType = $db.findSampleTypeByName( "$sampleType" ) )
-      #if( !$sType )
-        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Sample type is unknown. Line ignored." ) )
-      #else
+    #set( $sampleType = ${columns.get(9)} )
+    #set( $sampleType = $strings.trimToEmpty( $sampleType ) )
+    #set( $sType = $db.findSampleTypeByName( "$sampleType" ) )
+    #if( !$sType )
+      #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Sample type is unknown. Line ignored." ) )
+    #else
 ## #################################################
 ## create study if needed
 ## #################################################
-        #if( $columns.size() < 28 )
-          #set( $studyName = "" )
-          #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Too few columns (${columns.size()}) to read study name." ) )
-        #else
-          #set( $studyName = ${columns.get(27)} )
-          #set( $studyName = $strings.trimToEmpty( $studyName ) )
-        #end
-        #if( $studyName.length() <= 0 )
-          #set( $studyName = "Unknown" )
-        #end
-        #set( $study = $db.findStudyByName( "$studyName" ) )
-        #if( !$study )
-          #set( $study = $db.createStudy( "$studyName" ) )
-          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Study created: ${study.getStudyname()}." ) )
-        #end
+      #if( $columns.size() < 28 )
+        #set( $studyName = "" )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Too few columns (${columns.size()}) to read study name." ) )
+      #else
+        #set( $studyName = ${columns.get(27)} )
+        #set( $studyName = $strings.trimToEmpty( $studyName ) )
+      #end
+      #if( $studyName.length() <= 0 )
+        #set( $studyName = "Unknown" )
+      #end
+      #set( $study = $db.findStudyByName( "$studyName" ) )
+      #if( !$study )
+        #set( $study = $db.createStudy( "$studyName" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Study created: ${study.getStudyname()}." ) )
+      #end
 ## #################################################
 ## create laboratory entry if needed
 ## #################################################
-        #if( $idxLab >= 0 )
-          #set( $labName = ${columns.get($idxLab)} )
-          #set( $labName = $strings.trimToEmpty( $labName ) )
-        #else
-          #set( $labName = "" )
-          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Shipping lab is unknown." ) )
-        #end
-        #if( $labName.length() <= 0 )
-          #set( $studyName = "Unknown origin" )
-        #end
-        #set( $lab = $db.findOrganizationByName( "$labName" ) )
-        #if( !$lab )
-          #set( $lab = $db.createOrganization( "$labName", "central laboratory" ) )
-          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "An organization has been created: ${lab.getOrgname()}." ) )
-        #end
+      #if( $idxLab >= 0 )
+        #set( $labName = ${columns.get($idxLab)} )
+        #set( $labName = $strings.trimToEmpty( $labName ) )
+      #else
+        #set( $labName = "" )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Shipping lab is unknown." ) )
+      #end
+      #if( $labName.length() <= 0 )
+        #set( $labName = "Unknown origin" )
+      #end
+      #set( $lab = $db.findOrganizationByName( "$labName" ) )
+      #if( !$lab )
+        #set( $lab = $db.createOrganization( "$labName", "central laboratory" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "An organization has been created: ${lab.getOrgname()}." ) )
+      #end
 ## #################################################
 ## create normalized site entry if needed
 ## #################################################
-        #set( $siteName = ${columns.get(3)} )
-        #set( $siteName = $strings.trimToEmpty( $siteName ) )
-        #set( $siteName = $upload.formatSiteName( $siteName ) )
-        #set( $site = $db.findOrganizationByName( "${study.getStudyname()} study site $siteName" ) )
-        #if( !$site )
-          #set( $site = $db.createOrganization( "${study.getStudyname()} study site $siteName", "clinical site" ) )
-          $!site.setSiteid( "$siteName" )
-          #set( $site = $db.storeOrganization( $site ) )
-          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "An organization has been created: ${site.getOrgname()}." ) )
-        #end
+      #set( $siteName = ${columns.get(3)} )
+      #set( $siteName = $strings.trimToEmpty( $siteName ) )
+      #set( $siteName = $upload.formatSiteName( $siteName ) )
+      #set( $site = $db.findOrganizationByName( "${study.getStudyname()} study site $siteName" ) )
+      #if( !$site )
+        #set( $site = $db.createOrganization( "${study.getStudyname()} study site $siteName", "clinical site" ) )
+        $!site.setSiteid( "$siteName" )
+        #set( $site = $db.storeOrganization( $site ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "An organization has been created: ${site.getOrgname()}." ) )
+      #end
 ## #################################################
 ## create normalized subject if required
 ## #################################################
-        #set( $subjectName = ${columns.get(4)} )
-        #set( $subjectName = $strings.trimToEmpty( $ubjectName ) )
-        #set( $subjectName = $upload.formatSubjectName( ${site.getSiteid()}, $ubjectName ) )
-        #set( $subjectId = "${site.getSiteid()}-$ubjectName" ) )
-        #set( $subject = $db.findSubjectByName( $study, "$subjectId" ) )
-        #if( !$subject )
-          #set( $subject = $db.createSubject( $study, "$subjectId" ) )
-          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Subject has been created: ${subject.getSubjectid()}." ) )
-        #end
+      #set( $subjectName = ${columns.get(4)} )
+      #set( $subjectName = $strings.trimToEmpty( $subjectName ) )
+      #set( $subjectName = $upload.formatSubjectName( ${site.getSiteid()}, $subjectName ) )
+      #set( $subjectId = "${site.getSiteid()}-$subjectName" ) )
+      #set( $subject = $db.findSubjectByName( $study, "$subjectId" ) )
+      #if( !$subject )
+        #set( $subject = $db.createSubject( $study, "$subjectId" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Subject has been created: ${subject.getSubjectid()}." ) )
+      #end
 ## #################################################
 ## check if Biostorage accession exists and
 ## create a sample if not existing, yet
 ## #################################################
-        #set( $accession = $db.findAccession( $study, $storageLab, "$storageId" ) )
-        #if( $accession.size() <= 0 )
-          #set( $sample = $db.createSample( ${user.getUserid()},  "$sampleType" ) )
-          #set( $newAcc = $db.createAccession( ${user.getUserid()}, $storageLab, $sample, "$storageId", "primary" ) )
+      #set( $accession = $db.findAccession( $study, $storageLab, "$storageId" ) )
+      #if( $accession.size() <= 0 )
+        #set( $sample = $db.createSample( ${user.getUserid()},  "$sampleType" ) )
+        #set( $newAcc = $db.createAccession( ${user.getUserid()}, $storageLab, $sample, "$storageId", "primary" ) )
 ## #################################################
 ## assign sample to study
 ## #################################################
-          #set( $studySample = $db.assignStudySample( ${user.getUserid()}, $study, $sample ) )\\n
-          #set( $sampleName = "$storageId $sample" )
-          $!sample.setSamplename( "$sampleName" )
+        #set( $studySample = $db.assignStudySample( ${user.getUserid()}, $study, $sample ) )\\n
+        #set( $sampleName = "$storageId $sample" )
+        $!sample.setSamplename( "$sampleName" )
 sample created: $sample
-          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample created: $sample." ) )
-        #elseif( $accession.size() <= 1 )
-          #set( $sample = $db.findSampleById( "${accession.get(0).getSampleid()}" ) )
-          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Existing sample: $sample." ) )
-        #else
-          #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Multiple accessions found: $accession.size(). Cannot create sample record." ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample created: $sample." ) )
+      #elseif( $accession.size() <= 1 )
+        #set( $sample = $db.findSampleById( "${accession.get(0).getSampleid()}" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Existing sample: $sample." ) )
+      #else
+        #set( $sample = $db.findSampleById( "${accession.get(0).getSampleid()}" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Multiple accessions found: $accession.size(). Using sample id ${sample.getSampleid()}" ) )
+      #end
+## #################################################
+## assign additional sample attributes
+## #################################################
+      #set( $idxAttr = $upload.getColumnIndex( "Unique Vial ID" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Unique Vial ID", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Unique Vial ID assigned." ) )
         #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Sample Category" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Sample Category", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Sample Category assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Shipper Comments" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Shipper Comments", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Shipper Comments assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Sample expiry date (as per ICF)" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+## #################################################
+## FIX ME: This should actually be a date
+## #################################################
+          #set( $expDate = $upload.parseDate( $attrVal ) )
+##          $!sample.setAttribute( "Sample expiry", $expDate )
+          $!sample.setAttribute( "Sample expiry", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Sample expiry assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Query nr" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Query", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Query assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Registration comment" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Registration Comments", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Registration Comments assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Comments" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Comments", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Comments assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Aliqout nr" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Aliqout", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Aliquot assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Sample volume" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Volume", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Volume assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Sample Volume Unit" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Volume Unit", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Volume Unit assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Nucleic Acid concentration" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Nucleic Acid Concentration", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Nucleic Acid Concentration assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "A 260/280" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "260 to 280", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: 260 to 280 assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "A 260/280" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Ratio 260 to 280", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Ratio 260 to 280 assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "A 260/230" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Ratio 260 to 230", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Ratio 260 to 230 assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Yield" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Yield", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Yield assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "RIN" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "RIN", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: RIN assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Lab comments (BIMS)/Sample Condition (Search tool)" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Sample Condition", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Sample Condition assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Additive (Tube type)" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Container", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Container assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Date Sample Processed (Preparation date)" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Prepration Date", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Preparation Date assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Patient Group" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Patient Group", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Patient Group assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Second subject ID / Double Code" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Secondary Subject ID", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Secondary Subject ID assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Sample Condition (BIMS) /Storage Condition (Search Tool)" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Storage Condition", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Storage Condition assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Patient Choice on Sample Use" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Patient Choice Sample Use", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Patient Choice Sample Use assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Total cell number after separation (x106)" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Total Cell Number", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Total cell number assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Viable cell number after separation (x106)" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Viable Cell Number", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Viable cell number assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "% of viability after separation" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Percent Viability", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Percent Viability assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Number of PBMC/vial (x106)" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Viable PBMC", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Viable PBMC assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Protein conc." ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Protein Concentration", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Protein Concentration assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Tumor content" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Tumor Content", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Tumor Content assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Area of tumor tissue" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Tumor Tissue Area", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Tumor Tissue Area assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Amount of necrotic tissue" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Amount Necrotic Tissue", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Amount Necrotic Tissue assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Collection method" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Collection Method", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Collection Method assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Tumor type" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Tumor Type", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Tumor Type assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Site/Organ of collection" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Collection Site", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Collection Site assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Tumor location" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Tumor Location", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Tumor Location assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Staining type" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Staining Type", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Staining Type assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Fixation time" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Fixation Time", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Fixation Time assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Type of fixative" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Fixative Type", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Fixative Type assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Slide thickness" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Slide Thickness", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Slide Thickness assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Cold ischemia time" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Cold Ischemia Time", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Cold Ischemia Time assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Warm ischemia time" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Warm Ischemia Time", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Warm Ischemia Time assigned." ) )
+        #end
+      #end
+      #set( $idxAttr = $upload.getColumnIndex( "Tumor Grade" ) )
+      #if( $idxAttr > 0 )
+        #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
+        #if( $attrVal.length() > 0 )
+          $!sample.setAttribute( "Tumor Grade", "$attrVal" )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Tumor Grade assigned." ) )
+        #end
+      #end
+## #################################################
+## Nedd to be implemented elsewhere:
+##
+## Parent sample OID (Merck sample ID)
+## Molecule
+## Volume of Parent sample
+## Volume Unit of Parent sample
+## #################################################
+      #set( $sample = $db.storeSample( ${user.getUserid()}, $sample ) )
+      #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample has been stored." ) )
 ## #################################################
 ## assign donor
 ## #################################################
-        #set( $donors = $db.findSampleDonor( $sample ) )
-        #if( $donors.size() <= 0 )
-          #set( $donor = $db.assignDonor( ${user.getUserid()}, $subject, $sample ) )
-          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample assigned to subject $subject." ) )
-        #end
+      #set( $donors = $db.findSampleDonor( $sample ) )
+      #if( $donors.size() <= 0 )
+        #set( $donor = $db.assignDonor( ${user.getUserid()}, $subject, $sample ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample assigned to subject $subject." ) )
+      #end
 ## #################################################
 ## create visit information
 ## #################################################
-        #set( $sampleVisit = ${columns.get(7)} )
-        #set( $sampleVisit = $strings.trimToEmpty( $sampleVisit ) )
-        #if( $sampleVisit.length() <= 0 )
-          #set( $sampleVisit = "Unscheduled" )
-        #end	
-        #set( $events = $db.findSiteEvent( $site, "$sampleVisit" ) )
-        #set( $event = $db.findEventById( 0 ) )
-        #if( $events.size() <= 0 )
-          #set( $event = $db.createSiteEvent( $site, "$sampleVisit" ) )
-          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Created sample event $event at site $site." ) )
-        #else
-          #set( $event = ${events.get(0)} )
-        #end
-        #if( $events.size() > 1 )
-          #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Ambiguous sample event $sampleVisit." ) )
-        #else
+      #set( $sampleVisit = ${columns.get(7)} )
+      #set( $sampleVisit = $strings.trimToEmpty( $sampleVisit ) )
+      #if( $sampleVisit.length() <= 0 )
+        #set( $sampleVisit = "Unscheduled" )
+      #end	
+      #set( $events = $db.findSiteEvent( $site, "$sampleVisit" ) )
+      #set( $event = $db.findEventById( 0 ) )
+      #if( $events.size() <= 0 )
+        #set( $event = $db.createSiteEvent( $site, "$sampleVisit" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Created sample event $event at site $site." ) )
+      #else
+        #set( $event = ${events.get(0)} )
+      #end
+      #if( $events.size() > 1 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Ambiguous sample event $sampleVisit." ) )
+      #else
 ## #################################################
 ## assign sample to site event
 ## #################################################
-          #set( $collect = $db.findCollectionProcess( $event, $sample ) )
-          #set( $collExist = "" )
-          #set( $logLevel = "INFO" )
-          #if( $collect )
-            #set( $logLevel = "WARN" )
-            #set( $collExist = "already" )
-          #end
+        #set( $collect = $db.findCollectionProcess( $event, $sample ) )
+        #set( $collExist = "" )
+        #set( $logLevel = "INFO" )
+        #if( $collect )
+          #set( $logLevel = "WARN" )
+          #set( $collExist = "already" )
+        #end
 ## #################################################
 ## assign collection event
 ## #################################################
-          #set( $collDate = $upload.parseDate( ${columns.get(7)} ) )
-          #set( $collect = $db.assignCollectionEvent( ${user.getUserid()}, $event, $sample, $collDate ) )
-#set( $dummy = $db.addUploadMessage( $upload, $logLevel, $velocityCount, \"Collection $collect $collExist assigned.\" ) )\\n
-#end\\n
-## ########################\\n
-## add additional accessions\\n
-## ########################\\n
-#if( ($columns.size() > 9) && ($upload.getColumn(9) == \"REQNO\") )\\n
-#set( $accession = $db.findAccession( $study, $lab, \"${columns.get(9)}\" ) )\\n
-#set( $accType = \"secondary\" )\\n
-#if( ($columns.size() > 10) && ($upload.getColumn(10) == \"REQNO.acctype\") )\\n
-#set( $accType = \"${columns.get(10)}\" )\\n
-#end\\n
-#set( $newAcc = $db.createAccession( ${user.getUserid()}, $lab, $sample, \"${columns.get(9)}\", \"$accType\" ) )\\n
-#set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Accession ${newAcc} assigned to ${sample.getSampleid()}.\" ) )\\n
-#end\\n
-#end\\n
-#end\\n
-#end\\n"
+        #set( $collDate = $upload.parseDate( ${columns.get(5)} ) )
+        #set( $collect = $db.assignCollectionEvent( ${user.getUserid()}, $event, $sample, $collDate ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Collection $collect assigned." ) )
+      #end
+## #################################################
+## add additional accessions
+## #################################################
+      #set( $reqAcc = ${columns.get(1)} )
+      #set( $reqAcc = $strings.trimToEmpty( $reqAcc ) )
+      #if( $reqAcc.length() > 0 )
+        #set( $accession = $db.findAccession( $study, $lab, "$reqAcc" ) )
+        #if( $accession.size() <= 0 )
+          #set( $accType = "secondary" )
+          #set( $newAcc = $db.createAccession( ${user.getUserid()}, $lab, $sample, "$reqAcc", "secondary" ) )
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Accession ${newAcc} assigned to ${sample.getSampleid()}." ) )
+        #end
+      #end
+    #end
+  #end
+#end
 

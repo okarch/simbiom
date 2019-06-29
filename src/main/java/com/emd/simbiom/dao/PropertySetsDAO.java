@@ -7,6 +7,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
@@ -15,6 +17,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.emd.simbiom.model.Property;
+import com.emd.simbiom.model.PropertyHolder;
 import com.emd.simbiom.model.PropertySet;
 import com.emd.simbiom.model.PropertyType;
 
@@ -61,6 +64,8 @@ public class PropertySetsDAO extends BasicDAO implements PropertySets {
     private static final String STMT_PROPERTYVAL_BY_ID   = "biobank.propertyvalue.findById";
     private static final String STMT_PROPERTYVAL_BY_PROPERTY = "biobank.propertyvalue.findByProperty";
     private static final String STMT_PROPERTYVAL_INSERT  = "biobank.propertyvalue.insert";
+
+    private static final long TYPE_NUMERIC               = 2L; // as defined in biobank.sql
 
     private static final String[] entityNames = new String[] {
 	"column",
@@ -655,6 +660,80 @@ public class PropertySetsDAO extends BasicDAO implements PropertySets {
      */
     public PropertyType createType( String typeName ) throws SQLException {
 	return createType( typeName, null );
+    }
+
+    /**
+     * Store a <code>PropertyHolder</code> object.
+     *
+     * @param userId the user id.
+     * @param pHolderId the property holder object id.
+     * @param pHolder the property holder.
+     * @param insertHolder the insert statement for new properties.
+     *
+     * @return the updated property set.
+     */
+    public PropertyHolder storePropertyHolder( long userId, 
+					       String pHolderId, 
+					       PropertyHolder pHolder, 
+					       String insertHolder ) 
+	throws SQLException {
+
+	PreparedStatement pstmt = null;
+
+	Set<Map.Entry<String,Object>> entries = pHolder.getAttributes();
+	for( Map.Entry me : entries ) {
+	    Object key = me.getKey();
+	    Object val = me.getValue();
+	    boolean addProp = false;
+	    if( key != null ) {
+		Property prop = pHolder.getProperty( key.toString() );
+		if( prop == null ) {
+		    prop = new Property();
+		    prop.setPropertyname( key.toString() );
+		    prop.setLabel( key.toString() );
+		    addProp = true;
+		}
+		else if( val == null ) {
+		    // delete property
+		    prop = null;
+		}
+
+		if( prop != null ) {
+		    long typeid = ((prop.getTypeid() == 0L)?PropertyType.suggestTypeid( val ):prop.getTypeid());
+		    
+		    PropertyType pType = getDAO().findTypeById( typeid );
+		    if( pType == null )
+			pType = getDAO().findTypeById( 0L );
+		    prop.setTypeid( pType.getTypeid() );
+		    prop.setTypename( pType.getTypename() );
+
+		    prop = storeProperty( userId, prop );
+
+		    if( prop.getTypeid() == TYPE_NUMERIC ) 
+			prop = assignPropertyValue( prop, PropertyType.toDouble( val, 0d ) );
+		    else
+			prop = assignPropertyValue( prop, val.toString() );
+		}
+
+		if( addProp ) {
+
+		    // pstmt = getStatement( insertHolder STMT_DONORPROP_INSERT );
+		    pstmt = getStatement( insertHolder );
+		    long pId = Stringx.toLong( pHolderId, 0L );
+		    if( pId != 0L )
+			pstmt.setLong( 1, pId );
+		    else
+			pstmt.setString( 1, pHolderId );
+		    pstmt.setLong( 2, prop.getPropertyid() );
+		    pstmt.executeUpdate();
+		    popStatement( pstmt );
+
+		    pHolder.addProperty( prop );
+		}
+	    }
+	}
+
+	return pHolder;
     }
 
 }

@@ -48,7 +48,7 @@ public class ParticipantsDAO extends BasicDAO implements Participants {
     private static final String STMT_SUBJECT_INSERT      = "biobank.subject.insert";
     private static final String STMT_SUBJECT_UPDATE      = "biobank.subject.update";
 
-    private static final long TYPE_NUMERIC               = 2L; // as defined in biobank.sql
+    // private static final long TYPE_NUMERIC               = 2L; // as defined in biobank.sql
 
     private static final String[] entityNames = new String[] {
 	"donor",
@@ -243,53 +243,55 @@ public class ParticipantsDAO extends BasicDAO implements Participants {
 	log.debug( "Subject updated: "+subject.getSubjectid()+" ("+
 		   subject.getDonorid()+")" );
 
-	Set<Map.Entry<String,Object>> entries = subject.getAttributes();
-	for( Map.Entry me : entries ) {
-	    Object key = me.getKey();
-	    Object val = me.getValue();
-	    boolean addProp = false;
-	    if( key != null ) {
-		Property prop = subject.getProperty( key.toString() );
-		if( prop == null ) {
-		    prop = new Property();
-		    prop.setPropertyname( key.toString() );
-		    prop.setLabel( key.toString() );
-		    addProp = true;
-		}
-		else if( val == null ) {
-		    // delete property
-		    prop = null;
-		}
+	subject = (Subject)getDAO().storePropertyHolder( userId, String.valueOf(subject.getDonorid()), subject, STMT_DONORPROP_INSERT );
 
-		if( prop != null ) {
-		    long typeid = ((prop.getTypeid() == 0L)?PropertyType.suggestTypeid( val ):prop.getTypeid());
+	// Set<Map.Entry<String,Object>> entries = subject.getAttributes();
+	// for( Map.Entry me : entries ) {
+	//     Object key = me.getKey();
+	//     Object val = me.getValue();
+	//     boolean addProp = false;
+	//     if( key != null ) {
+	// 	Property prop = subject.getProperty( key.toString() );
+	// 	if( prop == null ) {
+	// 	    prop = new Property();
+	// 	    prop.setPropertyname( key.toString() );
+	// 	    prop.setLabel( key.toString() );
+	// 	    addProp = true;
+	// 	}
+	// 	else if( val == null ) {
+	// 	    // delete property
+	// 	    prop = null;
+	// 	}
+
+	// 	if( prop != null ) {
+	// 	    long typeid = ((prop.getTypeid() == 0L)?PropertyType.suggestTypeid( val ):prop.getTypeid());
 		    
-		    PropertyType pType = getDAO().findTypeById( typeid );
-		    if( pType == null )
-			pType = getDAO().findTypeById( 0L );
-		    prop.setTypeid( pType.getTypeid() );
-		    prop.setTypename( pType.getTypename() );
+	// 	    PropertyType pType = getDAO().findTypeById( typeid );
+	// 	    if( pType == null )
+	// 		pType = getDAO().findTypeById( 0L );
+	// 	    prop.setTypeid( pType.getTypeid() );
+	// 	    prop.setTypename( pType.getTypename() );
 
-		    prop = getDAO().storeProperty( userId, prop );
+	// 	    prop = getDAO().storeProperty( userId, prop );
 
-		    if( prop.getTypeid() == TYPE_NUMERIC ) 
-			prop = getDAO().assignPropertyValue( prop, PropertyType.toDouble( val, 0d ) );
-		    else
-			prop = getDAO().assignPropertyValue( prop, val.toString() );
-		}
+	// 	    if( prop.getTypeid() == TYPE_NUMERIC ) 
+	// 		prop = getDAO().assignPropertyValue( prop, PropertyType.toDouble( val, 0d ) );
+	// 	    else
+	// 		prop = getDAO().assignPropertyValue( prop, val.toString() );
+	// 	}
 
-		if( addProp ) {
+	// 	if( addProp ) {
 
-		    pstmt = getStatement( STMT_DONORPROP_INSERT );
-		    pstmt.setLong( 1, subject.getDonorid() );
-		    pstmt.setLong( 2, prop.getPropertyid() );
-		    pstmt.executeUpdate();
-		    popStatement( pstmt );
+	// 	    pstmt = getStatement( STMT_DONORPROP_INSERT );
+	// 	    pstmt.setLong( 1, subject.getDonorid() );
+	// 	    pstmt.setLong( 2, prop.getPropertyid() );
+	// 	    pstmt.executeUpdate();
+	// 	    popStatement( pstmt );
 
-		    subject.addProperty( prop );
-		}
-	    }
-	}
+	// 	    subject.addProperty( prop );
+	// 	}
+	//     }
+	// }
 	
 	return subject;
     }
