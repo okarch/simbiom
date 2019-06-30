@@ -45,6 +45,7 @@ public class ParticipantsDAO extends BasicDAO implements Participants {
     private static final String STMT_SUBJECT_BY_ID       = "biobank.subject.findById";
     private static final String STMT_SUBJECT_BY_NAME     = "biobank.subject.findByName";
     private static final String STMT_SUBJECT_BY_SAMPLE   = "biobank.subject.findBySample";
+    private static final String STMT_SUBJECT_BY_USUBJID  = "biobank.subject.findByUniqueId";
     private static final String STMT_SUBJECT_INSERT      = "biobank.subject.insert";
     private static final String STMT_SUBJECT_UPDATE      = "biobank.subject.update";
 
@@ -73,6 +74,38 @@ public class ParticipantsDAO extends BasicDAO implements Participants {
  	PreparedStatement pstmt = getStatement( STMT_SUBJECT_BY_NAME );
 	pstmt.setLong( 1, study.getStudyid() );
      	pstmt.setString( 2, Stringx.getDefault(subjectId,"").trim() );
+     	ResultSet res = pstmt.executeQuery();
+
+     	// Subject sType = null;
+     	// if( res.next() ) 
+     	//     sType = (Subject)TableUtils.toObject( res, new Subject() );
+     	// res.close();
+
+	Iterator it = TableUtils.toObjects( res, new Subject() );
+	Subject subject = null;
+	while( it.hasNext() ) {
+	    Subject subj = (Subject)it.next();
+	    if( subject == null )
+		subject = subj;
+	    Property prop = getDAO().findPropertyById( subj.getPropertyid() );
+	    if( prop != null )
+	 	subject.addProperty( prop );
+	}
+	res.close();
+	popStatement( pstmt );
+
+     	return subject;
+    }
+
+     /**
+     * Returns a subject by USUBJID.
+     *
+     * @param usubjid the unique subject identifier (unique across all studies.
+     * @return the subject or null.
+     */
+    public Subject findSubjectByUniqueId( String usubjid ) throws SQLException {
+ 	PreparedStatement pstmt = getStatement( STMT_SUBJECT_BY_USUBJID );
+     	pstmt.setString( 1, Stringx.getDefault(usubjid,"").trim() );
      	ResultSet res = pstmt.executeQuery();
 
      	// Subject sType = null;

@@ -1,0 +1,146 @@
+## #################################################
+## Add subject attributes
+## #################################################
+#set( $dtFormat = "dd-MMM-yyyy" )
+#set( $delim = "[|]" )
+#if( !$upload )
+  #stop
+#end
+## #################################################
+## Header structure supported:
+##
+## Variant 1: USUBJID|PARAMETER|VALUE
+## Variant 2: STUDY|SITE|SUBJECTID|ATTR|ATTRVAL
+## #################################################
+#set( $lines = $upload.readLines( $delim ) )
+start processing upload $upload.getUploadid() $upload.getUploaded()
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "Upload ${template.getTemplatename()} initiated by user $user.username. ${lines.size()} lines read." ) )
+${lines.size()} lines read
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "${lines.size()} lines read." ) )
+## #################################################
+## Detect header
+## #################################################
+#set( $idxUSUBJID = $upload.getColumnIndex( "USUBJID" ) )
+#set( $idxSITE = $upload.getColumnIndex( "SITE" ) )
+#if( $idxUSUBJID >= 0 )
+  #set( $dummy = $db.addUploadMessage( $upload, "INFO", 1, "USUBJID column present. Aussuming header structure USUBJID,PARAMETER,VALUE." ) )
+  #set( $mandatoryCols = 3 )
+#elseif( $idxSITE > 0 )
+  #set( $dummy = $db.addUploadMessage( $upload, "INFO", 1, "SITE column present. Assuming header structure STUDY,SITE,SUBJECTID,ATTR,ATTRVAL." ) )
+  #set( $mandatoryCols = 5 )
+#end
+## #################################################
+## Iterate through lines
+## #################################################
+#foreach( $line in $lines )
+  #set( $columns = $line.split( $delim ) )
+## #################################################
+## Skip if too few columns
+## #################################################
+  #if( $columns.size() < $mandatoryCols )
+    #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Columns expected ${mandatoryCols}, read ${columns.size()}." ) )
+## #################################################
+## Skip header line or sample id is not populated
+## #################################################
+  #elseif( $velocityCount <= 1 ) 
+    #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Header line skipped." ) )
+  #else
+    #set( $subject = $db.findSubjectByUniqueId( "XXXXXX" ) )
+    #if( $idxUSUBJID >= 0 )
+## #################################################
+## Process Content variant 1
+## #################################################
+      #set( $subjectId = $strings.trimToEmpty( ${columns.get($idxUSUBJID)} ) )
+      #if( ${studyName.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "USUBJID column is empty. Line ignored." ) )
+      #else
+## #################################################
+## Search subject by USUBJID
+## #################################################
+        #set( $subject = $db.findSubjectByUniqueId( "$subjectId" ) )
+      #end
+    #elseif( $idxSITE > 0 )
+## #################################################
+## Process Content variant 2
+## #################################################
+      #set( $studyName = ${columns.get(0)} )
+      #set( $studyName = $strings.trimToEmpty( $studyName ) )
+      #set( $studyName = $studies.formatName( "$studyName" ) )
+      #set( $study = $db.findStudyByName( "XXXXXXXXXXX" ) )
+      #if( ${studyName.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Study name is empty. Line ignored." ) )
+      #else
+## #################################################
+## Create study if needed
+## #################################################
+        #set( $study = $db.findStudyByName( "$studyName" ) )
+        #if( !$study )
+          #set( $study = $db.createStudy( "$studyName" ) )
+          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Study created: ${study.getStudyname()}." ) )
+        #end
+      #end
+      #set( $siteName = ${columns.get($idxSITE)} )
+      #set( $siteName = $strings.trimToEmpty( $siteName ) )
+      #if( ${siteName.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Site is missing. It will be ignored." ) )
+      #else
+## #################################################
+## Create site entry if needed
+## #################################################
+        #set( $site = $db.findOrganizationByName( "${study.getStudyname()} study site $siteName" ) )
+        #if( !$site )
+          #set( $site = $db.createOrganization( "${study.getStudyname()} study site $siteName", "clinical site" ) )
+          $!site.setSiteid( "$siteName" )
+          #set( $site = $db.storeOrganization( $site ) )
+          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "An organization has been created: ${site.getOrgname()}." ) )
+        #end
+      #end
+      #set( $subjectId = ${columns.get(2)} )
+      #set( $subjectId = $strings.trimToEmpty( $subjectId ) )
+      #if( ${subjectId.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Subject id is missing. Line ignored." ) )\\n
+      #else
+## #################################################
+## Search subject by SITE-SUBJECT
+## #################################################
+        #set( $subjectId = $subjects.formatSubjectId( "$siteName", "$subjectId", "%{site:????}-%{subject:????}" ) )
+        #if( $study )
+          #set( $subject = $db.findSubjectByName( $study, "$subjectId" ) )
+        #end
+      #end
+
+
+
+      #set( $attrName = ${columns.get(3)} )\\n
+      #set( $attrName = $strings.trimToEmpty( $attrName ) )\\n
+      #set( $attrVal = ${columns.get(4)} )\\n
+      #set( $attrVal = $strings.trimToEmpty( $attrVal ) )\\n
+
+
+      #elseif( ${attrName.length()} <= 0 )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Property name is missing. Line ignored.\" ) )\\n
+      #elseif( ${attrVal.length()} <= 0 )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"Subject ${siteName}-${subjectId} $attrName is empty. Line ignored.\" ) )\\n
+      #else\\n
+
+## ########################\\n
+## search subject and set attribute.\\n
+## ########################\\n
+
+
+
+        #if( !$subject )\\n
+          #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Study $studyName subject $subjectId does not exist. Property $attrName has not has been updated.\" ) )\\n
+        #else\\n
+          $!subject.setAttribute( \"$attrName\", \"$attrVal\" )\\n
+        #end\\n
+## ########################\\n
+## store subject properties\\n
+## ########################\\n
+        #set( $subject = $db.storeSubject( ${user.getUserid()}, $subject ) )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Subject ${subject} property $attrName updated.\" ) )\\n
+      #end\\n
+    #end\\n
+  #end\\n
+#end\\n"
+}

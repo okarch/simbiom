@@ -139,7 +139,7 @@ ${lines.size()} lines read
 ## #################################################
 ## assign sample to study
 ## #################################################
-        #set( $studySample = $db.assignStudySample( ${user.getUserid()}, $study, $sample ) )\\n
+        #set( $studySample = $db.assignStudySample( ${user.getUserid()}, $study, $sample ) )
         #set( $sampleName = "$storageId $sample" )
         $!sample.setSamplename( "$sampleName" )
 sample created: $sample
@@ -219,7 +219,7 @@ sample created: $sample
       #if( $idxAttr > 0 )
         #set( $attrVal = $strings.trimToEmpty( ${columns.get( $idxAttr )} ) )
         #if( $attrVal.length() > 0 )
-          $!sample.setAttribute( "Aliqout", "$attrVal" )
+          $!sample.setAttribute( "Aliquot", "$attrVal" )
           #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Sample $sample: Aliquot assigned." ) )
         #end
       #end

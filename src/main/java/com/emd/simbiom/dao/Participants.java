@@ -24,6 +24,14 @@ public interface Participants {
      */
     public Subject findSubjectByName( Study study, String subjectId ) throws SQLException;
 
+     /**
+     * Returns a subject by USUBJID.
+     *
+     * @param usubjid the unique subject identifier (unique across all studies.
+     * @return the subject or null.
+     */
+    public Subject findSubjectByUniqueId( String usubjid ) throws SQLException;
+
     /**
      * Returns a subject by id.
      *
