@@ -20,6 +20,7 @@ import org.apache.commons.io.FileUtils;
 // import org.apache.commons.io.IOUtils;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.WordUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.lang.time.DateUtils;
 
@@ -112,6 +113,7 @@ public class UploadProcessor {
 	tc.put( "strings", StringUtils.class );
 	tc.put( "dates", DateUtils.class );
 	tc.put( "dateFormats", DateFormatUtils.class );
+	tc.put( "words", WordUtils.class );
 
 	// specific tools
 	tc.put( "samples", SampleType.class );

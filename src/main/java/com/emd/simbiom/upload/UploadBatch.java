@@ -13,7 +13,10 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import java.text.ParseException;
@@ -54,6 +57,8 @@ public class UploadBatch implements Copyable {
 
     private List<String> uploadHeader;
 
+    private Map<String,Map> uploadMaps;
+
     private static Log log = LogFactory.getLog(UploadBatch.class);
 
     private static final String[] DATE_PATTERNS = new String[] {
@@ -72,6 +77,7 @@ public class UploadBatch implements Copyable {
 	this.uploadid = DataHasher.hash( UUID.randomUUID().toString().getBytes() );
 	this.upload = "";
 	this.uploadHeader = new ArrayList<String>();
+	this.uploadMaps = new HashMap<String,Map>();
     }
 
     /**
@@ -493,5 +499,77 @@ public class UploadBatch implements Copyable {
 	return date;
     }
 
+    /**
+     * Creates or retrieves a named map to host attribute value pairs.
+     * 
+     * @param mapName the name of the map.
+     * @return the (newly created) map. 
+     */
+    public Map retrieveMap( String mapName ) {
+	Map nMap = this.uploadMaps.get( mapName );
+	if( nMap == null ) {
+	    nMap = new HashMap();
+	    this.uploadMaps.put( mapName, nMap );
+	}
+	return nMap;
+    }
+
+    /**
+     * Concatenates an entry of a named map. If the map doesn't exist it will be created.
+     *
+     * @param mapName the name of the map.
+     * @param key the key to store.
+     * @param value the value to be concatenated to existing values.
+     * @param delim the delimiter used for concatenation.
+     * @return the concatenated string.
+     */
+    public String concatEntry( String mapName, Object key, Object value, String delim ) {
+	Map nMap = retrieveMap( mapName );
+	Object val = nMap.get( key );
+	StringBuilder stb = new StringBuilder();
+	if( val != null ) 
+	    stb.append( val );
+	String vSt = Stringx.getDefault( ((value != null)?value.toString():""), "" ).trim();
+	if( (stb.length() > 0) && (vSt.length() > 0) )
+	    stb.append( delim );
+	stb.append( vSt );
+	nMap.put( key, stb );
+	return stb.toString();
+    }
+
+    /**
+     * Concatenates an entry of a named map. If the map doesn't exist it will be created.
+     *
+     * @param mapName the name of the map.
+     * @param key the key to store.
+     * @param value the value to be concatenated to existing values.
+     * @return the concatenated string.
+     */
+    public String concatEntry( String mapName, Object key, Object value ) {
+	return concatEntry( mapName, key, value, ", " );
+    }
+
+    /**
+     * Returns the set of keys used in the named map.
+     *
+     * @param mapName the name of the map.
+     * @return the set of keys (potentially empty).
+     */
+    public Set getKeys( String mapName ) {
+	Map nMap = retrieveMap( mapName );
+	return nMap.keySet();
+    }
+
+    /**
+     * Returns the set of keys used in the named map.
+     *
+     * @param mapName the name of the map.
+     * @param key the key to access the value.
+     * @return the set of keys (potentially empty).
+     */
+    public Object getValue( String mapName, Object key ) {
+	Map nMap = retrieveMap( mapName );
+	return nMap.get( key );
+    }
 
 }

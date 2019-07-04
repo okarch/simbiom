@@ -22,12 +22,16 @@ ${lines.size()} lines read
 ## #################################################
 #set( $idxUSUBJID = $upload.getColumnIndex( "USUBJID" ) )
 #set( $idxSITE = $upload.getColumnIndex( "SITE" ) )
+#set( $idxATTR = 1 )
+#set( $idxATTRVAL = 2 )
 #if( $idxUSUBJID >= 0 )
   #set( $dummy = $db.addUploadMessage( $upload, "INFO", 1, "USUBJID column present. Aussuming header structure USUBJID,PARAMETER,VALUE." ) )
   #set( $mandatoryCols = 3 )
 #elseif( $idxSITE > 0 )
   #set( $dummy = $db.addUploadMessage( $upload, "INFO", 1, "SITE column present. Assuming header structure STUDY,SITE,SUBJECTID,ATTR,ATTRVAL." ) )
   #set( $mandatoryCols = 5 )
+  #set( $idxATTR = 3 )
+  #set( $idxATTRVAL = 4 )
 #end
 ## #################################################
 ## Iterate through lines
@@ -108,39 +112,59 @@ ${lines.size()} lines read
           #set( $subject = $db.findSubjectByName( $study, "$subjectId" ) )
         #end
       #end
-
-
-
-      #set( $attrName = ${columns.get(3)} )\\n
-      #set( $attrName = $strings.trimToEmpty( $attrName ) )\\n
-      #set( $attrVal = ${columns.get(4)} )\\n
-      #set( $attrVal = $strings.trimToEmpty( $attrVal ) )\\n
-
-
-      #elseif( ${attrName.length()} <= 0 )\\n
-        #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Property name is missing. Line ignored.\" ) )\\n
-      #elseif( ${attrVal.length()} <= 0 )\\n
-        #set( $dummy = $db.addUploadMessage( $upload, \"WARN\", $velocityCount, \"Subject ${siteName}-${subjectId} $attrName is empty. Line ignored.\" ) )\\n
-      #else\\n
-
-## ########################\\n
-## search subject and set attribute.\\n
-## ########################\\n
-
-
-
-        #if( !$subject )\\n
-          #set( $dummy = $db.addUploadMessage( $upload, \"ERROR\", $velocityCount, \"Study $studyName subject $subjectId does not exist. Property $attrName has not has been updated.\" ) )\\n
-        #else\\n
-          $!subject.setAttribute( \"$attrName\", \"$attrVal\" )\\n
-        #end\\n
-## ########################\\n
-## store subject properties\\n
-## ########################\\n
-        #set( $subject = $db.storeSubject( ${user.getUserid()}, $subject ) )\\n
-        #set( $dummy = $db.addUploadMessage( $upload, \"INFO\", $velocityCount, \"Subject ${subject} property $attrName updated.\" ) )\\n
-      #end\\n
-    #end\\n
-  #end\\n
-#end\\n"
-}
+    #end
+    #if( $subject )
+      #set( $attrName = $strings.trimToEmpty( ${columns.get($idxATTR)} ) )
+      #set( $attrVal = ${columns.get( $idxATTRVAL )} )
+      #set( $attrVal = $strings.trimToEmpty( $attrVal ) )
+      #if( ${attrName.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Property name is missing. Line ignored." ) )
+      #elseif( ${attrVal.length()} <= 0 )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Subject $subject content of $attrName is missing. Line ignored." ) )
+      #else
+## #################################################
+## Set subject attribute
+## #################################################
+        #if( $attrName == "Risk factors" )
+	  #set( $riskTokens = $attrVal.split( "[:]" )
+          #if( $riskTokens.size() > 1 )
+            #set( $substance = $words.capitalizeFully( $riskTokens[0], "/" ) )
+            #set( $substqual = $riskTokens[1].split( " " ) )
+            #if( $substqual.size() >= 1 )
+              #foreach( $qual in $substqual )
+                #set( $attrVal = "$attrVal ${$words.capitalizeFully($qual.trim())}" )
+              #end
+              #set( $attrVal = "$substance $attrVal" )
+              #set( $concatVal = $upload.concatEntry( "riskFactors", "$subject.getDonorid()", $attrVal ) ) 
+            #end
+          #end
+        #elseif( $attrName == "Race" )
+          #set( $attrVal = $words.capitalizeFully( $attrVal ) )
+          $!subject.setAttribute( "$attrName", "$attrVal" )
+        #else
+          $!subject.setAttribute( "$attrName", "$attrVal" )
+        #end
+## #################################################
+## Store subject properties
+## #################################################
+        #set( $subject = $db.storeSubject( ${user.getUserid()}, $subject ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Subject ${subject} property $attrName updated." ) )
+      #end
+    #end
+  #end
+#end
+## #################################################
+## Store subjects risk factors
+## #################################################
+#set( $riskFactors = $upload.getKeys( "riskFactors" ) )
+#foreach( $risk in $riskFactors )
+  #set( $donorId = $convert.toNumber( $risk ) )
+  #set( $subject = $db.findSubjectById( $donorId.longValue() ) )
+  #if( $subject )
+    $!subject.setAttribute( "Risk Factors", $upload.getValue( "riskFactors", $risk ) )
+    #set( $subject = $db.storeSubject( ${user.getUserid()}, $subject ) )
+    #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Subject ${subject} risk factors updated." ) )
+  #else
+    #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Cannot find subject donorId: $risk." ) )
+  #end
+#end
