@@ -54,6 +54,8 @@ public class CountryLookupDAO extends BasicDAO implements CountryLookup {
 	
 	PreparedStatement pstmt = getStatement( STMT_COUNTRY_BY_NAME );
      	pstmt.setString( 1, cName.toLowerCase()+"%" );
+     	pstmt.setString( 2, cName.toUpperCase() );
+     	pstmt.setString( 3, cName.toUpperCase() );
 
      	ResultSet res = pstmt.executeQuery();
 

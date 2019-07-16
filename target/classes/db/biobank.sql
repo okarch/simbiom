@@ -265,6 +265,7 @@ create table t_sample_subject(
 create index i_sub_stu on t_sample_subject (studyid);
 create index i_sub_sid on t_sample_subject (subjectid);
 create index i_sub_tax on t_sample_subject (taxon);
+create index i_sub_uid on t_sample_subject (usubjid);
 
 --
 -- t_sample_donor

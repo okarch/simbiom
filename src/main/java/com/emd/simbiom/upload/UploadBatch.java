@@ -572,4 +572,13 @@ public class UploadBatch implements Copyable {
 	return nMap.get( key );
     }
 
+    public void printError( Object msg ) {
+	log.error( msg.toString() );
+    }
+    public void printWarn( Object msg ) {
+	log.warn( msg.toString() );
+    }
+    public void printInfo( Object msg ) {
+	log.info( msg.toString() );
+    }
 }

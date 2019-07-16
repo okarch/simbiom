@@ -76,6 +76,8 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
     private static final String STMT_INVOICE_BY_REF          = "biobank.invoice.findByInvoice";
     private static final String STMT_INVOICE_BY_PERIOD_ASC   = "biobank.invoice.findByPeriodAsc";
     private static final String STMT_INVOICE_BY_PERIOD_DESC  = "biobank.invoice.findByPeriodDesc";
+    private static final String STMT_INVOICE_BY_PO_ASC       = "biobank.invoice.findByPOAsc";
+    private static final String STMT_INVOICE_BY_PO_DESC      = "biobank.invoice.findByPODesc";
     private static final String STMT_INVOICE_INSERT          = "biobank.invoice.insert";
     private static final String STMT_INVOICE_UPDATE          = "biobank.invoice.update";
 
@@ -618,18 +620,54 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
      * @return the invoice or null (if not existing).
      */
     public Invoice[] findInvoiceByPeriod( Period period, boolean descending ) 
+        throws SQLException {
+
+        Timestamp[] tsPeriod = period.toTimestamp();
+
+        log.debug( "Search invoices starting from "+tsPeriod[0]+" to "+tsPeriod[1] ); 
+
+        PreparedStatement pstmt = ( (descending)?
+                                    getStatement( STMT_INVOICE_BY_PERIOD_DESC ):
+                                    getStatement( STMT_INVOICE_BY_PERIOD_ASC ) );
+
+        pstmt.setTimestamp( 1, tsPeriod[0] );
+        pstmt.setTimestamp( 2, tsPeriod[1] );
+
+        ResultSet res = pstmt.executeQuery();
+        List<Invoice> fl = new ArrayList<Invoice>();
+        Iterator it = TableUtils.toObjects( res, new Invoice() );
+        Invoice lastInv = null;
+        while( it.hasNext() ) {
+            Invoice inv = (Invoice)it.next();
+            if( (lastInv == null) || (lastInv.getInvoiceid() != inv.getInvoiceid()) ) {
+                lastInv = inv;
+                fl.add( inv );
+            }
+            lastInv.addProject( inv.getTitle() );
+            lastInv.addProjectcode( inv.getProjectcode() );
+        }
+        res.close();
+        popStatement( pstmt );
+
+        Invoice[] facs = new Invoice[ fl.size() ];
+        return (Invoice[])fl.toArray( facs );   
+    }
+
+    /**
+     * Returns the invoices related to a given PO.
+     *
+     * @param purchase the PO number.
+     * @param descending true if invoices should be ordered by descending dates. 
+     * @return the invoice or null (if not existing).
+     */
+    public Invoice[] findInvoiceByPurchase( String purchase, boolean descending ) 
 	throws SQLException {
 
-	Timestamp[] tsPeriod = period.toTimestamp();
-
-	log.debug( "Search invoices starting from "+tsPeriod[0]+" to "+tsPeriod[1] ); 
-
 	PreparedStatement pstmt = ( (descending)?
-				    getStatement( STMT_INVOICE_BY_PERIOD_DESC ):
-				    getStatement( STMT_INVOICE_BY_PERIOD_ASC ) );
+				    getStatement( STMT_INVOICE_BY_PO_DESC ):
+				    getStatement( STMT_INVOICE_BY_PO_ASC ) );
 
-	pstmt.setTimestamp( 1, tsPeriod[0] );
-	pstmt.setTimestamp( 2, tsPeriod[1] );
+	pstmt.setString( 1, purchase );
 
      	ResultSet res = pstmt.executeQuery();
      	List<Invoice> fl = new ArrayList<Invoice>();

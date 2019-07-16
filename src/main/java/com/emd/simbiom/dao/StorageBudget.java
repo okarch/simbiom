@@ -174,6 +174,16 @@ public interface StorageBudget {
      * @return the invoice or null (if not existing).
      */
     public Invoice[] findInvoiceByPeriod( Period period, boolean descending ) 
+        throws SQLException;
+
+    /**
+     * Returns the invoices related to a given PO.
+     *
+     * @param purchase the PO number.
+     * @param descending true if invoices should be ordered by descending dates. 
+     * @return the invoice or null (if not existing).
+     */
+    public Invoice[] findInvoiceByPurchase( String purchase, boolean descending ) 
 	throws SQLException;
 
     /**

@@ -55,7 +55,7 @@ ${lines.size()} lines read
 ## Process Content variant 1
 ## #################################################
       #set( $subjectId = $strings.trimToEmpty( ${columns.get($idxUSUBJID)} ) )
-      #if( ${studyName.length()} <= 0 )
+      #if( ${subjectId.length()} <= 0 )
         #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "USUBJID column is empty. Line ignored." ) )
       #else
 ## #################################################
@@ -102,7 +102,7 @@ ${lines.size()} lines read
       #set( $subjectId = ${columns.get(2)} )
       #set( $subjectId = $strings.trimToEmpty( $subjectId ) )
       #if( ${subjectId.length()} <= 0 )
-        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Subject id is missing. Line ignored." ) )\\n
+        #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Subject id is missing. Line ignored." ) )
       #else
 ## #################################################
 ## Search subject by SITE-SUBJECT
@@ -126,19 +126,50 @@ ${lines.size()} lines read
 ## Set subject attribute
 ## #################################################
         #if( $attrName == "Risk factors" )
-	  #set( $riskTokens = $attrVal.split( "[:]" )
+	  #set( $riskTokens = $attrVal.split( "[:]" ) )
           #if( $riskTokens.size() > 1 )
-            #set( $substance = $words.capitalizeFully( $riskTokens[0], "/" ) )
-            #set( $substqual = $riskTokens[1].split( " " ) )
+            #set( $substance = ${strings.replace( "${riskTokens.get(0)}", "/", " " ).trim()} )
+            #set( $substance = $words.capitalizeFully( "$substance" ) )
+            #set( $dummy = $upload.printInfo( "=== substance: $substance" ) )
+            #set( $substqual = ${riskTokens.get(1).split( " " )} )
             #if( $substqual.size() >= 1 )
+              #set( $attrVal = "" )
               #foreach( $qual in $substqual )
-                #set( $attrVal = "$attrVal ${$words.capitalizeFully($qual.trim())}" )
+                #set( $attrVal = "$attrVal ${words.capitalizeFully($qual.trim())}" )
               #end
-              #set( $attrVal = "$substance $attrVal" )
+              #set( $attrVal = "$substance $attrVal.trim()" )
               #set( $concatVal = $upload.concatEntry( "riskFactors", "$subject.getDonorid()", $attrVal ) ) 
             #end
           #end
         #elseif( $attrName == "Race" )
+          #set( $attrVal = $words.capitalizeFully( $attrVal ) )
+          $!subject.setEthnicity( "$attrVal" )
+        #elseif( $attrName == "Country of enrollment" )
+## #################################################
+## Setup country info
+## #################################################
+          #set( $countryName = "${attrVal.toUpperCase()}" )
+          #set( $countryId = 0 )
+          #if( ${countryName.length()} > 0 )
+            #set( $countries = $db.findCountryByName( "$countryName" ) )
+            #if( ${countries.size()} > 1 )
+              #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Multiple countries matching $countryName" ) )
+            #elseif( ${countries.size()} <= 0 )
+              #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "No country found matching $countryName" ) )
+            #else
+              #set( $country = ${countries.get(0)} )
+              #set( $countryId = ${country.getId()} )
+              #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Using country id: $countryId ($country)" ) )
+            #end
+          #end
+          #if( $site )
+            $!site.setCountryid( $countryId )
+            #set( $site = $db.storeOrganization( $site ) )
+            #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "An organization has been updated: ${site.getOrgname()}." ) )
+          #else
+            $!subject.setAttribute( "$attrName", "$attrVal" ) 
+          #end
+        #elseif( $attrName == "Clinical Diagnosis" )
           #set( $attrVal = $words.capitalizeFully( $attrVal ) )
           $!subject.setAttribute( "$attrName", "$attrVal" )
         #else
@@ -160,8 +191,11 @@ ${lines.size()} lines read
 #foreach( $risk in $riskFactors )
   #set( $donorId = $convert.toNumber( $risk ) )
   #set( $subject = $db.findSubjectById( $donorId.longValue() ) )
+  #set( $dummy = $upload.printInfo( "===== subject: $subject" ) )
   #if( $subject )
-    $!subject.setAttribute( "Risk Factors", $upload.getValue( "riskFactors", $risk ) )
+    #set( $riskValue = $upload.getValue( "riskFactors", $risk ) )
+    #set( $dummy = $upload.printInfo( "======= risks: $riskValue" ) )
+    $!subject.setAttribute( "Risk Factors", "$riskValue" )
     #set( $subject = $db.storeSubject( ${user.getUserid()}, $subject ) )
     #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Subject ${subject} risk factors updated." ) )
   #else

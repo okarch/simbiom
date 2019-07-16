@@ -1,0 +1,161 @@
+## #################################################
+## Add subject template
+## #################################################
+#set( $dtFormat = "dd-MMM-yyyy" )
+#set( $delim = "[|]" )
+#if( !$upload )
+  #stop
+#end
+## #################################################
+## Header structure supported:
+##
+## Variant 1: STUDY|SITE|SUBJECTID|TYPE|GENDER|DOB|AGE|ENROLLMENT|USUBJID
+## Variant 2: STUDY|SITE|SUBJECTID|TYPE|GENDER|DOB|AGE|ENROLLMENT|USUBJID|COUNTRY|ETHNICITY
+## #################################################
+#set( $lines = $upload.readLines( $delim ) )
+start processing upload $upload.getUploadid() $upload.getUploaded()
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "Upload ${template.getTemplatename()} initiated by user $user.username. ${lines.size()} lines read." ) )
+${lines.size()} lines read
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "${lines.size()} lines read." ) )
+## #################################################
+## Detect header
+## #################################################
+#set( $idxCountry = $upload.getColumnIndex( "COUNTRY" ) )
+#set( $idxEthnic = $upload.getColumnIndex( "ETHNICITY" ) )
+#set( $mandatoryCols = 9 )
+## #################################################
+## Iterate through lines
+## #################################################
+#foreach( $line in $lines )
+  #set( $columns = $line.split( $delim ) )
+## #################################################
+## Skip if too few columns
+## #################################################
+  #if( $columns.size() < $mandatoryCols )
+    #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Columns expected ${mandatoryCols}, read ${columns.size()}." ) )
+## #################################################
+## Skip header line or sample id is not populated
+## #################################################
+  #elseif( $velocityCount <= 1 ) 
+    #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Header line skipped." ) )
+  #else
+    #set( $subject = $db.findSubjectByUniqueId( "XXXXXX" ) )
+## #################################################
+## Ensure mandatory content
+## #################################################
+    #set( $studyName = ${columns.get(0)} )
+    #set( $studyName = $strings.trimToEmpty( $studyName ) )
+    #set( $studyName = $studies.formatName( "$studyName" ) )
+    #set( $siteName = ${columns.get(1)} )
+    #set( $siteName = $strings.trimToEmpty( $siteName ) )
+    #set( $subjectId = ${columns.get(2)} )
+    #set( $subjectId = $strings.trimToEmpty( $subjectId ) )
+    #set( $usubjid = ${columns.get(8)} )
+    #set( $usubjid = $strings.trimToEmpty( $usubjid ) )
+    #if( ${studyName.length()} <= 0 )
+      #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Study name is empty. Line ignored." ) )
+    #elseif( ${siteName.length()} <= 0 )
+      #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Site is missing. Line ignored." ) )
+    #elseif( ${subjectId.length()} <= 0 )
+      #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Subject id is missing. Line ignored." ) )
+    #elseif( ${usubjid.length()} <= 0 )
+      #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "USUBJID id is missing. Line ignored." ) )
+    #else
+## #################################################
+## Create study if needed
+## #################################################
+      #set( $study = $db.findStudyByName( "$studyName" ) )
+      #if( !$study )
+        #set( $study = $db.createStudy( "$studyName" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Study created: ${study.getStudyname()}." ) )
+      #end
+## #################################################
+## Create normalized site entry if needed
+## #################################################
+      #set( $siteName = $upload.formatSiteName( $siteName ) )
+      #set( $site = $db.findOrganizationByName( "${study.getStudyname()} study site $siteName" ) )
+      #if( !$site )
+        #set( $site = $db.createOrganization( "${study.getStudyname()} study site $siteName", "clinical site" ) )
+        $!site.setSiteid( "$siteName" )
+        #set( $site = $db.storeOrganization( $site ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "An organization has been created: ${site.getOrgname()}." ) )
+      #end
+      #if( $columns.size() > 9 )
+## #################################################
+## Setup country info
+## #################################################
+        #set( $countryName = ${columns.get(9)} )
+        #set( $countryName = $strings.trimToEmpty( $countryName ) )
+        #set( $countryId = 0 )
+        #if( ${countryName.length()} > 0 )
+          #set( $countries = $db.findCountryByName( "$countryName" ) )
+          #if( ${countries.size()} > 1 )
+            #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Multiple countries matching $countryName" ) )
+          #elseif( ${countries.size()} <= 0 )
+            #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "No country found matching $countryName" ) )
+          #else
+            #set( $country = ${countries.get(0)} )
+            #set( $countryId = ${country.getId()} )
+            #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Using country id: $countryId ($country)" ) )
+          #end
+        #end
+        $!site.setCountryid( $countryId )
+        #set( $site = $db.storeOrganization( $site ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "An organization has been updated: ${site.getOrgname()}." ) )
+      #end
+## #################################################
+## Create normalized subject if required
+## #################################################
+      #set( $subject = $db.findSubjectByUniqueId( "$usubjid" ) )
+      #if( !$subject )
+        #set( $subjectName = $upload.formatSubjectName( ${site.getSiteid()}, $subjectId ) )
+        #set( $subjectId = "${site.getSiteid()}-$subjectName" ) )
+        #set( $subject = $db.findSubjectByName( $study, "$subjectId" ) )
+      #end
+      #if( !$subject )
+        #set( $subject = $db.createSubject( $study, "$subjectId" ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Subject has been created: ${subject.getSubjectid()}." ) )
+      #end
+## #################################################
+## Set subject properties
+## #################################################
+      $!subject.setUsubjid( "$usubjid" )
+      $!subject.setSiteid( "${site.getSiteid()}" )
+      $!subject.setOrgid( ${site.getOrgid()} )
+      #set( $gender = ${columns.get(4)} )\\n
+      #set( $gender = $strings.trimToEmpty( $gender ) )
+      $!subject.setGender( "$gender" )
+      #set( $age = ${columns.get(6)} )
+      #set( $age = $strings.trimToEmpty( $age ) )
+      #set( $ageNum = $convert.toInteger( $age ) )
+      #if( !$ageNum )
+        #set( $dob = ${columns.get(5)} )
+        #set( $dob = $strings.trimToEmpty( $dob ) )
+        #set( $age = "${subjects.ageFromBirthDate( $dob )}" )
+        #set( $ageNum = $convert.toInteger( $age ) )
+      #end
+      $!subject.setAge( ${ageNum.intValue()} )
+      #if( $columns.size() > 10 )
+        #set( $race = ${columns.get(10)} )
+        #set( $race = $strings.trimToEmpty( $race ) )
+        $!subject.setEthnicity( "$race" )
+      #end
+      #set( $enrolled = ${columns.get(7)} )
+      #set( $enrolled = $strings.trimToEmpty( $enrolled ) )
+      #set( $enrollDt = ${subjects.formatTimestamp( $enrolled )} )
+      #if( $enrollDt )
+        $!subject.setEnrolled( $enrollDt )
+      #end
+      #set( $subjectType = ${columns.get(3)} )
+      #set( $subjectType = $strings.trimToEmpty( $subjectType ) )
+      #if( $subjectType.length() > 0 )
+        $!subject.setAttribute( "group", "$subjectType" )
+      #end
+## #################################################
+## Store subject properties
+## #################################################
+      #set( $subject = $db.storeSubject( ${user.getUserid()}, $subject ) )
+      #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "A subject has been updated: $subject." ) )
+    #end
+  #end
+#end
