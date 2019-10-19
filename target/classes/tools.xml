@@ -35,6 +35,7 @@
         <tool class="org.apache.velocity.tools.generic.ResourceTool"/>
         <tool class="org.apache.velocity.tools.generic.SortTool"/>
         <tool class="org.apache.velocity.tools.generic.XmlTool"/>
+        <tool class="com.emd.vutils.velocity.ReportTool"/>
 <!--
         <tool class="org.openphacts.nextprot.util.EchoTool"/>
         <tool class="org.openphacts.nextprot.util.HashTool"/>

@@ -682,6 +682,22 @@ create index i_log_lst on t_inventory_log( logstamp );
 create index i_log_lev on t_inventory_log( level );
 create index i_log_lin on t_inventory_log( line );
 
+--
+-- t_inventory_output
+--   captures the output of the template
+-- 
+drop table if exists t_inventory_output;
+create table t_inventory_output(
+  outputid       bigint primary key,
+  uploadid       bigint,
+  created        timestamp,
+  md5sum         varchar(32),
+  filename       varchar(255),
+  mime           varchar(80)
+);
+create index i_upout_uid on t_inventory_output (uploadid);
+create index i_upout_md5 on t_inventory_output (md5sum);
+
 
 --
 -- General property tables

@@ -120,6 +120,7 @@ public class UploadProcessor {
 	tc.put( "subjects", Subject.class );
 	tc.put( "studies", Study.class );
 	tc.put( "periods", Period.class );
+	tc.put( "systems", System.class );
 
 	tc.put( "db", InventoryFactory.getInstance().getSampleInventory() );
 	tc.put( "upload", upd );

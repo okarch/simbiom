@@ -111,6 +111,12 @@ The aim of the project is to provide a data access layer to the sample inventory
           <version>1.0.4</version>
         </dependency>
 
+        <dependency>
+          <groupId>com.emd.vutils</groupId>
+          <artifactId>vutils</artifactId>
+          <version>1.0</version>
+        </dependency>
+
 
 <!--
         <dependency>

@@ -123,10 +123,10 @@ ${lines.size()} lines read
         #set( $dummy = $db.addUploadMessage( $upload, "WARN", $velocityCount, "Subject $subject content of $attrName is missing. Line ignored." ) )
       #else
 ## #################################################
-## Set subject attribute
+## Parse and store risk factors
 ## #################################################
         #if( $attrName == "Risk factors" )
-	  #set( $riskTokens = $attrVal.split( "[:]" ) )
+	  #set( $riskTokens = $strings.split( $attrVal, ":", 2 ) )
           #if( $riskTokens.size() > 1 )
             #set( $substance = ${strings.replace( "${riskTokens.get(0)}", "/", " " ).trim()} )
             #set( $substance = $words.capitalizeFully( "$substance" ) )
@@ -141,13 +141,72 @@ ${lines.size()} lines read
               #set( $concatVal = $upload.concatEntry( "riskFactors", "$subject.getDonorid()", $attrVal ) ) 
             #end
           #end
+## #################################################
+## Parse and store medical history
+## #################################################
+        #elseif( $attrName == "Medical History" )
+	  #set( $riskTokens = $strings.split( $attrVal, ":", 2 ) )
+          #if( $riskTokens.size() > 1 )
+            #set( $terms = ${strings.split( "${riskTokens.get(0)}", "/" )} )
+            #set( $mhTerm = "" )
+            #if( $terms.size() >= 1 )
+              #foreach( $qual in $terms )
+                #if( ( $qual != "GENERAL" ) && (!$strings.contains( $mhTerm.toLowerCase(), $qual.toLowerCase() ) ) )
+                  #set( $mhTerm = "$mhTerm ${words.capitalizeFully($qual.trim())}" )
+                #end
+              #end
+              #set( $dummy = $upload.printInfo( "=== medical history term: $mhTerm" ) )
+            #else
+              #set( $mhTerm = ${words.capitalizeFully( $riskTokens.get(0).trim() )} )
+            #end
+            #set( $substqual = ${riskTokens.get(1).split( " " )} )
+            #if( $substqual.size() >= 1 )
+              #set( $attrVal = "" )
+              #foreach( $qual in $substqual )
+                #set( $attrVal = "$attrVal ${words.capitalizeFully($qual.trim())}" )
+              #end
+              #set( $attrVal = "$mhTerm $attrVal.trim()" )
+              #if( $attrVal.length() > 0 )
+                #set( $concatVal = $upload.concatEntry( "medicalHistory", "$subject.getDonorid()", $attrVal ) ) 
+              #end
+            #end
+          #end
+## #################################################
+## Parse and store staging
+## #################################################
+        #elseif( $attrName == "Stage" )
+	  #set( $riskTokens = $strings.split( $attrVal, ":", 2 ) )
+          #if( $riskTokens.size() > 1 )
+            #set( $term = ${riskTokens.get(0).trim().toLowerCase()} )
+            #set( $phaseTerm = ${strings.substringBefore( $term, "," ).trim()} )
+            #set( $phaseTerm = ${strings.trimToEmpty( $phaseTerm )} )
+## #################################################
+## Directly associate staging result
+## #################################################
+            #if( $term.endsWith( "tnm staging" ) )
+              #if( $phaseTerm.length() > 0 )
+                #set( $phaseTerm = ${words.capitalizeFully( $phaseTerm )} )
+              #end
+              #set( $attrName = "$phaseTerm Stage" )
+              #set( $attrVal = ${strings.trimToEmpty( $riskTokens.get(1) )} )
+              #if( $attrVal.length() > 0 )
+                $!subject.setAttribute( "${attrName.trim()}", "$attrVal" )
+              #end
+            #elseif( $term.endsWith( "t stage" ) || $term.endsWith( "n stage" ) || $term.endsWith( "m stage" ) )
+              #set( $concatVal = $upload.concatEntry( "TNMStage $phaseTerm", "$subject.getDonorid()", ${riskTokens.get(1)}, "" ) ) 
+              #set( $concatVal = $upload.concatEntry( "TNMStage phase", "$subject.getDonorid()", $phaseTerm ) ) 
+            #end
+          #end    
+## #################################################
+## Transfer race to subject ethnicity
+## #################################################
         #elseif( $attrName == "Race" )
           #set( $attrVal = $words.capitalizeFully( $attrVal ) )
           $!subject.setEthnicity( "$attrVal" )
+## #################################################
+## Setup country of enrollment
+## #################################################
         #elseif( $attrName == "Country of enrollment" )
-## #################################################
-## Setup country info
-## #################################################
           #set( $countryName = "${attrVal.toUpperCase()}" )
           #set( $countryId = 0 )
           #if( ${countryName.length()} > 0 )
@@ -162,17 +221,20 @@ ${lines.size()} lines read
               #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Using country id: $countryId ($country)" ) )
             #end
           #end
+          #set( $attrName = $words.capitalizeFully( $attrName.toLowerCase() ) )
+          #set( $attrVal = $words.capitalizeFully( $attrVal.toLowerCase() ) )
+          $!subject.setAttribute( "$attrName", "$attrVal" ) 
           #if( $site )
             $!site.setCountryid( $countryId )
             #set( $site = $db.storeOrganization( $site ) )
             #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "An organization has been updated: ${site.getOrgname()}." ) )
-          #else
-            $!subject.setAttribute( "$attrName", "$attrVal" ) 
           #end
-        #elseif( $attrName == "Clinical Diagnosis" )
-          #set( $attrVal = $words.capitalizeFully( $attrVal ) )
-          $!subject.setAttribute( "$attrName", "$attrVal" )
+## #################################################
+## Capitalize all other attributes 
+## #################################################
         #else
+          #set( $attrName = $words.capitalizeFully( $attrName.toLowerCase() ) )
+          #set( $attrVal = $words.capitalizeFully( $attrVal.toLowerCase() ) )
           $!subject.setAttribute( "$attrName", "$attrVal" )
         #end
 ## #################################################
@@ -198,6 +260,46 @@ ${lines.size()} lines read
     $!subject.setAttribute( "Risk Factors", "$riskValue" )
     #set( $subject = $db.storeSubject( ${user.getUserid()}, $subject ) )
     #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Subject ${subject} risk factors updated." ) )
+  #else
+    #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Cannot find subject donorId: $risk." ) )
+  #end
+#end
+## #################################################
+## Store subjects medical history
+## #################################################
+#set( $riskFactors = $upload.getKeys( "medicalHistory" ) )
+#foreach( $risk in $riskFactors )
+  #set( $donorId = $convert.toNumber( $risk ) )
+  #set( $subject = $db.findSubjectById( $donorId.longValue() ) )
+  #set( $dummy = $upload.printInfo( "===== subject: $subject" ) )
+  #if( $subject )
+    #set( $riskValue = $upload.getValue( "medicalHistory", $risk ) )
+    #set( $dummy = $upload.printInfo( "======= medical history: $riskValue" ) )
+    $!subject.setAttribute( "Medical History", "$riskValue" )
+    #set( $subject = $db.storeSubject( ${user.getUserid()}, $subject ) )
+    #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Subject ${subject} medical history updated." ) )
+  #else
+    #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Cannot find subject donorId: $risk." ) )
+  #end
+#end
+## #################################################
+## Store subjects TNM stage
+## #################################################
+#set( $riskFactors = $upload.getKeys( "TNMStage phase" ) )
+#foreach( $risk in $riskFactors )
+  #set( $donorId = $convert.toNumber( $risk ) )
+  #set( $subject = $db.findSubjectById( $donorId.longValue() ) )
+  #if( $subject )
+    #set( $phases = ${strings.trimToEmpty( $upload.getValue( "TNMStage phase", $risk ) ).split("[,]")} )
+    #foreach( $phase in $phases )
+      #set( $tnmVal = ${strings.trimToEmpty($upload.getValue( "TNMStage ${phase.trim()}", $risk ))} )
+      #set( $attrName = "${words.capiltalizeFully( ${phase.trim()} )} TNM" )
+      #if( $tnmVal.length() > 0 )
+        $!subject.setAttribute( "${attrName.trim()}", "$tnmVal" )
+        #set( $subject = $db.storeSubject( ${user.getUserid()}, $subject ) )
+        #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Subject ${subject} TNM classification updated." ) )
+      #end
+    #end
   #else
     #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Cannot find subject donorId: $risk." ) )
   #end

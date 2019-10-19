@@ -2,6 +2,7 @@ package com.emd.simbiom.upload;
 
 import java.math.BigInteger;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 
@@ -550,6 +551,20 @@ public class UploadBatch implements Copyable {
     }
 
     /**
+     * Sets a value of a named map. If the map doesn't exist it will be created.
+     *
+     * @param mapName the name of the map.
+     * @param key the key to store.
+     * @param value the value to be put.
+     * @return the stored value as string.
+     */
+    public String putValue( String mapName, Object key, Object value ) {
+	Map nMap = retrieveMap( mapName );
+	nMap.put( key, value );
+	return value.toString();
+    }
+
+    /**
      * Returns the set of keys used in the named map.
      *
      * @param mapName the name of the map.
@@ -570,6 +585,31 @@ public class UploadBatch implements Copyable {
     public Object getValue( String mapName, Object key ) {
 	Map nMap = retrieveMap( mapName );
 	return nMap.get( key );
+    }
+
+    /**
+     * Prepares a temp workspace for processing files.
+     *
+     * @return a temporary file representing a directory.
+     */
+    public File createWorkspace() {
+	File wsDir = null;
+	try {
+	    File tempF = File.createTempFile( "deleteme", null );
+	    wsDir = new File( tempF.getParentFile(), "upd-"+UUID.randomUUID().toString() );
+	    if( !wsDir.mkdir() ) {
+		log.error( "Cannot create folder: "+wsDir );
+		wsDir = null;
+	    }
+	    // if( wsDir != null ) 
+	    // 	writeUploadFile( wsDir );
+	    tempF.delete();
+	}
+	catch( IOException ioe ) {
+	    log.error( ioe );
+	    wsDir = null;
+	}
+	return wsDir; 
     }
 
     public void printError( Object msg ) {

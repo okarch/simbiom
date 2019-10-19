@@ -1,0 +1,147 @@
+## #################################################
+## Report accumulated purchases
+## #################################################
+#set( $dtFormat = "dd-MMM-yyyy" )
+#set( $delim = "[|]" )
+#set( $colDelim = "[,]" )
+#if( !$upload )
+  #stop
+#end
+#if( !$reportStrategy )
+  #set( $dummy = $db.addUploadMessage( $upload, "ERROR", "Report strategy is missing." ) )
+  #stop
+#end
+## #################################################
+## Header structure supported:
+##
+## Purchase Order|Project|Project Code|Start Date|End Date|Sheet Name|Output Columns
+## #################################################
+## #################################################
+## Output columns supported:
+##
+## Purchase Order*|Project*|Project Code|Start Date*|End Date*|Quarter (QN/YYYY)|Period (MMM YYYY)|Year (YYYY)|Total*|Mean Sample Count|Checked Invoices|Rejected Invoices|Approved Invoices
+## #################################################
+#set( $lines = $upload.readLines( $delim ) )
+start processing report $upload.getUploadid() $upload.getUploaded()
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "Report ${template.getTemplatename()} initiated by user $user.username. ${lines.size()} lines read." ) )
+${lines.size()} lines read
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", "${lines.size()} lines read." ) )
+## #################################################
+## Iterate through input parameter lines
+## #################################################
+#set( $mandatoryCols = 4 )
+#set( $reportName = $strings.trimToEmpty( $reportName ) )
+#set( $repName = $strings.defaultIfEmpty( "$reportName", "${template.getTemplatename()} - ${upload.getUploaded()}" ) )
+#set( $output = $report.createReport( $repName, "xls" ) )
+$!output.setReportStrategy( $reportStrategy ) ) 
+#foreach( $line in $lines )
+  #set( $columns = $line.split( $delim ) )
+## #################################################
+## Skip if too few columns
+## #################################################
+  #if( $columns.size() < $mandatoryCols )
+    #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $velocityCount, "Columns expected ${mandatoryCols}, read ${columns.size()}." ) )
+## #################################################
+## Skip header line
+## #################################################
+  #elseif( $velocityCount <= 1 ) 
+    #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Header line skipped." ) )
+  #else
+## #################################################
+## Read control parameters
+## #################################################
+    #set( $reportCols = ${columns.get(6)} )
+    #set( $reportCols = $strings.trimToEmpty( $reportCols ) )
+    #set( $outputCols = $reportCols.split( $colDelim ) )
+    #set( $rowNum = $output.addReportGroup() )
+    #foreach( $outputCol in $outputCols )
+      $!output.addColumn( $rowNum, $outputCol )
+    #end
+    #set( $poNum = ${columns.get(0)} )
+    #set( $poNum = $strings.trimToEmpty( $poNum ) )
+    #set( $projectTerm = ${columns.get(1)} )
+    #set( $projectTerm = $strings.trimToEmpty( $projectTerm ) )
+    #set( $projectCode = ${columns.get(2)} )
+    #set( $projectCode = $strings.trimToEmpty( $projectCode ) )
+    #set( $startDate = ${columns.get(3)} )
+    #set( $startDate = $strings.trimToEmpty( $startDate ) )
+    #set( $endDate = ${columns.get(4)} )
+    #set( $endDate = $strings.trimToEmpty( $endDate ) )
+    #if( $endDate.length() <= 0 )
+      #set( $endDate = $dateFormats.format( ${systems.currentTimeMillis()}, "dd-MMM-YYYY" ) )
+    #end
+    #set( $sheetName = ${columns.get(5)} )
+    #set( $sheetName = $strings.trimToEmpty( $sheetName ) )
+    #if( $sheetName.length() > 0 )
+      $!output.setSheetName( $rowNum, $sheetName )
+    #end
+    #set( $period = "" )
+    #if( $startDate.length() > 0 )
+      #set( $period = "$startDate" )
+    #else
+      #set( $period = "01-JAN-2014" )
+    #end
+    #if( $endDate.length() > 0 )
+      #set( $period = "${period}..${endDate}" )
+    #end
+    $!output.setPeriod( $rowNum, $period ) 
+    #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Invoice period: $period." ) )
+    #set( $invoices = $db.findInvoiceByPeriod( "$period", false ) )
+    #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Number of invoices found: ${invoices.size()}." ) )
+    #set( $numInvoices = 0 )
+    #set( $numLine = $velocityCount )
+    #foreach( $invoice in $invoices )
+      #if( ($poNum.length() > 0) && ($invoice.getPurchase() == $poNum) )
+        #set( $repGroup = $output.addReportItem( $rowNum, $invoice ) )
+        #if( !$repGroup )
+          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $numLine, "Invoice ignored: $invoice" ) )
+        #else
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $numLine, "Invoice added: $invoice" ) )
+          #set( $numInvoices = $numInvoices + 1 )
+        #end
+      #elseif( $projectTerm.length() > 0 )
+        #foreach( $project in $invoice.projects )
+          #if( ${project.toLowerCase().indexOf( $projectTerm )} >= 0 )
+            #set( $repGroup = $output.addReportItem( $rowNum, $invoice ) )
+            #if( !$repGroup )
+              #set( $dummy = $db.addUploadMessage( $upload, "WARN", $numLine, "Invoice ignored: $invoice" ) )
+            #else
+              #set( $dummy = $db.addUploadMessage( $upload, "INFO", $numLine, "Invoice added: $invoice" ) )
+              #set( $numInvoices = $numInvoices + 1 )
+            #end
+          #end
+        #end 
+      #elseif( $projectCode.length() > 0 )
+        #foreach( $pCode in $invoice.projectCodes )
+          #if( ${pCode.toLowerCase().indexOf( $projectCode )} >= 0 )
+            #set( $repGroup = $output.addReportItem( $rowNum, $invoice ) )
+            #if( !$repGroup )
+              #set( $dummy = $db.addUploadMessage( $upload, "WARN", $numLine, "Invoice ignored: $invoice" ) )
+            #else
+              #set( $dummy = $db.addUploadMessage( $upload, "INFO", $numLine, "Invoice added: $invoice" ) )
+              #set( $numInvoices = $numInvoices + 1 )
+            #end
+          #end
+        #end 
+      #end
+    #end
+  #end
+#end
+## #################################################
+## Create report
+## #################################################
+#set( $numReportItems = $output.getReportItemCount() )
+#set( $dummy = $db.addUploadMessage( $upload, "INFO", $numLine, "Report selection completed, report items: $numReportItems" ) )
+#set( $workspace = $upload.createWorkspace() )
+#set( $outFiles = $output.exportReport( $workspace ) )
+## #################################################
+## Store report
+## #################################################
+#if( $outFiles.size() > 0 )
+  #set( $dummy = $db.addUploadMessage( $upload, "INFO", $numLine, "Report generated. Number of output files produced: ${outFiles.size()}." ) )
+  #foreach( $outFile in $outFiles )
+    #set( $dummy = $db.storeOutput( $upload, $outFile ) )
+  #end
+#else 
+  #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $numLine, "No report has been produced" ) )
+#end
