@@ -12,6 +12,10 @@
 		<priority value="DEBUG" />
 	</category>
 
+	<category name="com.emd.vutils">
+		<priority value="DEBUG" />
+	</category>
+
 	<root>
 		<priority value="INFO" />
 		<appender-ref ref="CONSOLE" />

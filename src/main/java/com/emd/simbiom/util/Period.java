@@ -33,6 +33,7 @@ public class Period {
     private static Log log = LogFactory.getLog(Period.class);
 
     private static final String[] periodPatterns = new String[] {
+        "MMMdd,yyyy",
 	"yyyy",
         "yyyy/MM",
 	"MM/yyyy",
@@ -41,7 +42,6 @@ public class Period {
 	"dd-MM-yyyy",
         "dd.MM.yyyy",
         "MM/dd/yyyy",
-        "MMMdd,yyyy"
     };
 
     // private static final int[] QUARTER_MONTH = { 1, 4, 7, 10 };
@@ -248,7 +248,7 @@ public class Period {
 	for( int i = 0; i < periodPatterns.length; i++ ) {
 	    SimpleDateFormat formatter = new SimpleDateFormat( periodPatterns[i] );
 	    try {
-		log.debug( "Applying "+periodPatterns[i]+" to "+nPeriod );
+		// log.debug( "Applying "+periodPatterns[i]+" to "+nPeriod );
 		periodDate = formatter.parse( nPeriod );
 		if( periodDate != null ) {
 		    patternIndex = i;
@@ -309,7 +309,7 @@ public class Period {
 	    dtEnd.setTime( cal.getTimeInMillis() );
 	}
 
-	log.debug( "Start date: "+dtStart+" end date: "+dtEnd );
+	// log.debug( "Start date: "+dtStart+" end date: "+dtEnd );
 
 	return new Period( dtStart, dtEnd );
     }

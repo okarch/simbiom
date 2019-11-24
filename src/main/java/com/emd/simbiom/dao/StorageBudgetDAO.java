@@ -15,8 +15,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import java.util.zip.DataFormatException;
-
 import org.apache.commons.io.FileUtils;
 
 import org.apache.commons.logging.Log;
@@ -29,7 +27,6 @@ import com.emd.simbiom.model.StorageDocument;
 import com.emd.simbiom.model.StorageGroup;
 import com.emd.simbiom.model.StorageProject;
 
-import com.emd.simbiom.util.DataHasher;
 import com.emd.simbiom.util.Period;
 import com.emd.simbiom.util.PeriodParseException;
 
@@ -43,7 +40,7 @@ import com.emd.util.Stringx;
  * @author <a href="mailto:okarch@linux">Oliver</a>
  * @version 1.0
  */
-public class StorageBudgetDAO extends BasicDAO implements StorageBudget, DocumentLoader {
+public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 
     private static Log log = LogFactory.getLog(StorageBudgetDAO.class);
 
@@ -55,7 +52,6 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
     private static final String STMT_BILL_INSERT             = "biobank.billing.insert";
     private static final String STMT_BILL_UPDATE             = "biobank.billing.update";
 
-    private static final String STMT_CONTENT_BY_MD5          = "biobank.uploadraw.findMd5";
     private static final String STMT_CONTENT_DELETE          = "biobank.uploadraw.delete";
     private static final String STMT_CONTENT_INSERT          = "biobank.uploadraw.insert";
 
@@ -980,113 +976,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget, Documen
      */
     public DocumentContent findDocumentContent( String md5 )
 	throws SQLException {
-
-	PreparedStatement pstmt = getStatement( STMT_CONTENT_BY_MD5 );
-	pstmt.setString( 1, md5 );
-	ResultSet res = pstmt.executeQuery();
-	DocumentContent cont = null;
-	if( res.next() ) 
-	    cont = (DocumentContent)TableUtils.toObject( res, new DocumentContent() );
-	res.close();
-	popStatement( pstmt );
-	return cont;
+	return findDocumentContent( md5 );
     }
-
-    /**
-     * Writes document content to the given <code>OutputStream</code>.
-     *
-     * @param md5sum the content identifier.
-     * @param mime the mime type (can be null if provided could be used to apply some output encoding)
-     * @param outs the output stream to write content to.
-     *
-     * @return true if content was written, false otherwise.
-     *
-     * @exception IOException is thrown when an error occurs.
-     */
-    public boolean writeContent( String md5sum, String mime, OutputStream outs )
-	throws IOException {
-
-	DocumentContent cont = null;
-	try {
-	    PreparedStatement pstmt = getStatement( STMT_CONTENT_BY_MD5 );
-	    pstmt.setString( 1, md5sum );
-	    ResultSet res = pstmt.executeQuery();
-	    cont = null;
-	    if( res.next() ) 
-		cont = (DocumentContent)TableUtils.toObject( res, new DocumentContent() );
-	    res.close();
-	    popStatement( pstmt );
-	}
-	catch( SQLException sqe ) {
-	    log.error( sqe );
-	    throw new IOException( sqe );
-	}
-
-	if( cont == null ) {
-	    log.warn( "Content not available: "+md5sum );
-	    return false;
-	}
-	    
-	byte[] buf = null;
-	try {
-	    buf = DataHasher.decode( Stringx.getDefault(cont.getUpload(),"") );
-	}
-	catch( DataFormatException de ) {
-	    log.error( de );
-	    throw new IOException( de );
-	}
-	outs.write( buf );
-	outs.flush();
-	buf = null;
-	return true;
-    }
-
-    /**
-     * Reads from the given <code>InputStream</code> and stores the content.
-     *
-     * @param md5sum the content identifier (if null it will be calculated based on the content).
-     * @param mime the mime type (can be null if provided could be used to apply some input encoding)
-     * @param ins the input stream to read from.
-     *
-     * @return the md5sum calculated from the content.
-     *
-     */
-    // public String storeContent( String md5sum, String mime, InputStream ins )
-    // 	throws IOException {
-
-    // 	// String updCont = null;
-    // 	StringWriter sw = new StringWriter();
-    // 	WriterOutputStream outs = new WriterOutputStream( sw );
-    // 	ZipCoder.encodeTo( ins, outs );
-    // 	outs.flush();
-    // 	String updCont = sw.toString();
-    // 	ins.close();
-    // 	outs.close();
-    // 	String md5 = UploadContent.calculateMd5sum( updCont );
-    // 	log.debug( "Coded content length "+String.valueOf(updCont.length())+" md5sum: "+md5 );
-
-    // 	PreparedStatement pstmt = null;
-    // 	try {
-    // 	    pstmt = getStatement( STMT_RAW_DELETE );
-    // 	    pstmt.setString( 1, md5 );
-    // 	    pstmt.executeUpdate();
-    // 	}
-    // 	catch( SQLException sqe ) {
-    // 	    log.warn( "Deleting "+md5+": "+Stringx.getDefault(sqe.getMessage(),"") );
-    // 	}
-
-    // 	try {
-    // 	    pstmt = getStatement( STMT_RAW_INSERT );
-    // 	    pstmt.setString( 1, md5 );
-    // 	    pstmt.setString( 2, updCont );
-    // 	    pstmt.executeUpdate();
-    // 	}
-    // 	catch( SQLException sqe ) {
-    // 	    log.error( sqe );
-    // 	    throw new IOException( sqe );
-    // 	}
-
-    // 	return md5;
-    // }
 
 }

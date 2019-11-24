@@ -18,13 +18,15 @@ public class Roles {
     public static final long INVENTORY_UPLOAD = 4L;
     public static final long STORAGE_EDIT     = 8L;
     public static final long INVOICE_EDIT     = 16L;
+    public static final long INVENTORY_REPORT = 32L;
     
     private static final String[] roleNames = {
 	"Super user",
 	"View sample entries",
 	"Upload to inventory",
 	"Specify storage projects",
-	"Handle invoices"
+	"Handle invoices",
+	"Inventory reports"
     };
 
     private Roles() { }

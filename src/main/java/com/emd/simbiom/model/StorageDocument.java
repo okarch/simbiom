@@ -38,6 +38,10 @@ public class StorageDocument implements Copyable {
     private File file;
 
     private DocumentLoader documentLoader;
+    /**
+     * Describe uploadid here.
+     */
+    private long uploadid;
 
     /**
      * Creates a new storage document.
@@ -46,6 +50,7 @@ public class StorageDocument implements Copyable {
 	this.setDocumentid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
 	this.setCreated( new Timestamp( (new Date()).getTime() ));
 	this.setProjectid( 0L );
+	this.setUploadid( 0L );
     }
 
     /**
@@ -98,6 +103,24 @@ public class StorageDocument implements Copyable {
      */
     public final void setProjectid(final long projectid) {
 	this.projectid = projectid;
+    }
+
+    /**
+     * Get the <code>Uploadid</code> value.
+     *
+     * @return a <code>long</code> value
+     */
+    public final long getUploadid() {
+	return uploadid;
+    }
+
+    /**
+     * Set the <code>Uploadid</code> value.
+     *
+     * @param uploadid The new Uploadid value.
+     */
+    public final void setUploadid(final long uploadid) {
+	this.uploadid = uploadid;
     }
 
     /**

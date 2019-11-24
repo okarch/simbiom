@@ -1,11 +1,16 @@
 package com.emd.simbiom.dao;
 
+import java.io.InputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.emd.simbiom.model.DocumentContent;
 import com.emd.simbiom.model.Trackable;
 
 /**
@@ -16,7 +21,7 @@ import com.emd.simbiom.model.Trackable;
  * @author <a href="mailto:okarch@linux">Oliver</a>
  * @version 1.0
  */
-public abstract class BasicDAO {
+public abstract class BasicDAO implements DocumentLoader {
     private DatabaseDAO database;
     private DataAccessObjectProvider dataAccessObjectProvider;
 
@@ -93,6 +98,80 @@ public abstract class BasicDAO {
     protected FullContentSearch getContentSearch() {
 	return database.getContentSearch();
     }
+
+    protected DocumentContent findDocumentContent( String md5 )
+	throws SQLException {
+	if( database != null )
+	    return database.findDocumentContent( md5 );
+	return null;
+    }
+
+    /**
+     * Writes document content to the given <code>OutputStream</code>.
+     *
+     * @param md5sum the content identifier.
+     * @param mime the mime type (can be null if provided could be used to apply some output encoding)
+     * @param outs the output stream to write content to.
+     *
+     * @return true if content was written, false otherwise.
+     *
+     * @exception IOException is thrown when an error occurs.
+     */
+    public boolean writeContent( String md5sum, String mime, OutputStream outs )
+	throws IOException {
+
+	if( database != null )
+	    return database.writeContent( md5sum, mime, outs );
+	return false;
+    }
+
+    /**
+     * Reads from the given <code>InputStream</code> and stores the content.
+     *
+     * @param md5sum the content identifier (if null it will be calculated based on the content).
+     * @param mime the mime type (can be null if provided could be used to apply some input encoding)
+     * @param ins the input stream to read from.
+     *
+     * @return the md5sum calculated from the content.
+     *
+     */
+    // public String storeContent( String md5sum, String mime, InputStream ins )
+    // 	throws IOException {
+
+    // 	// String updCont = null;
+    // 	StringWriter sw = new StringWriter();
+    // 	WriterOutputStream outs = new WriterOutputStream( sw );
+    // 	ZipCoder.encodeTo( ins, outs );
+    // 	outs.flush();
+    // 	String updCont = sw.toString();
+    // 	ins.close();
+    // 	outs.close();
+    // 	String md5 = UploadContent.calculateMd5sum( updCont );
+    // 	log.debug( "Coded content length "+String.valueOf(updCont.length())+" md5sum: "+md5 );
+
+    // 	PreparedStatement pstmt = null;
+    // 	try {
+    // 	    pstmt = getStatement( STMT_RAW_DELETE );
+    // 	    pstmt.setString( 1, md5 );
+    // 	    pstmt.executeUpdate();
+    // 	}
+    // 	catch( SQLException sqe ) {
+    // 	    log.warn( "Deleting "+md5+": "+Stringx.getDefault(sqe.getMessage(),"") );
+    // 	}
+
+    // 	try {
+    // 	    pstmt = getStatement( STMT_RAW_INSERT );
+    // 	    pstmt.setString( 1, md5 );
+    // 	    pstmt.setString( 2, updCont );
+    // 	    pstmt.executeUpdate();
+    // 	}
+    // 	catch( SQLException sqe ) {
+    // 	    log.error( sqe );
+    // 	    throw new IOException( sqe );
+    // 	}
+
+    // 	return md5;
+    // }
 
     /**
      * Initializes the database entities.

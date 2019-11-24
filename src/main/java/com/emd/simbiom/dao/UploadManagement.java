@@ -1,6 +1,11 @@
 package com.emd.simbiom.dao;
 
+import java.io.File;
+import java.io.IOException;
+
 import java.sql.SQLException;
+
+import com.emd.simbiom.model.StorageDocument;
 
 import com.emd.simbiom.upload.InventoryUploadTemplate;
 import com.emd.simbiom.upload.UploadBatch;
@@ -92,6 +97,54 @@ public interface UploadManagement {
      * @return the (newly) stored template.
      */
     public UploadLog addUploadMessage( UploadBatch upload, String level, String msg ) 
+	throws SQLException;
+
+    /**
+     * Creates a new storage document from a <code>File</code> object.
+     *
+     * @param file the file location.
+     * @param mime the mime type.
+     * @return a newly created <code>StorageDocument</code> based on the given file.
+     */
+    public StorageDocument createOutput( UploadBatch upload, File file, String mime ) 
+	throws IOException;
+
+    /**
+     * Returns the storage document associated with a given upload.
+     *
+     * @param uploadId the upload id (if 0 the md5sum will be used).
+     * @param md5 the md5sum of the file (if null, upload id will be used).
+     * @return a list of matching <code>StorageDocument</code> objects.
+     */
+    public StorageDocument[] findOutputs( long uploadId, String md5 ) 
+	throws SQLException;
+
+    /**
+     * Returns the document with the given id.
+     *
+     * @param documentId the document id.
+     * @return the document or null (if not existing).
+     */
+    public StorageDocument findOutputById( long documentId )
+	throws SQLException;
+
+    /**
+     * Stores an output document in the database. An existing document will be replaced.
+     *
+     * @param md5 the md5sum.
+     * @param file the file location.
+     * @return a <code>StorageDocument</code> object.
+     */
+    public StorageDocument storeOutput( StorageDocument document, File file )
+	throws SQLException;
+
+    /**
+     * Returns a list of output files for a given report template.
+     * 
+     * @param template the report template.
+     * @return the list of output files.
+     */
+    public StorageDocument[] findOutputByTemplate( InventoryUploadTemplate template ) 
 	throws SQLException;
 
 }

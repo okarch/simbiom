@@ -1,5 +1,11 @@
 package com.emd.simbiom.dao;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,9 +21,15 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.emd.simbiom.model.StorageDocument;
+
 import com.emd.simbiom.upload.InventoryUploadTemplate;
 import com.emd.simbiom.upload.UploadBatch;
 import com.emd.simbiom.upload.UploadLog;
+
+import com.emd.simbiom.util.DataHasher;
+
+import com.emd.io.WriterOutputStream;
 
 import com.emd.util.Stringx;
 
@@ -33,6 +45,9 @@ public class UploadManagementDAO extends BasicDAO implements UploadManagement {
 
     private static Log log = LogFactory.getLog(UploadManagementDAO.class);
 
+    private static final String STMT_CONTENT_DELETE      = "biobank.uploadraw.delete";
+    private static final String STMT_CONTENT_INSERT      = "biobank.uploadraw.insert";
+
     private static final String STMT_RAW_FIND_OLD        = "biobank.uploadraw.findArchiveLoads";
     private static final String STMT_RAW_INSERT          = "biobank.uploadraw.insert";
 
@@ -46,6 +61,16 @@ public class UploadManagementDAO extends BasicDAO implements UploadManagement {
     private static final String STMT_UPLOAD_DELETE       = "biobank.upload.deleteAll";
     private static final String STMT_UPLOAD_LOG          = "biobank.upload.findLatestLogs";
     private static final String STMT_UPLOAD_MOVE         = "biobank.upload.move";
+
+    private static final String STMT_OUTPUT_BY_DID       = "biobank.output.findId";
+    private static final String STMT_OUTPUT_BY_REPORT    = "biobank.upload.findOutput";
+    private static final String STMT_OUTPUT_INSERT       = "biobank.output.insert";
+    private static final String STMT_OUTPUT_BY_MD5       = "biobank.output.findMd5";
+    private static final String STMT_OUTPUT_UPDATE       = "biobank.output.update";
+    private static final String STMT_OUTPUT_BY_UPDMD5    = "biobank.output.findUploadMd5";
+    private static final String STMT_OUTPUT_BY_UPLOAD    = "biobank.output.findUpload";
+
+    private static final String STMT_DOCUMENT_DELETE         = "biobank.document.delete";
 
     private static final String STMT_LOG_INSERT          = "biobank.log.insert";
     private static final String STMT_LOG_DELETE          = "biobank.log.deleteAll";
@@ -397,6 +422,258 @@ public class UploadManagementDAO extends BasicDAO implements UploadManagement {
 	throws SQLException {
 
 	return addUploadMessage( upload, level, 0L, msg );
+    }
+
+    /**
+     * Creates a new storage document from a <code>File</code> object.
+     *
+     * @param file the file location.
+     * @param mime the mime type.
+     * @return a newly created <code>StorageDocument</code> based on the given file.
+     */
+    public StorageDocument createOutput( UploadBatch upload, File file, String mime ) 
+	throws IOException {
+	
+	InputStream fIns = new FileInputStream( file );
+
+	StringWriter sw = new StringWriter();
+	WriterOutputStream wOuts = new WriterOutputStream( sw );
+	// TeeOutputStream tOuts = new TeeOutputStream( fOuts, wOuts );
+
+	long orgSize = DataHasher.encodeTo( fIns, wOuts );
+	wOuts.flush();
+	// tOuts.flush();
+	String updCont = sw.toString();
+	wOuts.close();
+	// tOuts.close();
+	fIns.close();
+
+	String md5 = DataHasher.calculateMd5sum( updCont );
+	log.debug( "Storage document created from file: ("+md5+"): "+file );
+
+	StorageDocument sDoc = StorageDocument.fromFile( file, md5 );
+
+	sDoc.setUploadid( upload.getUploadid() );
+	sDoc.setMime( Stringx.getDefault(mime,"") );
+	sDoc.setDocumentsize( orgSize );
+
+	return sDoc;
+    }
+
+    /**
+     * Returns the storage document associated with a given upload.
+     *
+     * @param uploadId the upload id (if 0 the md5sum will be used).
+     * @param md5 the md5sum of the file (if null, upload id will be used).
+     * @return a list of matching <code>StorageDocument</code> objects.
+     */
+    public StorageDocument[] findOutputs( long uploadId, String md5 ) 
+	throws SQLException {
+	
+	log.debug( "Search document: md5="+((md5==null)?"":md5)+" uploadid: "+uploadId ); 
+
+	PreparedStatement pstmt = null;
+	if( (uploadId != 0L) && (md5 != null) ) {
+	    pstmt = getStatement( STMT_OUTPUT_BY_UPDMD5 );
+	    pstmt.setLong( 1, uploadId );
+	    pstmt.setString( 2, md5 );
+	}
+	else if( uploadId != 0L ) {
+	    pstmt = getStatement( STMT_OUTPUT_BY_UPLOAD );
+	    pstmt.setLong( 1, uploadId );
+	}
+	else if( md5 != null ) {
+	    pstmt = getStatement( STMT_OUTPUT_BY_MD5 );
+	    pstmt.setString( 1, md5 );
+	}
+
+     	ResultSet res = pstmt.executeQuery();
+     	List<StorageDocument> fl = new ArrayList<StorageDocument>();
+     	Iterator it = TableUtils.toObjects( res, new StorageDocument() );
+	while( it.hasNext() ) {
+	    StorageDocument doc = (StorageDocument)it.next();
+	    doc.setDocumentLoader( this );
+	    fl.add( doc );
+	}
+	res.close();
+	popStatement( pstmt );
+
+     	StorageDocument[] facs = new StorageDocument[ fl.size() ];
+     	return (StorageDocument[])fl.toArray( facs );	
+    }
+
+    /**
+     * Returns the document with the given id.
+     *
+     * @param documentId the document id.
+     * @return the document or null (if not existing).
+     */
+    public StorageDocument findOutputById( long documentId )
+	throws SQLException {
+
+	PreparedStatement pstmt = getStatement( STMT_OUTPUT_BY_DID );
+     	pstmt.setLong( 1, documentId );
+
+     	ResultSet res = pstmt.executeQuery();
+     	StorageDocument doc = null;
+     	if( res.next() ) {
+     	    doc = (StorageDocument)TableUtils.toObject( res, new StorageDocument() );
+	    doc.setDocumentLoader( this );
+	}
+     	res.close();
+	popStatement( pstmt );
+
+	log.debug( "Find document by id "+documentId+": "+((doc!=null)?"match found":"no match") );
+	
+	return doc;
+    }
+
+    /**
+     * Stores an output document in the database. An existing document will be replaced.
+     *
+     * @param md5 the md5sum.
+     * @param file the file location.
+     * @return a <code>StorageDocument</code> object.
+     */
+    public StorageDocument storeOutput( StorageDocument document, File file )
+	throws SQLException {
+	
+	StorageDocument[] sDocs = findOutputs( document.getUploadid(), document.getMd5sum() );
+	StorageDocument sDoc = null;
+	if( sDocs.length > 0 ) 
+	    sDoc = sDocs[0];
+	else
+	    sDoc = findOutputById( document.getDocumentid() );
+
+	// read content fully to memory
+
+	String updContent = null;
+	String md5Read = null;
+	long orgSize = 0L;
+	try {
+	    InputStream fIns = new FileInputStream( file );
+
+	    StringWriter sw = new StringWriter();
+	    WriterOutputStream wOuts = new WriterOutputStream( sw );
+	    orgSize = DataHasher.encodeTo( fIns, wOuts );
+	    wOuts.flush();
+	    updContent = sw.toString();
+	    wOuts.close();
+	    fIns.close();
+	    md5Read = DataHasher.calculateMd5sum( updContent );
+	}
+	catch( IOException ioe ) {
+	    throw new SQLException( ioe );
+	}
+
+	if( md5Read == null )
+	    throw new SQLException( "Cannot determine md5sum from "+file );
+
+	StorageDocument rDoc = StorageDocument.fromFile( file, md5Read );
+	log.debug( "Storage document created from file: ("+md5Read+"): "+file );
+
+	String prevMd5 = document.getMd5sum();
+
+	document.setFiledate( rDoc.getFiledate() );
+	document.setDocumentsize( orgSize );
+	document.setMd5sum( md5Read );
+	document.setTitle( rDoc.getTitle() );
+
+	PreparedStatement pstmt = null;
+    
+	int nn = 1;
+	if( sDoc != null ) {
+	    document.setDocumentid( sDoc.getDocumentid() );
+	    pstmt = getStatement( STMT_OUTPUT_UPDATE );
+	    pstmt.setLong( 8, document.getDocumentid() );
+	}
+	else {
+	    pstmt = getStatement( STMT_OUTPUT_INSERT );
+	    pstmt.setLong( 1, document.getDocumentid() );
+	    nn++;
+	}
+	pstmt.setLong( nn, document.getUploadid() );
+	nn++;
+	pstmt.setTimestamp( nn, document.getCreated() );
+	nn++;
+	pstmt.setTimestamp( nn, document.getFiledate() );
+	nn++;
+	pstmt.setLong( nn, document.getDocumentsize() );
+	nn++;
+	pstmt.setString( nn, document.getMime() );
+	nn++;
+	pstmt.setString( nn, document.getTitle() );
+	nn++;
+	pstmt.setString( nn, document.getMd5sum() );
+	nn++;
+
+     	pstmt.executeUpdate();
+	popStatement( pstmt );
+
+	document.setDocumentLoader( this );
+
+	log.debug( "Storage document saved: "+document );
+
+
+	log.debug( "Storage document content "+updContent.length()+" bytes read" );
+	
+	// delete the content (if any)
+
+	pstmt = getStatement( STMT_CONTENT_DELETE );
+	try {
+	    pstmt.setString( 1, prevMd5 );
+	    pstmt.executeUpdate();
+	}
+	catch( SQLException sqe ) {
+	    // ignore
+	}
+	try {
+	    pstmt.setString( 1, document.getMd5sum() );
+	    pstmt.executeUpdate();
+	}
+	catch( SQLException sqe ) {
+	    // ignore
+	}
+	popStatement( pstmt );
+
+	log.debug( "Storage document content deleted: "+document );
+
+	// upload new content
+
+	pstmt = getStatement( STMT_CONTENT_INSERT );
+	pstmt.setString( 1, document.getMd5sum() );
+	pstmt.setString( 2, updContent );
+	pstmt.executeUpdate();
+	popStatement( pstmt );
+
+	log.debug( "Storage document content stored: "+document.getMd5sum() );
+	
+	return document;
+    }
+
+    /**
+     * Returns a list of output files for a given report template.
+     * 
+     * @param template the report template.
+     * @return the list of output files.
+     */
+    public StorageDocument[] findOutputByTemplate( InventoryUploadTemplate template ) throws SQLException {
+	PreparedStatement pstmt = getStatement( STMT_OUTPUT_BY_REPORT );
+	pstmt.setLong( 1, template.getTemplateid() );
+
+     	ResultSet res = pstmt.executeQuery();
+     	List<StorageDocument> fl = new ArrayList<StorageDocument>();
+     	Iterator it = TableUtils.toObjects( res, new StorageDocument() );
+	while( it.hasNext() ) {
+	    StorageDocument doc = (StorageDocument)it.next();
+	    doc.setDocumentLoader( this );
+	    fl.add( doc );
+	}
+	res.close();
+	popStatement( pstmt );
+
+     	StorageDocument[] facs = new StorageDocument[ fl.size() ];
+     	return (StorageDocument[])fl.toArray( facs );	
     }
 
 }

@@ -688,14 +688,18 @@ create index i_log_lin on t_inventory_log( line );
 -- 
 drop table if exists t_inventory_output;
 create table t_inventory_output(
-  outputid       bigint primary key,
+  documentid     bigint primary key,
   uploadid       bigint,
   created        timestamp,
-  md5sum         varchar(32),
-  filename       varchar(255),
-  mime           varchar(80)
+  filedate       timestamp,
+  documentsize   bigint,
+  mime           varchar(128),
+  title          varchar(255),
+  md5sum         varchar(32)
 );
 create index i_upout_uid on t_inventory_output (uploadid);
+create index i_upout_created on t_inventory_output (created);
+create index i_upout_tit on t_storage_document (title);
 create index i_upout_md5 on t_inventory_output (md5sum);
 
 

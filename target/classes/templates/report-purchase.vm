@@ -19,7 +19,7 @@
 ## #################################################
 ## Output columns supported:
 ##
-## Purchase Order*|Project*|Project Code|Start Date*|End Date*|Quarter (QN/YYYY)|Period (MMM YYYY)|Year (YYYY)|Total*|Mean Sample Count|Checked Invoices|Rejected Invoices|Approved Invoices
+## Purchase Order*|Project[txt;order=2;width=150px]*|Project Code[txt;order=2]|Start Date[dt;order=3;init=yearstart]*|End Date[dt;order=3;init=currentdate]*|Quarter[pd:QN/YYYY]|Period[dt:MMM YYYY]|Year[dt:YYYY]|Total*|Mean Sample Count|Checked Invoices|Rejected Invoices|Approved Invoices
 ## #################################################
 #set( $lines = $upload.readLines( $delim ) )
 start processing report $upload.getUploadid() $upload.getUploaded()
@@ -54,6 +54,7 @@ $!output.setReportStrategy( $reportStrategy ) )
     #set( $reportCols = $strings.trimToEmpty( $reportCols ) )
     #set( $outputCols = $reportCols.split( $colDelim ) )
     #set( $rowNum = $output.addReportGroup() )
+    #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Report group created: $rowNum." ) )
     #foreach( $outputCol in $outputCols )
       $!output.addColumn( $rowNum, $outputCol )
     #end
@@ -86,11 +87,12 @@ $!output.setReportStrategy( $reportStrategy ) )
     #end
     $!output.setPeriod( $rowNum, $period ) 
     #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Invoice period: $period." ) )
-    #set( $invoices = $db.findInvoiceByPeriod( "$period", false ) )
+    #set( $invoices = $db.findInvoiceByPeriod( "$period", true ) )
     #set( $dummy = $db.addUploadMessage( $upload, "INFO", $velocityCount, "Number of invoices found: ${invoices.size()}." ) )
     #set( $numInvoices = 0 )
     #set( $numLine = $velocityCount )
     #foreach( $invoice in $invoices )
+      #set( $dummy = $upload.printInfo( "===== Invoice $invoice, $invoice.projects.size()" ) )
       #if( ($poNum.length() > 0) && ($invoice.getPurchase() == $poNum) )
         #set( $repGroup = $output.addReportItem( $rowNum, $invoice ) )
         #if( !$repGroup )
@@ -122,7 +124,15 @@ $!output.setReportStrategy( $reportStrategy ) )
               #set( $numInvoices = $numInvoices + 1 )
             #end
           #end
-        #end 
+        #end
+      #elseif( ($poNum.length() <= 0) && ($projectTerm.length() <= 0) && ($projectCode.length() <= 0) )
+        #set( $repGroup = $output.addReportItem( $rowNum, $invoice ) )
+        #if( !$repGroup )
+          #set( $dummy = $db.addUploadMessage( $upload, "WARN", $numLine, "Invoice ignored: $invoice" ) )
+        #else
+          #set( $dummy = $db.addUploadMessage( $upload, "INFO", $numLine, "Invoice added: $invoice" ) )
+          #set( $numInvoices = $numInvoices + 1 )
+        #end
       #end
     #end
   #end
@@ -140,7 +150,8 @@ $!output.setReportStrategy( $reportStrategy ) )
 #if( $outFiles.size() > 0 )
   #set( $dummy = $db.addUploadMessage( $upload, "INFO", $numLine, "Report generated. Number of output files produced: ${outFiles.size()}." ) )
   #foreach( $outFile in $outFiles )
-    #set( $dummy = $db.storeOutput( $upload, $outFile ) )
+    #set( $outDoc = $db.createOutput( $upload, $outFile, "application/vnd.ms-excel" ) )
+    #set( $dummy = $db.storeOutput( $outDoc, $outFile ) )
   #end
 #else 
   #set( $dummy = $db.addUploadMessage( $upload, "ERROR", $numLine, "No report has been produced" ) )
