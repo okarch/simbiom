@@ -5,6 +5,7 @@
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Trackable.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/SampleDetails.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/upload/InventoryUploadTemplate.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/TasksDAO.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/SampleReportsDAO.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Age.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/CostSample.java
@@ -20,6 +21,7 @@
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/rest/SampleInventoryREST.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Accession.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/Treatments.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/job/InventoryJob.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/upload/UploadLog.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/TableUtils.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Sample.java
@@ -87,11 +89,13 @@
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Property.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/upload/UploadException.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/AbstractPropertyHolder.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/job/InventoryTask.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/DataAccessCleanerDAO.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/ParticipantsDAO.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/DataAccessCleaner.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/UploadManagement.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/Organizations.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/Tasks.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Country.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/StorageProject.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/StorageCostDAO.java

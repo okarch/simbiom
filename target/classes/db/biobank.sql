@@ -856,6 +856,48 @@ create table t_sample_report(
 );
 create index i_sre_created on t_sample_report (created);
 
+--
+-- Tasks and job scheduler related tables
+--
+
+--
+-- t_task_schedule
+--   defines tasks to be executed
+--
+drop table if exists t_task_schedule;
+create table t_task_schedule(
+  taskid         bigint primary key,
+  title          varchar(128),
+  created        timestamp,
+  modified       timestamp,
+  eventtype      varchar(20),
+  event          varchar(254),
+  status         varchar(20),
+  expired        timestamp
+);
+create index i_sched_tit on t_task_schedule (title);
+create index i_sched_created on t_task_schedule (created);
+
+insert into t_task_schedule (taskid,title,created,eventtype,event,status) values ( 1, 'Health report of biobank database', '2020-01-08 01:01:01', 'cron', '0 0 0/1 * * ?', 'enabled' );
+
+--
+-- t_task_job
+--   specifies jobs to be executed
+--
+drop table if exists t_task_job;
+create table t_task_job(
+  jobid          bigint primary key,
+  taskid         bigint,
+  userid         bigint,
+  jobtitle       varchar(128),
+  created        timestamp,
+  modified       timestamp,
+  jobtype        varchar(20),
+  job            text
+);
+create index i_job_tid on t_task_job (taskid);
+create index i_job_tit on t_task_job (jobtitle);
+
 
 -- create index i_spr_iid on t_sample_property (instanceid);
 

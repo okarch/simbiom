@@ -24,6 +24,7 @@ public interface SampleInventory extends DataAccessCleaner,
 					 Samples,
 					 Participants,
 					 Accessions,
-					 SampleReports {
+					 SampleReports,
+                                         Tasks {
 
 }

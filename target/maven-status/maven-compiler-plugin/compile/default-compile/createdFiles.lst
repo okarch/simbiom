@@ -8,6 +8,7 @@ com/emd/simbiom/model/SampleEvent.class
 com/emd/simbiom/model/StorageDocument.class
 com/emd/simbiom/dao/UploadManagement.class
 com/emd/simbiom/upload/UploadBatch.class
+com/emd/simbiom/dao/Tasks.class
 com/emd/simbiom/model/StudySample.class
 com/emd/simbiom/model/PropertyType.class
 com/emd/simbiom/feeds/RSSFeedView.class
@@ -41,6 +42,7 @@ com/emd/simbiom/upload/InventoryUploadTemplate.class
 com/emd/simbiom/dao/DataAccessObject.class
 com/emd/simbiom/dao/TreatmentsDAO.class
 com/emd/simbiom/rest/SampleInventoryController.class
+com/emd/simbiom/dao/TasksDAO.class
 com/emd/simbiom/model/Property.class
 com/emd/simbiom/model/AbstractPropertyHolder.class
 com/emd/simbiom/model/DocumentContent.class
@@ -59,6 +61,7 @@ com/emd/simbiom/dao/Treatments.class
 com/emd/simbiom/dao/SamplesDAO.class
 com/emd/simbiom/model/Organization.class
 com/emd/simbiom/model/Invoice.class
+com/emd/simbiom/job/InventoryJob.class
 com/emd/simbiom/feeds/FeedContent.class
 com/emd/simbiom/dao/SampleProcesses.class
 com/emd/simbiom/model/Country.class
@@ -80,6 +83,7 @@ com/emd/simbiom/dao/DocumentLoader.class
 com/emd/simbiom/dao/DataAccessCleanerDAO.class
 com/emd/simbiom/dao/CountryLookup.class
 com/emd/simbiom/upload/UploadException.class
+com/emd/simbiom/job/InventoryTask.class
 com/emd/simbiom/feeds/AtomFeedView.class
 com/emd/simbiom/dao/UserLookupDAO.class
 com/emd/simbiom/model/User.class
