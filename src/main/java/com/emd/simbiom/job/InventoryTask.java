@@ -36,13 +36,15 @@ public class InventoryTask implements Copyable {
 
     private List<InventoryJob> jobs;
 
+    public static final String EVENT_CRON = "cron";
+
     /**
      * Creates a new scheduler task.
      */
     public InventoryTask() {
 	this.setTaskid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
 	this.created = new Timestamp(System.currentTimeMillis());
-	this.setEventtype( "cron" ); 
+	this.setEventtype( EVENT_CRON ); 
 	this.setStatus( "enabled" );
 	this.jobs = new ArrayList<InventoryJob>();
     }
@@ -217,6 +219,16 @@ public class InventoryTask implements Copyable {
 	job.setTaskid( getTaskid() );
 	this.jobs.add( job );
 	return job;
+    }
+
+    /**
+     * Returns an array of jobs executed by this task.
+     *
+     * @return an potentially empty arry of <code>InventoryJob</code> entries.
+     */
+    public InventoryJob[] getJobs() {
+	InventoryJob[] aJobs = new InventoryJob[ this.jobs.size() ];
+	return (InventoryJob[])this.jobs.toArray( aJobs );
     }
 
     /**
