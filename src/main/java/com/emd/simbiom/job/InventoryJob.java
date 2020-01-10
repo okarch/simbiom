@@ -31,6 +31,9 @@ public class InventoryJob implements Copyable {
     private Timestamp created;
     private Timestamp modified;
 
+    public static final String ANT      = "ant";
+    public static final String VELOCITY = "velocity";
+
 
     /**
      * Creates a new scheduler task.
