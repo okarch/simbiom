@@ -19,6 +19,7 @@ public class Roles {
     public static final long STORAGE_EDIT     = 8L;
     public static final long INVOICE_EDIT     = 16L;
     public static final long INVENTORY_REPORT = 32L;
+    public static final long TASK_SCHEDULE    = 64L;
     
     private static final String[] roleNames = {
 	"Super user",
@@ -26,7 +27,8 @@ public class Roles {
 	"Upload to inventory",
 	"Specify storage projects",
 	"Handle invoices",
-	"Inventory reports"
+	"Inventory reports",
+	"Schedule tasks"
     };
 
     private Roles() { }

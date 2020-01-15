@@ -4,6 +4,7 @@ package com.emd.simbiom.dao;
 
 import java.sql.SQLException;
 
+import com.emd.simbiom.job.InventoryJob;
 import com.emd.simbiom.job.InventoryTask;
 // import com.emd.simbiom.model.DocumentContent;
 // import com.emd.simbiom.model.Invoice;
@@ -60,6 +61,25 @@ public interface Tasks {
     public InventoryTask[] findTaskByName( String title ) 
 	throws SQLException;
 
+    /**
+     * Returns the job with the given id.
+     *
+     * @param jobId the job id.
+     * @return the job or null (if not existing).
+     */
+    public InventoryJob findJobById( long jobId ) 
+	throws SQLException;
+
+    /**
+     * Assigns a job to a scheduled task. Task is expected to exist already.
+     * If the job does not exist it will be created, it will be updated otherwise.
+     *
+     * @param task the task to be updated.
+     * @param job the job to be added.
+     * @return the updated task.
+     */
+    public InventoryTask assignJob( InventoryTask task, InventoryJob job ) 
+	throws SQLException;
 
 
     /**

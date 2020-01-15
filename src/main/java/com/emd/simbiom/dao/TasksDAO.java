@@ -45,6 +45,10 @@ public class TasksDAO extends BasicDAO implements Tasks {
     private static final String STMT_SCHEDULE_INSERT         = "biobank.schedule.insert";
     private static final String STMT_SCHEDULE_UPDATE         = "biobank.schedule.update";
 
+    private static final String STMT_JOB_BY_ID               = "biobank.job.findById";
+    private static final String STMT_JOB_INSERT              = "biobank.job.insert";
+    private static final String STMT_JOB_DELETE              = "biobank.job.delete";
+
     // private static final String STMT_CONTENT_DELETE          = "biobank.uploadraw.delete";
     // private static final String STMT_CONTENT_INSERT          = "biobank.uploadraw.insert";
 
@@ -209,6 +213,91 @@ public class TasksDAO extends BasicDAO implements Tasks {
 	
 	InventoryTask[] tasks = new InventoryTask[ fl.size() ];
 	return (InventoryTask[])fl.toArray( tasks );
+    }
+
+    /**
+     * Returns the job with the given id.
+     *
+     * @param jobId the job id.
+     * @return the job or null (if not existing).
+     */
+    public InventoryJob findJobById( long jobId ) 
+	throws SQLException {
+
+	PreparedStatement pstmt = getStatement( STMT_JOB_BY_ID );
+     	pstmt.setLong( 1, jobId );
+
+     	ResultSet res = pstmt.executeQuery();
+	InventoryJob job = null;
+	if( res.next() )
+	    job = (InventoryJob)TableUtils.toObject( res, new InventoryJob() );
+	res.close();
+	popStatement( pstmt );
+
+	return job;
+    }
+
+    /**
+     * Assigns a job to a scheduled task. Task is expected to exist already.
+     * If the job does not exist it will be created, it will be updated otherwise.
+     *
+     * @param task the task to be updated.
+     * @param job the job to be added.
+     * @return the updated task.
+     */
+    public InventoryTask assignJob( InventoryTask task, InventoryJob job ) 
+	throws SQLException {
+
+	InventoryTask tsk = findTaskById( task.getTaskid() );
+	if( tsk == null )
+	    throw new SQLException( "Task "+task+" does not exist." );
+
+	InventoryJob jb = findJobById( job.getJobid() );
+
+	PreparedStatement pstmt = null;
+	if( jb != null ) {
+	    log.warn( "Job "+jb.getJobid()+" exists already." );
+
+	    Timestamp prevCreated = jb.getCreated();
+
+	    // delete the existing job first
+
+	    pstmt = getStatement( STMT_JOB_DELETE );
+	    pstmt.setLong( 1, task.getTaskid() );
+	    pstmt.executeUpdate();
+	    popStatement( pstmt );
+
+	    // update creation and modification dates
+	    
+	    job.setCreated( prevCreated );
+	    job.setModified( new Timestamp(System.currentTimeMillis()) );
+	    
+	    log.debug( "Previous job "+jb.getJobid()+" has been deleted." );
+	}
+	
+	pstmt = getStatement( STMT_JOB_INSERT );
+	pstmt.setLong( 1, job.getJobid() );
+	pstmt.setLong( 2, task.getTaskid() );
+	pstmt.setLong( 3, job.getUserid() );
+	pstmt.setString( 4, job.getJobtitle() );
+	pstmt.setTimestamp( 5, job.getCreated() );
+	pstmt.setTimestamp( 6, job.getModified() );
+	pstmt.setString( 7, job.getJobtype() );
+	pstmt.setString( 8, job.getJob() );
+
+     	pstmt.executeUpdate();
+	popStatement( pstmt );
+
+	log.debug( "Job has been inserted: "+job.getJobid() );
+
+	// update task to record modification
+
+	task = storeTask( task );
+	task = findTaskById( task.getTaskid() );
+
+	log.debug( "Updated task: "+task );
+
+	return task;
     }
     
     /**
