@@ -39,7 +39,7 @@ public class InventoryJob implements Copyable {
      * Creates a new scheduler task.
      */
     public InventoryJob() {
-	this.setTaskid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
+	this.setJobid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
 	this.created = new Timestamp(System.currentTimeMillis());
     }
 
