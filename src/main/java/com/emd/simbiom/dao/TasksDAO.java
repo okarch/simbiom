@@ -45,6 +45,7 @@ public class TasksDAO extends BasicDAO implements Tasks {
     private static final String STMT_SCHEDULE_INSERT         = "biobank.schedule.insert";
     private static final String STMT_SCHEDULE_UPDATE         = "biobank.schedule.update";
 
+    private static final String STMT_JOB_BY_NAME             = "biobank.job.findByName";
     private static final String STMT_JOB_BY_ID               = "biobank.job.findById";
     private static final String STMT_JOB_INSERT              = "biobank.job.insert";
     private static final String STMT_JOB_DELETE              = "biobank.job.delete";
@@ -238,6 +239,34 @@ public class TasksDAO extends BasicDAO implements Tasks {
     }
 
     /**
+     * Returns scheduled jobs matching the given name.
+     *
+     * @param title the job's title which may include wildcards.
+     * @return an potentially empty array of scheduled jobs.
+     */
+    public InventoryJob[] findJobByName( String title ) throws SQLException {
+ 	PreparedStatement pstmt = getStatement( STMT_JOB_BY_NAME );
+	String st = Stringx.getDefault(title,"").trim().toLowerCase();
+	if( st.length() <= 0 )
+	    st = "%";
+     	pstmt.setString( 1, st );
+
+     	ResultSet res = pstmt.executeQuery();
+
+	List<InventoryJob> fl = new ArrayList<InventoryJob>();
+      	Iterator it = TableUtils.toObjects( res, new InventoryJob() );
+     	while( it.hasNext() ) {
+     	    InventoryJob job = (InventoryJob)it.next();
+     	    fl.add( job );
+     	}	       
+	res.close();
+	popStatement( pstmt );
+	
+	InventoryJob[] jobs = new InventoryJob[ fl.size() ];
+	return (InventoryJob[])fl.toArray( jobs );
+    }
+
+    /**
      * Assigns a job to a scheduled task. Task is expected to exist already.
      * If the job does not exist it will be created, it will be updated otherwise.
      *
@@ -253,6 +282,17 @@ public class TasksDAO extends BasicDAO implements Tasks {
 	    throw new SQLException( "Task "+task+" does not exist." );
 
 	InventoryJob jb = findJobById( job.getJobid() );
+	if( jb == null ) {
+	    String jbTitle = Stringx.getDefault( job.getJobtitle(), "" );
+	    if( jbTitle.length() > 0 ) {
+		InventoryJob[] jbs = findJobByName( jbTitle );
+		if( jbs.length > 0 )
+		    jb = jbs[0];
+
+		if( jbs.length > 1 )
+		    log.warn( "Job ambiguity detected in using job name \""+jbTitle+"\"" );
+	    }
+	}
 
 	PreparedStatement pstmt = null;
 	if( jb != null ) {
@@ -263,7 +303,7 @@ public class TasksDAO extends BasicDAO implements Tasks {
 	    // delete the existing job first
 
 	    pstmt = getStatement( STMT_JOB_DELETE );
-	    pstmt.setLong( 1, task.getTaskid() );
+	    pstmt.setLong( 1, jb.getJobid() );
 	    pstmt.executeUpdate();
 	    popStatement( pstmt );
 
@@ -301,48 +341,26 @@ public class TasksDAO extends BasicDAO implements Tasks {
     }
     
     /**
-     * Stores the project including storage group.
+     * Runs a direct query and returns a list of matching objects of the same class 
+     * than the given prototype.
      *
-     * @param the project to store.
-     * @return the stored projects.
+     * @param stmt the (query) statement.
+     * @param proto the object prototype.
+     * @return an array of matching objects.
      */
-    // public StorageProject storeStorageProject( StorageProject project ) throws SQLException {
-    // 	StorageProject prj = findStorageProjectById( project.getProjectid() ); 
-    // 	if( prj == null )
-    // 	    throw new SQLException( "Storgae project does not exist: "+project.getProjectid() );
+    public Object[] runQuery( String stmt, Object proto ) throws SQLException {
+	return runStatement( stmt, proto );
+    }
 
-    // 	PreparedStatement pstmt = getStatement( STMT_PROJECT_UPDATE );
-    // 	pstmt.setLong( 3, project.getProjectid() );
-    // 	pstmt.setString( 1, project.getTitle() );
-    // 	pstmt.setTimestamp( 2, project.getCreated() );
-    //  	pstmt.executeUpdate();
-    // 	popStatement( pstmt );
-
-    // 	// remove storage groups (if any)
-
-    // 	pstmt = getStatement( STMT_GROUP_DELETE );
-    // 	pstmt.setLong( 1, project.getProjectid() );
-    //  	pstmt.executeUpdate();
-    // 	popStatement( pstmt );	
-
-    // 	log.debug( "Storage groups removed from project: "+project );
-
-    // 	// repopulate storage groups
-
-    // 	StorageGroup[] grps = project.getStorageGroups();
-    // 	pstmt = getStatement( STMT_GROUP_INSERT );
-    // 	for( int i = 0; i < grps.length; i++ ) {
-    // 	    pstmt.setLong( 1, grps[i].getGroupid() );
-    // 	    pstmt.setLong( 2, project.getProjectid() );
-    // 	    pstmt.setString( 3, grps[i].getGroupname() );
-    // 	    pstmt.setString( 4, grps[i].getGroupref() );
-    // 	    pstmt.executeUpdate();
-    // 	}
-    // 	popStatement( pstmt );	
-
-    // 	log.debug( "Storage project updated: "+project );
-
-    // 	return project;
+    /**
+     * Runs a generic query and returns a list of instantiated objects.
+     *
+     * @param query the query to run.
+     * @param entity the entity name.
+     *
+     * @return a list of objects matching the query.
+     */
+    // public List runQuery( String query, String entity ) throws SQLException {
     // }
 
 

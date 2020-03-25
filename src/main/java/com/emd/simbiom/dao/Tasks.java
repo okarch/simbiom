@@ -71,6 +71,15 @@ public interface Tasks {
 	throws SQLException;
 
     /**
+     * Returns scheduled jobs matching the given name.
+     *
+     * @param title the job's title which may include wildcards.
+     * @return an potentially empty array of scheduled jobs.
+     */
+    public InventoryJob[] findJobByName( String title ) 
+	throws SQLException;
+
+    /**
      * Assigns a job to a scheduled task. Task is expected to exist already.
      * If the job does not exist it will be created, it will be updated otherwise.
      *
@@ -79,6 +88,17 @@ public interface Tasks {
      * @return the updated task.
      */
     public InventoryTask assignJob( InventoryTask task, InventoryJob job ) 
+	throws SQLException;
+
+    /**
+     * Runs a direct query and returns a list of matching objects of the same class 
+     * than the given prototype.
+     *
+     * @param stmt the (query) statement.
+     * @param proto the object prototype.
+     * @return an array of matching objects.
+     */
+    public Object[] runQuery( String stmt, Object proto ) 
 	throws SQLException;
 
 

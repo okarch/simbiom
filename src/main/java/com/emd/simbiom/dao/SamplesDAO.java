@@ -114,7 +114,7 @@ public class SamplesDAO extends BasicDAO implements Samples {
      	List<SampleType> sTypes = new ArrayList<SampleType>();
 	SampleType[] directMatches = findSampleTypeByNameAll( cleaned );
 	if( directMatches.length > 0 ) {
-	    log.debug( "Matching \""+cleaned+"\" directly: "+directMatches.length+" matches" );
+	    // log.debug( "Matching \""+cleaned+"\" directly: "+directMatches.length+" matches" );
 	    sTypes.addAll( Arrays.asList(directMatches) );
 	}
 
@@ -122,7 +122,7 @@ public class SamplesDAO extends BasicDAO implements Samples {
 
 	PreparedStatement pstmt = getStatement( STMT_STYPE_LOOKUP );
 
-	log.debug( "Matching \""+cleaned+"\" token: "+cleaned );
+	// log.debug( "Matching \""+cleaned+"\" token: "+tokens.length );
 	pstmt.setString( 1, cleaned );
 	ResultSet res = pstmt.executeQuery();
 
@@ -135,7 +135,7 @@ public class SamplesDAO extends BasicDAO implements Samples {
 	res.close();
 
 	for( int i = 0; i < tokens.length; i++ ) {
-	    log.debug( "Matching \""+cleaned+"\" token: "+tokens[i] );
+	    // log.debug( "Matching \""+cleaned+"\" token: "+tokens[i] );
 	    pstmt.setString( 1, tokens[i] );
 	    res = pstmt.executeQuery();
 

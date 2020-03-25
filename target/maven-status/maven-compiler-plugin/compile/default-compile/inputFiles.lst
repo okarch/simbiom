@@ -12,6 +12,7 @@
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/upload/UploadBatch.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/Cost.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/SampleEvent.java
+/home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/model/RepositoryRecord.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/feeds/FeedContent.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/OrganizationsDAO.java
 /home/okarch/classes/simbiom/src/main/java/com/emd/simbiom/dao/Accessions.java

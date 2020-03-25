@@ -474,10 +474,12 @@ drop table if exists t_storage_project;
 create table t_storage_project(
   projectid      bigint primary key,
   title          varchar(128),
-  created        timestamp
+  created        timestamp,
+  area           varchar(128)
 );
 create index i_prj_title on t_storage_project (title);
 create index i_prj_created on t_storage_project (created);
+create index i_prj_area on t_storage_project (area);
 
 --
 -- t_storage_document
@@ -524,6 +526,69 @@ create table t_storage_sample(
 );
 create index i_ssamp_sid on t_storage_sample (sampleid);
 create index i_ssamp_gid on t_storage_sample (groupid);
+
+--
+-- t_storage_studymember
+--   repository sample study association
+--
+drop table if exists t_storage_studymember;
+create table t_storage_studymember(
+  registrationid varchar(40),
+  studyid        bigint
+);
+create index i_rsm_soi on t_storage_studymember (registrationid);
+create index i_rsm_ssi on t_storage_studymember (studyid);
+
+--
+-- t_storage_groupmemeber
+--   the registered samples associated with a storage group.
+-- 
+drop table if exists t_storage_groupmember;
+create table t_storage_groupmember(
+  registrationid  varchar(40),
+  groupid         bigint,
+  typeid          bigint,
+  status          varchar(80),
+  division        varchar(80),
+  registered      timestamp,
+  shipped         timestamp,
+  disposed        timestamp
+);
+create index i_sgrm_rid on t_storage_groupmember (registrationid);
+create index i_sgrm_gid on t_storage_groupmember (groupid);
+create index i_sgrm_tid on t_storage_groupmember (typeid);
+create index i_sgrm_status on t_storage_groupmember (status);
+create index i_sgrm_registered on t_storage_groupmember (registered);
+create index i_sgrm_shipped on t_storage_groupmember (shipped);
+create index i_sgrm_disposed on t_storage_groupmember (disposed);
+
+--
+-- t_storage_repository
+--   the storage vendor's repository dump
+-- 
+drop table if exists t_storage_repository;
+create table t_storage_repository(
+  recordid       bigint primary key,
+  modified       timestamp,
+  study          varchar(128),
+  project        varchar(128),
+  storagegroup   varchar(128),
+  status         varchar(80),
+  division       varchar(80),
+  originid       varchar(80),
+  registrationid varchar(40),
+  registered     timestamp,
+  shipped        timestamp,
+  disposed       timestamp,
+  paramname      varchar(80),
+  paramvalue     varchar(128)
+);
+create index i_rep_study on t_storage_repository (study);
+create index i_rep_project on t_storage_repository (project);
+create index i_rep_group on t_storage_repository (storagegroup);
+create index i_rep_status on t_storage_repository (status);
+create index i_rep_orid on t_storage_repository (originid);
+create index i_rep_rid on t_storage_repository (registrationid);
 
 --
 -- t_storage_billing

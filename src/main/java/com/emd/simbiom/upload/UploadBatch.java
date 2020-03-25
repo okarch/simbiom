@@ -2,7 +2,9 @@ package com.emd.simbiom.upload;
 
 import java.math.BigInteger;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
 
@@ -15,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,6 +26,8 @@ import java.util.UUID;
 import java.text.ParseException;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.LineIterator;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
@@ -32,6 +37,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.emd.simbiom.util.DataHasher;
 
+import com.emd.io.EmptyReader;
 import com.emd.util.Copyable;
 import com.emd.util.Stringx;
 
@@ -374,6 +380,32 @@ public class UploadBatch implements Copyable {
     }
 
     /**
+     * Reads content from a file by providing an <code>Iterable</code> 
+     * interface which enables ingestion of bigger files.
+     *
+     * @param file the file to read.
+     * @param delim the column delimiter.
+     * @return an <code>Iterable</code> line iterator (potentially empty in case of file errors).
+     */
+    public Iterable<String> readFile( File file, String delim ) {
+
+	// read the first line to parse header
+	
+	try {
+	    BufferedReader br = new BufferedReader( new FileReader( file ) );
+	    String line = br.readLine();
+	    if( line != null )
+		parseHeader( line, delim );
+	    br.close();
+	    return new LineIterable( file );
+	}
+	catch( IOException ioe ) {
+	    log.error( ioe );
+	}
+	return new LineIterable( null );
+    }
+
+    /**
      * Normalizes a study name.
      *
      * @param study the unformatted study name.
@@ -621,4 +653,26 @@ public class UploadBatch implements Copyable {
     public void printInfo( Object msg ) {
 	log.info( msg.toString() );
     }
+}
+
+class LineIterable implements Iterable<String> {
+    private File file;
+
+    LineIterable( File file ) {
+	this.file = file;
+    }
+
+    public Iterator<String> iterator() {
+	if( file == null )
+	    return new LineIterator( new EmptyReader() );
+	else {
+	    try {
+		return FileUtils.lineIterator(file, "UTF-8");
+	    }
+	    catch( IOException ioe ) {
+		return new LineIterator( new EmptyReader() );
+	    }
+	}
+    }
+    
 }

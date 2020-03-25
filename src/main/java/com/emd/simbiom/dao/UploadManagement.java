@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import java.sql.SQLException;
 
+import com.emd.simbiom.model.RepositoryRecord;
 import com.emd.simbiom.model.StorageDocument;
 
 import com.emd.simbiom.upload.InventoryUploadTemplate;
@@ -145,6 +146,39 @@ public interface UploadManagement {
      * @return the list of output files.
      */
     public StorageDocument[] findOutputByTemplate( InventoryUploadTemplate template ) 
+	throws SQLException;
+
+    /**
+     * Uploads a repository dump in a single run.
+     * Any previous data is overwritten
+     *
+     * @param file the repositoy file.
+     * @param addRecords indicates whether records should be added (if false, repository will be cleaned initially).
+     * @return the number of entries successfully uploaded.
+     */
+    public long storeRepository( File file, boolean addRecords ) 
+	throws SQLException;
+
+    /**
+     * Uploads a repository dump in a single run.
+     * Any previous data is overwritten
+     *
+     * @param file the repositoy file.
+     * @param addRecords indicates whether records should be added (if false, repository will be cleaned initially).
+     * @param batchSize the size of the batch to be committed.
+     * @return the number of entries successfully uploaded.
+     */
+    public long storeRepository( File file, boolean addRecords, int batchSize ) 
+	throws SQLException;
+
+    /**
+     * Returns the repository samples storage document associated with a given upload.
+     *
+     * @param groupId the upload id (if 0 the md5sum will be used).
+     * @param status an optional storage status.
+     * @return a list of matching <code>RepositoryRecord</code> objects.
+     */
+    public RepositoryRecord[] findRepositoryMember( long groupId, String status ) 
 	throws SQLException;
 
 }

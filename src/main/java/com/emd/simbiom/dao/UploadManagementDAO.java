@@ -1,7 +1,9 @@
 package com.emd.simbiom.dao;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -21,7 +23,13 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.apache.commons.io.FileUtils;
+
+import com.emd.simbiom.model.RepositoryRecord;
+import com.emd.simbiom.model.SampleType;
 import com.emd.simbiom.model.StorageDocument;
+import com.emd.simbiom.model.StorageGroup;
+import com.emd.simbiom.model.StorageProject;
 
 import com.emd.simbiom.upload.InventoryUploadTemplate;
 import com.emd.simbiom.upload.UploadBatch;
@@ -76,13 +84,30 @@ public class UploadManagementDAO extends BasicDAO implements UploadManagement {
     private static final String STMT_LOG_DELETE          = "biobank.log.deleteAll";
     private static final String STMT_LOG_FIND_BY_UPLOAD  = "biobank.log.findByUpload";
 
+    private static final String STMT_REPOSITORY_CLEAN    = "biobank.repository.clean";
+    private static final String STMT_REPOSITORY_BY_REGID = "biobank.repository.registration";
+    private static final String STMT_REPOSITORY_INSERT   = "biobank.repository.insert";
+
+    private static final String STMT_REGISTRATION_BY_GROUP = "biobank.registration.findByGroup";
+    private static final String STMT_REGISTRATION_INSERT   = "biobank.registration.insert";
+    private static final String STMT_REGISTRATION_DELETE   = "biobank.registration.deleteAll";
+
+    private static final String STMT_REGISTRATION_LREG     = "biobank.registration.latestRegistered";
+    private static final String STMT_REGISTRATION_LSHIP    = "biobank.registration.latestShipped";
+    private static final String STMT_REGISTRATION_LDISP    = "biobank.registration.latestDisposed";
+
     private static final long   ONE_DAY          = 24L * 60L * 60L * 1000L; // 1 day
+
+    private static final String REPOSITORY_DELIMITER     = "[|]";
+    private static final int    BATCH_SIZE               = 500;
 
     private static final String[] entityNames = new String[] {
 	"template",
 	"upload",
 	"uploadraw",
-	"log"
+	"log",
+	"repository",
+	"registration"
     };
 
 
@@ -675,5 +700,341 @@ public class UploadManagementDAO extends BasicDAO implements UploadManagement {
      	StorageDocument[] facs = new StorageDocument[ fl.size() ];
      	return (StorageDocument[])fl.toArray( facs );	
     }
+
+    private String unquote( String token ) {
+	if( token.startsWith( "\"" ) && token.endsWith("\"" ) ) 
+	    return token.substring(1,token.length()-1).trim();
+	return token;
+    }	    
+
+    private RepositoryRecord parseRecord( long recNum, String line, String delimiter ) {
+	String[] tokens = line.split( delimiter );
+
+	RepositoryRecord repo = new RepositoryRecord();
+	repo.setRecordid( recNum );
+
+	if( tokens.length > 0 )
+	    repo.setStudy( Stringx.strtrunc(unquote(tokens[0]),128) );
+	if( tokens.length > 1 )
+	    repo.setProject( Stringx.strtrunc(unquote(tokens[1]),128) );
+	if( tokens.length > 2 )
+	    repo.setStoragegroup( unquote(Stringx.strtrunc(tokens[2],128)) );
+	if( tokens.length > 3 )
+	    repo.setStatus( unquote(Stringx.strtrunc(tokens[3],80)) );
+	if( tokens.length > 4 )
+	    repo.setDivision( unquote(Stringx.strtrunc(tokens[4],80)) );
+	if( tokens.length > 5 )
+	    repo.setOriginid( unquote(tokens[5]) );
+	if( tokens.length > 6 )
+	    repo.setRegistrationid( unquote(tokens[6]) );
+	if( tokens.length > 7 )
+	    repo.parseRegistered( unquote(tokens[7]) );
+	if( tokens.length > 8 )
+	    repo.parseShipped( unquote(tokens[8]) );
+	if( tokens.length > 9 )
+	    repo.parseDisposed( unquote(tokens[9]) );
+	if( tokens.length > 10 )
+	    repo.setParamname( unquote(tokens[10]) );
+	if( tokens.length > 11 )
+	    repo.setParamvalue( unquote(tokens[11]) );
+
+	return repo;
+    }
+
+// Atacicept|Atacicept - EMR700461-023|023 - Serum - Circulating Proteins - 1.4mL|Stored|BioStorage Europe|L1789843-36|A645BL321-001|Feb 27 2018  3:19PM|||Visit|W24_ET
+
+    /**
+     * Uploads a repository dump in a single run.
+     * Any previous data is overwritten
+     *
+     * @param file the repositoy file.
+     * @param addRecords indicates whether records should be added (if false, repository will be cleaned initially).
+     * @return the number of entries successfully uploaded.
+     */
+    public long storeRepository( File file, boolean addRecords ) 
+	throws SQLException {
+	return storeRepository( file, addRecords, BATCH_SIZE );
+    }
+
+    /**
+     * Uploads a repository dump in a single run.
+     * Any previous data is overwritten
+     *
+     * @param file the repositoy file.
+     * @param addRecords indicates whether records should be added (if false, repository will be cleaned initially).
+     * @param batchSize the size of the batch to be committed.
+     * @return the number of entries successfully uploaded.
+     */
+    public long storeRepository( File file, boolean addRecords, int batchSize ) 
+	throws SQLException {
+
+	if( !file.exists() || !file.canRead() )
+	    throw new SQLException( "Cannot access file: "+file );
+
+	log.debug( "Loading "+file.length()+" bytes from "+file );
+
+	// delete the current repository
+
+	if( !addRecords ) {
+	    log.debug( "Cleaning repository" );
+	    try {
+		PreparedStatement pstmt = getStatement( STMT_REPOSITORY_CLEAN );
+		pstmt.executeUpdate();
+		popStatement( pstmt );
+	    }
+	    catch( SQLException sqe ) {
+		log.warn( sqe );
+	    }
+	}
+
+	// bulk load the content
+
+	long nSuccess = 0L;
+	long nCount = 0L;
+
+	List<String> summaryLog = new ArrayList<String>();
+	String msg = "Repository storage summary as of "+Stringx.currentDateString( "dd-MMM-yyyy hh:mm" );
+	summaryLog.add( msg );
+	msg = "Loading "+file.length()+" bytes from "+file+" ("+file.lastModified()+")";
+	summaryLog.add( msg );
+
+	try {
+	    BufferedReader br = new BufferedReader( new FileReader(file) );
+	    PreparedStatement repo = getStatement( STMT_REPOSITORY_INSERT );
+	    String line = null;
+	    int bCount = 0;
+	    do {
+		line = br.readLine();
+		if( line != null ) {
+		    nCount++;
+		    if( nCount > 1 ) {
+			// log.debug( "Parsing repository record from line: "+line );
+			RepositoryRecord re = parseRecord( nCount, line, REPOSITORY_DELIMITER );
+			// log.debug( "Repository record parsed: "+re );
+			if( !re.isValid() ) {
+			    msg = "Line parsed: "+line;
+			    summaryLog.add( msg );
+			    log.debug( msg );
+			    msg = "Record "+nCount+" is invalid: "+re+" Errors: "+re.checkValidity();
+			    summaryLog.add( "[ERROR] "+msg );
+			    log.error( msg );
+			}
+			else {
+			    if( bCount > batchSize ) {
+				int[] updCount = repo.executeBatch();
+				nSuccess = nSuccess+((long)bCount);
+				log.debug( "Successfully loaded records: "+nSuccess );
+				bCount = 0;
+			    }
+
+			    repo.setLong( 1, re.getRecordid() );
+			    repo.setTimestamp( 2, re.getModified() );
+			    repo.setString( 3, re.getStudy() );
+			    repo.setString( 4, re.getProject() );
+			    repo.setString( 5, re.getStoragegroup() );
+			    repo.setString( 6, re.getStatus() );
+			    repo.setString( 7, re.getDivision() );
+			    repo.setString( 8, re.getOriginid() );
+			    repo.setString( 9, re.getRegistrationid() );
+			    repo.setTimestamp( 10, re.getRegistered() );
+			    repo.setTimestamp( 11, re.getShipped() );
+			    repo.setTimestamp( 12, re.getDisposed() );
+			    repo.setString( 13, re.getParamname() );
+			    repo.setString( 14, re.getParamvalue() );
+
+			    repo.addBatch();
+			    // log.debug( "Batch added: "+bCount );
+			    bCount++;
+			}
+		    }
+		    else {
+			log.debug( "Header line skipped" );
+		    }
+		}
+	    } while( line != null );
+	    msg = "Records read: "+nCount;
+	    summaryLog.add( msg );
+	    log.debug( msg );
+	    if( bCount > 0 ) {
+		int[] updCount = repo.executeBatch();
+		nSuccess = nSuccess+((long)bCount);
+	    }
+	    popStatement( repo );
+	    msg = "Successfully loaded records: "+nSuccess;
+	    summaryLog.add( msg );
+	    log.debug( msg );
+	    br.close();
+	}
+	catch( IOException ioe ) {
+	    log.error( Stringx.getDefault(ioe.getMessage(),"General SQL error") );
+	    throw new SQLException( ioe );
+	}
+
+	// establish link to storage projects for each registration id
+
+	PreparedStatement delStmt = getStatement( STMT_REGISTRATION_DELETE );
+	delStmt.executeUpdate();
+	popStatement( delStmt );
+
+	PreparedStatement pstmt = getStatement( STMT_REPOSITORY_BY_REGID );
+	PreparedStatement regStmt = getStatement( STMT_REGISTRATION_INSERT );
+	PreparedStatement insGrp = getStatement( StorageBudgetDAO.STMT_GROUP_INSERT );
+     	ResultSet res = pstmt.executeQuery();
+     	List<RepositoryRecord> fl = new ArrayList<RepositoryRecord>();
+     	Iterator it = TableUtils.toObjects( res, new RepositoryRecord() );
+	StorageProject prj = null;
+	String lastProject = null;
+	while( it.hasNext() ) {
+	    RepositoryRecord rec = (RepositoryRecord)it.next();
+	    if( (lastProject == null) || (!rec.getProject().equals( lastProject )) ) {
+		lastProject = rec.getProject();
+		prj = null;
+		StorageProject[] projects = getDAO().findStorageProject( lastProject );
+		if( projects.length <= 0 ) {
+		    msg = "Storage project does not exist: "+lastProject+" registration id: "+rec.getRegistrationid();
+		    log.error( msg );
+		    summaryLog.add( "[ERROR] "+msg );
+		}
+		else if( projects.length > 1 ) {
+		    msg = "Multiple storage projects found: "+lastProject+" registration id: "+rec.getRegistrationid();
+		    log.error( msg );
+		    summaryLog.add( "[ERROR] "+msg );
+		}
+		else {
+		    prj = projects[0];
+		}
+	    }
+	    if( prj != null ) {
+		StorageGroup grp = prj.findStorageGroup( rec.getStoragegroup() );
+		if( grp == null ) {
+		    grp = new StorageGroup();
+		    grp.setGroupname( rec.getStoragegroup() );
+		    grp.setProjectid( prj.getProjectid() );
+
+		    insGrp.setLong( 1, grp.getGroupid() );
+		    insGrp.setLong( 2, grp.getProjectid() );
+		    insGrp.setString( 3, grp.getGroupname() );
+		    insGrp.setString( 4, grp.getGroupref() );
+		    insGrp.executeUpdate();
+
+		    prj.addStorageGroup( grp );
+		    msg = "Storage group created: "+grp;
+		    log.warn( msg );
+		    summaryLog.add( "[WARNING] "+msg );
+		}
+
+		// first pass mapping of sample type using storage group
+
+		SampleType[] sTypes = getDAO().mapSampleType( rec.getStoragegroup() );
+		long sType = 1L;
+		if( sTypes.length > 0 )
+		    sType = sTypes[0].getTypeid();
+		if( sTypes.length > 1 ) {
+		    msg ="Ambiguous sample type mapping found "+rec.getRegistrationid()+" group: "+rec.getStoragegroup()+" sample type assigned: "+sTypes[0];
+		    log.warn( msg );
+		    summaryLog.add( "[WARNING] "+msg );
+		}
+		else if( sTypes.length <= 0 ) {
+		    msg = "No samples type mapping found "+rec.getRegistrationid()+" group: "+rec.getStoragegroup();
+		    log.error( msg );
+		    summaryLog.add( "[ERROR] "+msg );
+		}
+		
+		regStmt.setString( 1, rec.getRegistrationid() );
+		regStmt.setLong( 2, grp.getGroupid() );
+		regStmt.setLong( 3, sType );
+		regStmt.setString( 4, rec.getStatus() );
+		regStmt.setString( 5, rec.getDivision() );
+		regStmt.setTimestamp( 6, rec.getRegistered() );
+		regStmt.setTimestamp( 7, rec.getShipped() );
+		regStmt.setTimestamp( 8, rec.getDisposed() );
+
+		regStmt.executeUpdate();
+	    }
+	}
+	res.close();
+	popStatement( pstmt );
+	popStatement( regStmt );
+	popStatement( insGrp );
+
+	// Create a summary log
+
+	if( summaryLog.size() > 0 ) {
+	    summaryLog.add( "Processing completed: "+Stringx.currentDateString( "dd-MMM-yyyy hh:mm" ) );
+	    try {
+		File logF = new File( file.getPath()+".log" );
+		FileUtils.writeLines( logF, summaryLog );
+	    }
+	    catch( IOException ioe ) {
+		log.error( ioe );
+	    }
+	}
+	
+	return nSuccess;
+    }
+
+    private Timestamp latestStatus( String stmt, long groupId ) 
+	throws SQLException {
+
+ 	PreparedStatement pstmt = getStatement( stmt );
+	pstmt.setLong( 1, groupId );
+
+     	ResultSet res = pstmt.executeQuery();
+	Timestamp latestDt = new Timestamp( 1000L );
+	if( res.next() ) {
+     	    RepositoryRecord rec = (RepositoryRecord)TableUtils.toObject( res, new RepositoryRecord() );
+	    if( STMT_REGISTRATION_LREG.equals(stmt) ) {
+		latestDt = rec.getRegistered();
+	    }
+	    else if( STMT_REGISTRATION_LSHIP.equals(stmt) ) {
+		latestDt = rec.getShipped();
+	    }
+	    else if( STMT_REGISTRATION_LDISP.equals(stmt) ) {
+		latestDt = rec.getDisposed();
+	    }
+	}
+	res.close();
+	popStatement( pstmt );
+
+	return latestDt;
+    }
+
+    /**
+     * Returns the repository samples storage document associated with a given upload.
+     *
+     * @param groupId the upload id (if 0 the md5sum will be used).
+     * @param status an optional storage status.
+     * @return a list of matching <code>RepositoryRecord</code> objects.
+     */
+    public RepositoryRecord[] findRepositoryMember( long groupId, String status ) 
+	throws SQLException {
+
+	Timestamp registered = latestStatus( STMT_REGISTRATION_LREG, groupId );
+	Timestamp shipped = latestStatus( STMT_REGISTRATION_LSHIP, groupId );
+	Timestamp disposed = latestStatus( STMT_REGISTRATION_LDISP, groupId );
+
+ 	PreparedStatement pstmt = getStatement( STMT_REGISTRATION_BY_GROUP );
+	pstmt.setLong( 1, groupId );
+
+     	ResultSet res = pstmt.executeQuery();
+
+     	List<RepositoryRecord> fl = new ArrayList<RepositoryRecord>();
+     	Iterator it = TableUtils.toObjects( res, new RepositoryRecord() );
+	while( it.hasNext() ) {
+	    RepositoryRecord rec = (RepositoryRecord)it.next();
+	    rec.setLatestRegistered( registered );
+	    rec.setLatestShipped( shipped );
+	    rec.setLatestShipped( disposed );
+	    fl.add( rec );
+	}	       
+	res.close();
+	popStatement( pstmt );
+
+     	RepositoryRecord[] facs = new RepositoryRecord[ fl.size() ];
+     	return (RepositoryRecord[])fl.toArray( facs );
+
+	
+    }
+    
 
 }

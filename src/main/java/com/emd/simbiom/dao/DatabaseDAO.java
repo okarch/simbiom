@@ -744,6 +744,29 @@ public class DatabaseDAO implements DocumentLoader {
     }
 
     /**
+     * Runs a direct query and returns a list of matching objects of the same class 
+     * than the given prototype.
+     *
+     * @param stmt the (query) statement.
+     * @param proto the object prototype.
+     * @return an array of matching objects.
+     */
+    public Object[] runStatement( String stmt, Object proto ) throws SQLException {
+	Connection con = reuseConnect( false );
+	List objList = TableUtils.query( con, stmt, proto );
+	Object[] result = objList.toArray();
+	if( isPooled() ) {
+	    try {
+		con.close();
+	    }
+	    catch( SQLException sqe ) {
+		log.warn( sqe );
+	    }
+	}
+	return result;
+    }
+
+    /**
      * Returns the statement to the pool if configured.
      *
      * @param pstmt the prepared statement to be returned.
@@ -761,7 +784,7 @@ public class DatabaseDAO implements DocumentLoader {
 	    int nActive = ((BasicDataSource)dataSource).getNumActive();
 	    int nIdle = ((BasicDataSource)dataSource).getNumIdle();
 	    popCount++;
-	    if( (popCount % 20) == 0 ) {
+	    if( (popCount % 5000) == 0 ) {
 		log.debug( "Active connections: "+nActive+" idle connections: "+nIdle );
 		popCount = 0;
 	    }

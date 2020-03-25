@@ -40,6 +40,8 @@ import org.apache.velocity.tools.config.XmlFactoryConfiguration;
 import com.emd.simbiom.dao.InventoryFactory;
 import com.emd.simbiom.dao.SampleInventory;
 
+import com.emd.simbiom.job.InventoryJob;
+
 import com.emd.simbiom.model.SampleType;
 import com.emd.simbiom.model.Study;
 import com.emd.simbiom.model.Subject;
@@ -63,6 +65,9 @@ public class UploadProcessor {
 
     private static final String LOGGER_NAME      = "CONSOLE";
     private static final String TOOLS_CONFIG     = "tools.xml";
+
+    private static final String CTXT_UPLOAD_BATCH = "upload";
+    private static final String CTXT_INPUT        = "uploadContent";
 
     private UploadProcessor() {
     }
@@ -124,7 +129,8 @@ public class UploadProcessor {
 
 	tc.put( "db", InventoryFactory.getInstance().getSampleInventory() );
 	tc.put( "upload", upd );
-	tc.put( "template", templ );
+	if( templ != null )
+	    tc.put( "template", templ );
 
 	// add additional context variables
 	tc.putAll( context );
@@ -230,9 +236,10 @@ public class UploadProcessor {
 
 	UploadBatch upd = template.getUploadBatch( uploadId );
 	if( upd == null )
-	    throw new UploadException( "Cannot retrieve upload batch: "+uploadId );
+	    throw new UploadException( "Cannot retrieve upload batch: "+uploadId );	
 
 	VelocityEngine ve = getVelocityEngine();
+
 	Context vc = createVelocityContext( upd, template, context );
 
 	String tCont = toTemplate( template.getTemplate() );
@@ -242,6 +249,58 @@ public class UploadProcessor {
 	    StringWriter sw = new StringWriter();
 	    if( !ve.evaluate( vc, sw, template.getTemplatename(), tCont ) )
 		log.error( "Cannot transform template "+template.getTemplatename() );
+	    sw.flush();
+	    String logCont = sw.toString();
+	    sw.close();
+	    log.debug( "Upload document produced:\n"+sw.toString() );
+	}
+	catch( Exception ex ) {
+	    log.error( ex );
+	    throw new UploadException( ex.getMessage() );
+	}
+    }
+
+    private UploadBatch createUploadBatch( Map context ) {
+	UploadBatch upd = (UploadBatch)context.get( CTXT_UPLOAD_BATCH );
+	if( upd != null )
+	    return upd;
+	Object updInput = context.get( CTXT_INPUT );
+	String updText = null;
+	if(  updInput != null ) {
+	    updText = updInput.toString();
+	}
+	upd = new UploadBatch();
+	if( updText != null ) 
+	    upd.setUpload( updText );
+
+	return upd;
+    }
+
+    /**
+     * Process the job template.
+     *
+     * @param templDir a directory or file where the template is located.
+     * @param outDir a directory or file where the output should be written to. 
+     * This can be null (current directory is used instead)
+     * @param context a map of properties for use inside the velocity context.
+     * @exception TemplateException signals abnormal behavior.
+     */
+    public void processJob( InventoryJob job, Map context ) 
+	throws UploadException {
+
+	UploadBatch upd = createUploadBatch( context );
+
+	VelocityEngine ve = getVelocityEngine();
+	Context vc = createVelocityContext( upd, null, context );
+
+	String tCont = job.getJob();
+	log.debug( "Template:\n"+tCont );
+	String title = job.getJobtitle();
+
+	try {
+	    StringWriter sw = new StringWriter();
+	    if( !ve.evaluate( vc, sw, title, tCont ) )
+		log.error( "Cannot transform template "+title );
 	    sw.flush();
 	    String logCont = sw.toString();
 	    sw.close();

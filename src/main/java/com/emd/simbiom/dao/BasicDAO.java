@@ -74,6 +74,12 @@ public abstract class BasicDAO implements DocumentLoader {
 	return database.getStatement( stmtName );
     }
 
+    protected Object[] runStatement( String stmt, Object proto ) throws SQLException {
+	if( database == null )
+	    throw new SQLException( "Invalid database configuration" );
+	return database.runStatement( stmt, proto );
+    }
+
     protected void popStatement( PreparedStatement pstmt ) {
 	if( database != null )
 	    database.popStatement( pstmt );

@@ -4,6 +4,7 @@ com/emd/simbiom/model/CostItem.class
 com/emd/simbiom/util/PeriodParseException.class
 com/emd/simbiom/dao/TableUtils$1.class
 com/emd/simbiom/dao/BasicDAO.class
+com/emd/simbiom/upload/LineIterable.class
 com/emd/simbiom/model/SampleEvent.class
 com/emd/simbiom/model/StorageDocument.class
 com/emd/simbiom/dao/UploadManagement.class
@@ -18,6 +19,7 @@ com/emd/simbiom/dao/ResultObjectIterator.class
 com/emd/simbiom/dao/InventoryFactory.class
 com/emd/simbiom/dao/StudiesDAO.class
 com/emd/simbiom/model/PropertyHolder.class
+com/emd/simbiom/model/RepositoryRecord.class
 com/emd/simbiom/util/DataHasher.class
 com/emd/simbiom/dao/Accessions.class
 com/emd/simbiom/rest/UserNotFoundException.class

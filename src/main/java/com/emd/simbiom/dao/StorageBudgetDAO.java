@@ -64,8 +64,9 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
     private static final String STMT_DOCUMENT_UPDATE         = "biobank.document.update";
 
     private static final String STMT_GROUP_BY_ID             = "biobank.group.findById";
+    private static final String STMT_GROUP_BY_NAME           = "biobank.group.findByName";
     private static final String STMT_GROUP_DELETE            = "biobank.group.deleteAll";
-    private static final String STMT_GROUP_INSERT            = "biobank.group.insert";
+    public  static final String STMT_GROUP_INSERT            = "biobank.group.insert";
 
     private static final String STMT_INVOICE_BY_ID           = "biobank.invoice.findById";
     private static final String STMT_INVOICE_BY_IDRAW        = "biobank.invoice.findByIdBasic";
@@ -128,11 +129,13 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	if( pName.length() <= 0 )
 	    pName = "Untitled "+Stringx.currentDateString("MMM dd, yyyy");
 	prj.setTitle( pName );
+	prj.setArea( "Other" );
 
 	PreparedStatement pstmt = getStatement( STMT_PROJECT_INSERT );
 	pstmt.setLong( 1, prj.getProjectid() );
 	pstmt.setString( 2, prj.getTitle() );
 	pstmt.setTimestamp( 3, prj.getCreated() );
+	pstmt.setString( 4, prj.getArea() );
 
      	pstmt.executeUpdate();
 	popStatement( pstmt );
@@ -216,9 +219,10 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	    throw new SQLException( "Storgae project does not exist: "+project.getProjectid() );
 
 	PreparedStatement pstmt = getStatement( STMT_PROJECT_UPDATE );
-	pstmt.setLong( 3, project.getProjectid() );
+	pstmt.setLong( 4, project.getProjectid() );
 	pstmt.setString( 1, project.getTitle() );
 	pstmt.setTimestamp( 2, project.getCreated() );
+	pstmt.setString( 3, project.getArea() );
      	pstmt.executeUpdate();
 	popStatement( pstmt );
 

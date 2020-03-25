@@ -25,6 +25,10 @@ public class StorageProject implements Copyable {
     private long projectid;
     private Timestamp created;
     private String title;
+    /**
+     * Describe area here.
+     */
+    private String area;
 
     private List<StorageGroup> groups;
 
@@ -86,6 +90,24 @@ public class StorageProject implements Copyable {
      */
     public final void setTitle(final String title) {
 	this.title = title;
+    }
+
+    /**
+     * Get the <code>Area</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getArea() {
+	return area;
+    }
+
+    /**
+     * Set the <code>Area</code> value.
+     *
+     * @param area The new Area value.
+     */
+    public final void setArea(final String area) {
+	this.area = area;
     }
 
     /**
