@@ -16,6 +16,7 @@ com/emd/simbiom/feeds/RSSFeedView.class
 com/emd/simbiom/model/Age.class
 com/emd/simbiom/dao/SampleInventoryDAO.class
 com/emd/simbiom/dao/ResultObjectIterator.class
+com/emd/simbiom/feeds/FeedContent$1.class
 com/emd/simbiom/dao/InventoryFactory.class
 com/emd/simbiom/dao/StudiesDAO.class
 com/emd/simbiom/model/PropertyHolder.class

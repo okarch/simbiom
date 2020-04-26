@@ -3,11 +3,15 @@ package com.emd.simbiom.feeds;
 import java.math.BigInteger;
 
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
+
+import java.sql.Timestamp;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.emd.simbiom.model.RepositoryRecord;
 import com.emd.simbiom.model.Sample;
 
 import com.emd.util.Stringx;
@@ -28,11 +32,27 @@ public class FeedContent {
 
     // private int  week;
     // private int  year;
+
     private int  numSamples;
 
     private String typename;
     private String studyname;
     private String link;
+    /**
+     * Describe status here.
+     */
+    private String status;
+
+    public static final Comparator<FeedContent> MOST_RECENT = new Comparator<FeedContent>() {
+	public int compare(FeedContent o1, FeedContent o2) {
+	    if( (o1 == null) && (o2 == null) )
+		return 0;
+	    return (-1 * o1.getPublished().compareTo( o2.getPublished() ));
+	}
+	public boolean equals(Object obj) {
+	    return false;
+	}
+    };
 
     public FeedContent( Sample sample ) {
 	this.typeid = sample.getTypeid();
@@ -44,6 +64,34 @@ public class FeedContent {
 	// this.week = cal.get( Calendar.WEEK_OF_YEAR );
 	// this.year = cal.get( Calendar.YEAR );
 	this.numSamples = 1;
+    }
+
+    public FeedContent( RepositoryRecord repo ) {
+	this.typeid = repo.getTypeid();
+	this.typename = repo.getTypename();
+	this.studyid = repo.getGroupid();
+	this.studyname = repo.getTitle();
+	this.published = latestUpdate( repo );
+	this.numSamples = repo.getSamplecount();
+	setStatus( repo.getStatus() );
+    }
+
+    private Date latestUpdate( RepositoryRecord repo ) {
+	Timestamp ts = repo.getRegistered();
+	if( ts == null )
+	    ts = new Timestamp( 1000L );
+	Timestamp latest = ts;
+	ts = repo.getDisposed();
+	if( ts == null )
+	    ts = new Timestamp( 1000L );
+	if( ts.getTime() > latest.getTime() )
+	    latest = ts;
+	ts = repo.getShipped();
+	if( ts == null )
+	    ts = new Timestamp( 1000L );
+	if( ts.getTime() > latest.getTime() )
+	    latest = ts;
+	return new Date( latest.getTime() );
     }
 
     /**
@@ -188,6 +236,24 @@ public class FeedContent {
     }
 
     /**
+     * Get the <code>Status</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getStatus() {
+	return Stringx.getDefault(status,"stored");
+    }
+
+    /**
+     * Set the <code>Status</code> value.
+     *
+     * @param stat The new Status value.
+     */
+    public final void setStatus(final String stat) {
+	status = Stringx.getDefault( stat, "stored" ).toLowerCase();
+    }
+
+    /**
      * Get the id of this content.
      *
      * @return an <code>int</code> value
@@ -217,9 +283,8 @@ public class FeedContent {
      */
     public String getTitle() {
 	StringBuilder stb = new StringBuilder();
-	stb.append( "Study " );
-	stb.append( Stringx.getDefault( getStudyname(), ((getStudyid()>0)?String.format("unknown (%l)",getStudyid()):"not assigned") ) );
-	stb.append( " " );
+	stb.append( Stringx.getDefault( getStudyname(), ((getStudyid()>0)?String.format("unknown (%d)",getStudyid()):"not assigned") ) );
+	stb.append( " / " );
 	stb.append( String.valueOf( numSamples ) );
 	stb.append( " " );
 	stb.append( Stringx.getDefault( getTypename(), "" ) );
@@ -238,10 +303,27 @@ public class FeedContent {
 	stb.append( String.valueOf( numSamples ) );
 	stb.append( " " );
 	stb.append( Stringx.getDefault( getTypename(), "" ) );
-	stb.append( String.format(" samples have been checked-in at week %d, %d",getWeek(),getYear()) );
+	stb.append( String.format(" samples have been "+getStatus()+" at week %d, %d",getWeek(),getYear()) );
 	stb.append( " - " );
 	stb.append( Stringx.getDefault(getLink(),"") );
 
+	return stb.toString();
+    }
+
+    /**
+     * Returns a human readable object description.
+     *
+     * @return a human readable object description.
+     */
+    public String toString() {
+	StringBuilder stb = new StringBuilder( "{");
+	stb.append( "id=\"" );
+	stb.append( String.valueOf(this.getId()) );
+	stb.append( "\",title=\"" );
+	stb.append( this.getTitle() );
+	stb.append( "\",summary=\"" );
+	stb.append( getSummary() );
+	stb.append( "\"}" );
 	return stb.toString();
     }
 

@@ -28,6 +28,8 @@ public class RepositoryRecord implements Copyable {
     private long typeid;
     private long groupid;
 
+    private int samplecount;
+
     private Timestamp modified;
     private Timestamp registered;
     private Timestamp shipped;
@@ -38,6 +40,7 @@ public class RepositoryRecord implements Copyable {
 
     private String study;
     private String project;
+    private String title;
     private String storagegroup;
     private String status;
     private String division;
@@ -495,6 +498,42 @@ public class RepositoryRecord implements Copyable {
      */
     public final void setLatestDisposed(final Timestamp latestDisposed) {
 	this.latestDisposed = latestDisposed;
+    }
+
+    /**
+     * Get the <code>Samplecount</code> value.
+     *
+     * @return an <code>int</code> value
+     */
+    public final int getSamplecount() {
+	return samplecount;
+    }
+
+    /**
+     * Set the <code>Samplecount</code> value.
+     *
+     * @param samplecount The new Samplecount value.
+     */
+    public final void setSamplecount(final int samplecount) {
+	this.samplecount = samplecount;
+    }
+
+    /**
+     * Get the <code>Title</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getTitle() {
+	return title;
+    }
+
+    /**
+     * Set the <code>Title</code> value.
+     *
+     * @param title The new Title value.
+     */
+    public final void setTitle(final String title) {
+	this.title = title;
     }
 
     /**

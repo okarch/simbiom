@@ -96,10 +96,17 @@ public class UploadManagementDAO extends BasicDAO implements UploadManagement {
     private static final String STMT_REGISTRATION_LSHIP    = "biobank.registration.latestShipped";
     private static final String STMT_REGISTRATION_LDISP    = "biobank.registration.latestDisposed";
 
+    private static final String[] STMT_REGISTRATION_LATEST = {
+	"biobank.registration.latestUpdates0",
+	"biobank.registration.latestUpdates1",
+	"biobank.registration.latestUpdates2"
+    };
+
     private static final long   ONE_DAY          = 24L * 60L * 60L * 1000L; // 1 day
 
     private static final String REPOSITORY_DELIMITER     = "[|]";
     private static final int    BATCH_SIZE               = 500;
+
 
     private static final String[] entityNames = new String[] {
 	"template",
@@ -1024,16 +1031,59 @@ public class UploadManagementDAO extends BasicDAO implements UploadManagement {
 	    RepositoryRecord rec = (RepositoryRecord)it.next();
 	    rec.setLatestRegistered( registered );
 	    rec.setLatestShipped( shipped );
-	    rec.setLatestShipped( disposed );
+	    rec.setLatestDisposed( disposed );
 	    fl.add( rec );
 	}	       
 	res.close();
 	popStatement( pstmt );
 
      	RepositoryRecord[] facs = new RepositoryRecord[ fl.size() ];
-     	return (RepositoryRecord[])fl.toArray( facs );
+     	return (RepositoryRecord[])fl.toArray( facs );	
+    }
 
-	
+    /**
+     * Returns the repository update summary.
+     *
+     * @param days days to look back into update history.
+     * @return a list of matching <code>RepositoryRecord</code> objects.
+     */
+    public RepositoryRecord[] findRepositoryUpdates( int days ) 
+	throws SQLException {
+
+	long ct = System.currentTimeMillis();
+	long age = (long)days * 24L * 60L * 60L * 1000L;
+	if( ct-age <= 0 )
+	    throw new SQLException( "Invalid days value: "+days );
+
+	Timestamp ts = new Timestamp( ct-age );
+	log.debug( "Find repository updates after "+ts );
+
+	// Timestamp registered = latestStatus( STMT_REGISTRATION_LREG, groupId );
+	// Timestamp shipped = latestStatus( STMT_REGISTRATION_LSHIP, groupId );
+	// Timestamp disposed = latestStatus( STMT_REGISTRATION_LDISP, groupId );
+
+ 	PreparedStatement pstmt = null;
+     	List<RepositoryRecord> fl = new ArrayList<RepositoryRecord>();
+	for( int i = 0; i < STMT_REGISTRATION_LATEST.length; i++ ) {
+	    pstmt = getStatement( STMT_REGISTRATION_LATEST[i] );
+	    pstmt.setTimestamp( 1, ts );
+
+	    ResultSet res = pstmt.executeQuery();
+	    Iterator it = TableUtils.toObjects( res, new RepositoryRecord() );
+	    while( it.hasNext() ) {
+		RepositoryRecord rec = (RepositoryRecord)it.next();
+		// log.debug( "Updated members: "+Stringx.getDefault(rec.getProject(),"")+" "+rec.getStoragegroup() );
+		// rec.setLatestRegistered( registered );
+		// rec.setLatestShipped( shipped );
+		// rec.setLatestDisposed( disposed );
+		fl.add( rec );
+	    }
+	    res.close();
+	    popStatement( pstmt );
+	}
+
+     	RepositoryRecord[] facs = new RepositoryRecord[ fl.size() ];
+     	return (RepositoryRecord[])fl.toArray( facs );	
     }
     
 

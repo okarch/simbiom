@@ -380,6 +380,7 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	pstmt.setString( 4, bill.getProjectcode() );
 	pstmt.setString( 5, bill.getCurrency() );
 	pstmt.setFloat( 6, bill.getTotal() );
+	pstmt.setString( 7, bill.getStatus() );
 
      	pstmt.executeUpdate();
 	popStatement( pstmt );
@@ -406,8 +407,9 @@ public class StorageBudgetDAO extends BasicDAO implements StorageBudget {
 	pstmt.setString( 3, billing.getProjectcode() );
 	pstmt.setString( 4, billing.getCurrency() );
 	pstmt.setFloat( 5, billing.getTotal() );
+	pstmt.setString( 6, billing.getStatus() );
 
-	pstmt.setLong( 6, bill.getBillid() );
+	pstmt.setLong( 7, bill.getBillid() );
 
      	pstmt.executeUpdate();
 	popStatement( pstmt );

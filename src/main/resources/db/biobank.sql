@@ -601,11 +601,13 @@ create table t_storage_billing(
   purchase       varchar(30),
   projectcode    varchar(50),
   currency       varchar(3),
-  total          float
+  total          float,
+  status         varchar(20)
 );
 create index i_bill_pid on t_storage_billing (projectid);
 create index i_bill_po on t_storage_billing (purchase);
 create index i_bill_pcode on t_storage_billing (projectcode);
+create index i_bill_stat on t_storage_billing (status);
 
 --
 -- t_storage_invoice

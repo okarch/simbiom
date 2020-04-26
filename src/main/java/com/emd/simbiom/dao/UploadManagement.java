@@ -181,4 +181,13 @@ public interface UploadManagement {
     public RepositoryRecord[] findRepositoryMember( long groupId, String status ) 
 	throws SQLException;
 
+    /**
+     * Returns the repository update summary.
+     *
+     * @param days days to look back into update history.
+     * @return a list of matching <code>RepositoryRecord</code> objects.
+     */
+    public RepositoryRecord[] findRepositoryUpdates( int days ) 
+	throws SQLException;
+
 }

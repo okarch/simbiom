@@ -27,16 +27,24 @@ public class Billing implements Copyable {
     private String purchase;
     private String projectcode;
     private String currency;
+    private String status;
 
     private float total;
 
+    public static final String STATUS_ACTIVE   = "active";
+    public static final String STATUS_INACTIVE = "inactive";
 
+    /**
+     * Creates a new <code>Billing</code> object.
+     * Default currency is EUR.
+     */
     public Billing() {
 	this.setBillid( DataHasher.hash( UUID.randomUUID().toString().getBytes() ) );
 	this.setProjectid( -1L );
 	this.setPurchase( "" );
 	this.setProjectcode( "" );
 	this.setCurrency( "EUR" );
+	this.setStatus( STATUS_ACTIVE );
     }
 
     /**
@@ -74,8 +82,6 @@ public class Billing implements Copyable {
     public final void setBillid(final long billid) {
 	this.billid = billid;
     }
-
- // currency varchar(3)\, total float )
 
     /**
      * Get the <code>Purchase</code> value.
@@ -147,6 +153,33 @@ public class Billing implements Copyable {
      */
     public final void setTotal(final float total) {
 	this.total = total;
+    }
+
+    /**
+     * Get the <code>Status</code> value.
+     *
+     * @return a <code>String</code> value
+     */
+    public final String getStatus() {
+	return status;
+    }
+
+    /**
+     * Set the <code>Status</code> value.
+     *
+     * @param status The new Status value.
+     */
+    public final void setStatus(final String status) {
+	this.status = status;
+    }
+
+    /**
+     * Returns whether a billing record is active.
+     *
+     * @return true in case the record is open for booking.
+     */
+    public final boolean isAvtive() {
+	return STATUS_ACTIVE.equalsIgnoreCase(this.getStatus());
     }
 
     /**
